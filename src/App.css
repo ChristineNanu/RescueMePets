@@ -1,0 +1,103 @@
+/* CSS for Navbar component */
+.Navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f2f2f2;
+  padding: 10px;
+}
+
+.Navbar-logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #333;
+  text-decoration: none;
+}
+
+.Navbar-nav {
+  list-style: none;
+  display: flex;
+  gap: 20px;
+}
+
+.Navbar-nav li a {
+  text-decoration: none;
+  color: #333;
+  transition: color 0.3s ease;
+}
+
+.Navbar-nav li a:hover {
+  color: #888;
+}
+
+
+
+.animal-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.animal-card {
+  border: 1px solid #ccc;
+  padding: 10px;
+  width: 250px;
+}
+
+.animal-name {
+  font-weight: bold;
+}
+
+.animal-image {
+  width: 100%;
+  height: auto;
+  margin-bottom: 10px;
+}
+
+.animal-description {
+  font-style: italic;
+}
+
+/* AdoptionForm.css */
+
+.adoption-form {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #f7f7f7;
+  border-radius: 5px;
+}
+
+.adoption-form label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.adoption-form input[type="text"],
+.adoption-form input[type="email"],
+.adoption-form input[type="tel"],
+.adoption-form select {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.adoption-form button[type="submit"] {
+  width: 100%;
+  padding: 10px;
+  background-color: #4caf50;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.adoption-form p {
+  text-align: center;
+  margin-top: 10px;
+  color: #4caf50;
+  font-weight: bold;
+}
