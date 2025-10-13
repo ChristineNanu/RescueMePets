@@ -4,7 +4,7 @@ function Centers() {
   const [centers, setCenter] = useState([]);
 
   useEffect(() => {
-    fetch('http://127.0.0.1:5000/centers')
+    fetch('http://127.0.0.1:8001/centers')
       .then(res => res.json())
       .then(centers => setCenter(centers))
       .catch(error => console.error(error));
@@ -17,7 +17,8 @@ function Centers() {
           <div className="center-container" key={center.id}>
             <p>Name: {center.name}</p>
             <p>Location: {center.location}</p>
-          </div> 
+            <p>Contact: {center.contact}</p>
+          </div>
         ))}
       </ul>
     </div>

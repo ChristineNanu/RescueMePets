@@ -34,7 +34,7 @@ function AnimalList() {
   const [animals, setAnimals] = useState([]);
 
   useEffect(() => {
-    fetch('http://127.0.0.1:5000/animals')
+    fetch('http://127.0.0.1:8001/animals')
       .then(res => res.json())
       .then(data => setAnimals(data))
       .catch(error => console.error(error));
@@ -45,8 +45,9 @@ function AnimalList() {
       {animals.map(animal => (
         <div className="animal-card" key={animal.id}>
           <p className="animal-name">Name: {animal.name}</p>
-          <p className="animal-gender">Gender: {animal.gender}</p>
-          <img className="animal-image" src={animal.image} alt={animal.image} />
+          <p className="animal-species">Species: {animal.species}</p>
+          <p className="animal-breed">Breed: {animal.breed}</p>
+          <p className="animal-age">Age: {animal.age}</p>
           <p className="animal-description">Description: {animal.description}</p>
         </div>
       ))}

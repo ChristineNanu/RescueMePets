@@ -1,34 +1,46 @@
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+import database
+Base = database.Base
 
-from flask_sqlalchemy import SQLAlchemy
+class User(Base):
+    __tablename__ = "users"
 
-db = SQLAlchemy()
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    email = Column(String, unique=True, index=True)
+    password = Column(String)
 
-class Animal(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    species = db.Column(db.String(100), nullable=False)
-    age = db.Column(db.Integer, nullable=False)
-    description = db.Column(db.Text, nullable=False)
-    photo = db.Column(db.String(255))
-    adoption_status = db.Column(db.Boolean, default=False)
+class Animal(Base):
+    __tablename__ = "animals"
 
-class AdoptionForm(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    full_name = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(100), nullable=False)
-    phone_number = db.Column(db.String(15), nullable=False)
-    address = db.Column(db.Text, nullable=False)
-    animal_id = db.Column(db.Integer, db.ForeignKey('animal.id'), nullable=False)
-    approved = db.Column(db.Boolean, default=False)
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    species = Column(String)
+    breed = Column(String)
+    age = Column(Integer)
+    description = Column(Text)
+    center_id = Column(Integer, ForeignKey("centers.id"))
 
-class Centre(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    location = db.Column(db.String(100), nullable=False)
-    description = db.Column(db.Text, nullable=False)
+    center = relationship("Center")
 
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(100), unique=True, nullable=False)
-    email = db.Column(db.String(100), unique=True, nullable=False)
-    password = db.Column(db.String(100), nullable=False)
+class Center(Base):
+    __tablename__ = "centers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    location = Column(String)
+    contact = Column(String)
+
+class Adoption(Base):
+    __tablename__ = "adoptions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    animal_id = Column(Integer, ForeignKey("animals.id"))
+    message = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User")
+    animal = relationship("Animal")
