@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { useNavigate } from 'react-router-dom';
 
 export const Register = (props) => {
     const [username, setUsername] = useState('');
@@ -8,7 +7,7 @@ export const Register = (props) => {
     const [confirmPass, setConfirmPass] = useState('');
     const [message, setMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const navigate = useNavigate();
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();

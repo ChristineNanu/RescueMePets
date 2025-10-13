@@ -2,13 +2,13 @@ from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
 import models, schemas, sample_data
-from database import SessionLocal, engine, get_db
-from passlib.context import CryptContext
+import database
+import hashlib
 
-models.Base.metadata.create_all(bind=engine)
+database.Base.metadata.create_all(bind=database.engine)
 
 # Create sample data
-db = SessionLocal()
+db = database.SessionLocal()
 sample_data.create_sample_data(db)
 db.close()
 
@@ -17,25 +17,37 @@ app = FastAPI()
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001"],  # React app URLs
+    allow_origins=["*"],  # Allow all origins for MVP
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+def get_password_hash(password):
+    return hashlib.sha256(password.encode()).hexdigest()
 
 def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+    return get_password_hash(plain_password) == hashed_password
 
-def get_password_hash(password):
-    return pwd_context.hash(password)
+def get_db():
+    db = database.SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 @app.post("/register")
 def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    # Check if username already exists
     db_user = db.query(models.User).filter(models.User.username == user.username).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Username already registered")
+
+    # Check if email already exists
+    db_user_email = db.query(models.User).filter(models.User.email == user.email).first()
+    if db_user_email:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
     hashed_password = get_password_hash(user.password)
     db_user = models.User(username=user.username, email=user.email, password=hashed_password)
     db.add(db_user)
