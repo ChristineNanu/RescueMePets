@@ -16,6 +16,7 @@ class AnimalBase(BaseModel):
     breed: str
     age: int
     description: str
+    image: str
     center_id: int
 
 class Animal(AnimalBase):

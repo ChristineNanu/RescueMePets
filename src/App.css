@@ -3,14 +3,15 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #f2f2f2;
+  background-color: #4a90e2;
   padding: 10px;
+  color: white;
 }
 
 .Navbar-logo {
   font-size: 1.5rem;
   font-weight: bold;
-  color: #333;
+  color: white;
   text-decoration: none;
 }
 
@@ -22,40 +23,47 @@
 
 .Navbar-nav li a {
   text-decoration: none;
-  color: #333;
+  color: white;
   transition: color 0.3s ease;
 }
 
 .Navbar-nav li a:hover {
-  color: #888;
+  color: #ddd;
 }
-
-
 
 .animal-list {
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
+  padding: 20px;
 }
 
 .animal-card {
   border: 1px solid #ccc;
-  padding: 10px;
-  width: 250px;
+  padding: 20px;
+  width: 300px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  background-color: white;
 }
 
 .animal-name {
   font-weight: bold;
+  font-size: 1.2rem;
+  color: #333;
 }
 
 .animal-image {
   width: 100%;
-  height: auto;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 5px;
   margin-bottom: 10px;
 }
 
 .animal-description {
   font-style: italic;
+  color: #666;
 }
 
 /* AdoptionForm.css */
@@ -65,34 +73,44 @@
   margin: 0 auto;
   padding: 20px;
   background-color: #f7f7f7;
-  border-radius: 5px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
 .adoption-form label {
   display: block;
   margin-bottom: 5px;
   font-weight: bold;
+  color: #333;
 }
 
 .adoption-form input[type="text"],
 .adoption-form input[type="email"],
 .adoption-form input[type="tel"],
-.adoption-form select {
+.adoption-form select,
+.adoption-form textarea {
   width: 100%;
-  padding: 8px;
-  margin-bottom: 10px;
+  padding: 10px;
+  margin-bottom: 15px;
   border: 1px solid #ccc;
-  border-radius: 4px;
+  border-radius: 5px;
+  font-size: 1rem;
 }
 
 .adoption-form button[type="submit"] {
   width: 100%;
-  padding: 10px;
-  background-color: #4caf50;
-  color: #fff;
+  padding: 12px;
+  background-color: #4a90e2;
+  color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 5px;
   cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s ease;
+}
+
+.adoption-form button[type="submit"]:hover {
+  background-color: #357abd;
 }
 
 .adoption-form p {
@@ -100,4 +118,114 @@
   margin-top: 10px;
   color: #4caf50;
   font-weight: bold;
+}
+
+/* Auth forms */
+.auth-form-container {
+  max-width: 400px;
+  margin: 50px auto;
+  padding: 20px;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.auth-form-container h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.login-form, .register-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.login-form label, .register-form label {
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #333;
+}
+
+.login-form input, .register-form input {
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 1rem;
+}
+
+.login-form button, .register-form button {
+  padding: 12px;
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s ease;
+}
+
+.login-form button:hover, .register-form button:hover {
+  background-color: #357abd;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: #4a90e2;
+  cursor: pointer;
+  text-decoration: underline;
+  margin-top: 10px;
+}
+
+.link-btn:hover {
+  color: #357abd;
+}
+
+/* Centers */
+.centers-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 20px;
+}
+
+.center-card {
+  border: 1px solid #ccc;
+  padding: 20px;
+  width: 300px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  background-color: white;
+}
+
+.center-name {
+  font-weight: bold;
+  font-size: 1.2rem;
+  color: #333;
+}
+
+.center-location {
+  color: #666;
+}
+
+.center-contact {
+  color: #666;
+}
+
+/* General body styles */
+body {
+  font-family: 'Arial', sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f4f4f4;
+}
+
+h1, h2, h3 {
+  color: #333;
+}
+
+p {
+  color: #666;
 }

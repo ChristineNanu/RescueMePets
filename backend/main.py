@@ -17,7 +17,7 @@ app = FastAPI()
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # React app URL
+    allow_origins=["http://localhost:3000", "http://localhost:3001"],  # React app URLs
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -53,7 +53,26 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
 @app.get("/animals")
 def get_animals(db: Session = Depends(get_db)):
     animals = db.query(models.Animal).all()
-    return [{"id": a.id, "name": a.name, "species": a.species, "breed": a.breed, "age": a.age, "description": a.description, "center_id": a.center_id} for a in animals]
+    result = []
+    for animal in animals:
+        animal_dict = {
+            "id": animal.id,
+            "name": animal.name,
+            "species": animal.species,
+            "breed": animal.breed,
+            "age": animal.age,
+            "description": animal.description,
+            "image": animal.image,
+            "center_id": animal.center_id,
+            "center": {
+                "id": animal.center.id,
+                "name": animal.center.name,
+                "location": animal.center.location,
+                "contact": animal.center.contact
+            } if animal.center else None
+        }
+        result.append(animal_dict)
+    return result
 
 @app.get("/centers", response_model=list[schemas.Center])
 def get_centers(db: Session = Depends(get_db)):
