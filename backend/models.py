@@ -21,6 +21,7 @@ class Animal(Base):
     breed = Column(String)
     age = Column(Integer)
     description = Column(Text)
+    image = Column(String)
     center_id = Column(Integer, ForeignKey("centers.id"))
 
     center = relationship("Center")

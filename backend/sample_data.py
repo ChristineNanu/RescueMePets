@@ -10,9 +10,9 @@ def create_sample_data(db: Session):
     db.commit()
 
     # Sample animals
-    animal1 = models.Animal(name="Buddy", species="Dog", breed="Golden Retriever", age=3, description="Friendly and playful", center_id=center1.id)
-    animal2 = models.Animal(name="Whiskers", species="Cat", breed="Siamese", age=2, description="Curious and affectionate", center_id=center2.id)
-    animal3 = models.Animal(name="Max", species="Dog", breed="Labrador", age=5, description="Loyal companion", center_id=center1.id)
+    animal1 = models.Animal(name="Buddy", species="Dog", breed="Golden Retriever", age=3, description="Friendly and playful", image="https://picsum.photos/300/200?random=1", center_id=center1.id)
+    animal2 = models.Animal(name="Whiskers", species="Cat", breed="Siamese", age=2, description="Curious and affectionate", image="https://picsum.photos/300/200?random=2", center_id=center2.id)
+    animal3 = models.Animal(name="Max", species="Dog", breed="Labrador", age=5, description="Loyal companion", image="https://picsum.photos/300/200?random=3", center_id=center1.id)
     db.add(animal1)
     db.add(animal2)
     db.add(animal3)

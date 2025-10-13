@@ -4,7 +4,7 @@ function Centers() {
   const [centers, setCenter] = useState([]);
 
   useEffect(() => {
-    fetch('http://127.0.0.1:8001/centers')
+    fetch('http://localhost:8002/centers')
       .then(res => res.json())
       .then(centers => setCenter(centers))
       .catch(error => console.error(error));
@@ -12,15 +12,16 @@ function Centers() {
 
   return (
     <div>
-      <ul className="list-group">
+      <h1>Rescue Centers</h1>
+      <div className="centers-list">
         {centers.map(center => (
-          <div className="center-container" key={center.id}>
-            <p>Name: {center.name}</p>
-            <p>Location: {center.location}</p>
-            <p>Contact: {center.contact}</p>
+          <div className="center-card" key={center.id}>
+            <h3 className="center-name">{center.name}</h3>
+            <p><strong>Location:</strong> {center.location}</p>
+            <p><strong>Contact:</strong> {center.contact}</p>
           </div>
         ))}
-      </ul>
+      </div>
     </div>
   );
 }

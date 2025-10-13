@@ -1,56 +1,31 @@
-// import React, { useEffect, useState } from 'react';
-
-
-// function AnimalList () {
-//   const [animal, setAnimal] = useState([]) ;
-
-//   useEffect(() => {
-//       fetch('http://127.0.0.1:5000/animals')
-//       .then(res => res.json())
-//       .then(animal => setAnimal(animal))
-//       .catch(error => console.error(error));
-//     }, []);
-
-//   return (
-//     <div>
-//       <ul className="list-group">
-//         {animal.map(animal => (
-//           <div className="animals-container" key={animal.id}>
-//           <p>Name: {animal.name}</p>
-//           <p>Gender: {animal.gender}</p>
-//           <img src={animal.image} alt={animal.image}></img>
-//           <p>Description: {animal.description}</p>
-//         </div> 
-//         ))}
-//       </ul>
-//     </div>
-// );
-// }
-// export default AnimalList;
-
 import React, { useEffect, useState } from 'react';
 
 function AnimalList() {
   const [animals, setAnimals] = useState([]);
 
   useEffect(() => {
-    fetch('http://127.0.0.1:8001/animals')
+    fetch('http://localhost:8002/animals')
       .then(res => res.json())
       .then(data => setAnimals(data))
       .catch(error => console.error(error));
   }, []);
 
   return (
-    <div className="animal-list">
-      {animals.map(animal => (
-        <div className="animal-card" key={animal.id}>
-          <p className="animal-name">Name: {animal.name}</p>
-          <p className="animal-species">Species: {animal.species}</p>
-          <p className="animal-breed">Breed: {animal.breed}</p>
-          <p className="animal-age">Age: {animal.age}</p>
-          <p className="animal-description">Description: {animal.description}</p>
-        </div>
-      ))}
+    <div>
+      <h1>Available Animals for Adoption</h1>
+      <div className="animal-list">
+        {animals.map(animal => (
+          <div className="animal-card" key={animal.id}>
+            <img src={animal.image} alt={animal.name} className="animal-image" />
+            <h3 className="animal-name">{animal.name}</h3>
+            <p><strong>Species:</strong> {animal.species}</p>
+            <p><strong>Breed:</strong> {animal.breed}</p>
+            <p><strong>Age:</strong> {animal.age} years old</p>
+            <p><strong>Description:</strong> {animal.description}</p>
+            <button onClick={() => window.location.href = '/adoption'}>Adopt Me!</button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
