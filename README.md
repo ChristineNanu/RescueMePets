@@ -1,71 +1,219 @@
-# Getting Started with Create React App
+# RescueMePets 🐾
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A full-stack web application for pet adoption built with React frontend and FastAPI backend. Connect loving homes with animals in need through an intuitive and user-friendly platform.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+### 🏠 **Rescue Centers**
+- Browse available rescue centers
+- View detailed information about each center
+- See all animals available at specific centers
+- Interactive center cards with modern UI
 
-### `npm start`
+### 🐕 **Animal Listings**
+- View all available animals for adoption
+- Detailed animal profiles with images, breed, age, and descriptions
+- Filter animals by rescue center
+- Beautiful card-based layout
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### 📝 **Adoption Process**
+- Streamlined adoption application form
+- Pre-select animals from listings or center pages
+- User-friendly form with validation
+- Submit adoption requests directly
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### 🔐 **User Authentication**
+- User registration and login
+- Secure password hashing
+- Session management with localStorage
 
-### `npm test`
+## Tech Stack
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Frontend
+- **React** - Component-based UI framework
+- **React Router** - Client-side routing
+- **CSS3** - Custom styling with modern design
+- **Tailwind CSS** - Utility-first CSS framework
 
-### `npm run build`
+### Backend
+- **FastAPI** - Modern, fast web framework for Python
+- **SQLAlchemy** - ORM for database operations
+- **SQLite** - Lightweight database
+- **Pydantic** - Data validation
+- **Passlib** - Password hashing
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Project Structure
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```
+RescueMePets/
+├── backend/
+│   ├── main.py          # FastAPI application with endpoints
+│   ├── models.py        # SQLAlchemy database models
+│   ├── schemas.py       # Pydantic schemas for validation
+│   ├── database.py      # Database configuration
+│   ├── sample_data.py   # Sample data creation
+│   └── requirements.txt # Python dependencies
+├── src/
+│   ├── components/
+│   │   ├── AnimalList.js     # Animals listing page
+│   │   ├── Centers.js        # Rescue centers page
+│   │   ├── AdoptionForm.js   # Adoption application form
+│   │   ├── Login.js          # User login component
+│   │   ├── Register.js       # User registration component
+│   │   └── Navbar.js         # Navigation bar
+│   ├── App.js                # Main React application
+│   ├── App.css               # Main application styles
+│   └── index.js              # React entry point
+├── public/                   # Static assets
+└── package.json             # Node.js dependencies
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## API Endpoints
 
-### `npm run eject`
+### Authentication
+- `POST /register` - Register a new user
+- `POST /login` - User login
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Animals & Centers
+- `GET /animals` - Get all available animals
+- `GET /centers` - Get all rescue centers
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### Adoption
+- `POST /adopt` - Submit adoption application
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## Installation & Setup
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### Prerequisites
+- Node.js (v14 or higher)
+- Python (v3.8 or higher)
+- npm or yarn
 
-## Learn More
+### Backend Setup
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+1. Navigate to the backend directory:
+   ```bash
+   cd backend
+   ```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+2. Install Python dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-### Code Splitting
+3. Start the FastAPI server:
+   ```bash
+   uvicorn main:app --reload --host 0.0.0.0 --port 8002
+   ```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+The backend will be running at `http://localhost:8002`
 
-### Analyzing the Bundle Size
+### Frontend Setup
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+1. In a new terminal, navigate to the root directory:
+   ```bash
+   cd RescueMePets
+   ```
 
-### Making a Progressive Web App
+2. Install Node.js dependencies:
+   ```bash
+   npm install
+   ```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+3. Start the React development server:
+   ```bash
+   npm start
+   ```
 
-### Advanced Configuration
+The frontend will be running at `http://localhost:3000`
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## Usage
 
-### Deployment
+### For Users
+1. **Register/Login**: Create an account or log in to existing account
+2. **Browse Animals**: View all available animals on the main animals page
+3. **Explore Centers**: Visit the centers page to see rescue locations and their animals
+4. **Adopt**: Click "Adopt Me!" on any animal to start the adoption process
+5. **Submit Application**: Fill out the adoption form and submit your request
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+### For Developers
+- **API Documentation**: Visit `http://localhost:8002/docs` for interactive API docs
+- **Database**: SQLite database file is created automatically in `backend/database.db`
+- **Sample Data**: Sample centers and animals are created on server startup
 
-### `npm run build` fails to minify
+## Features in Detail
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
-# RescueMePets
+### 🖼️ **Animal Cards**
+- High-quality images from Picsum Photos
+- Detailed information display
+- Interactive "Adopt Me!" buttons with hover effects
+- Responsive card layout
+
+### 🏢 **Center Exploration**
+- Click "Visit Center" to see animals at specific locations
+- Back navigation to return to centers list
+- Consistent UI across all pages
+
+### 📋 **Adoption Form**
+- Pre-populated animal selection
+- User ID auto-detection from login
+- Message field for personal adoption story
+- Form validation and error handling
+
+### 🎨 **UI/UX Design**
+- Modern, clean interface
+- Consistent color scheme
+- Smooth animations and transitions
+- Mobile-responsive design
+- Accessible button and form elements
+
+## Database Schema
+
+### Users
+- id (Primary Key)
+- username (Unique)
+- email (Unique)
+- password (Hashed)
+
+### Animals
+- id (Primary Key)
+- name
+- species
+- breed
+- age
+- description
+- center_id (Foreign Key)
+
+### Centers
+- id (Primary Key)
+- name
+- location
+- contact
+
+### Adoptions
+- id (Primary Key)
+- user_id (Foreign Key)
+- animal_id (Foreign Key)
+- message
+- created_at (Timestamp)
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- Built with ❤️ for animal welfare
+- Images courtesy of Picsum Photos
+- Icons from Unicode emoji
+
+---
+
+**Happy coding and helping animals find homes! 🐾**
