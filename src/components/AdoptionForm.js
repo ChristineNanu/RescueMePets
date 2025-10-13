@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 function AdoptionForm() {
   const [animals, setAnimals] = useState([]);
@@ -6,6 +7,7 @@ function AdoptionForm() {
   const [animalId, setAnimalId] = useState('');
   const [message, setMessage] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     // Fetch animals for the dropdown
@@ -19,7 +21,13 @@ function AdoptionForm() {
     if (storedUserId) {
       setUserId(storedUserId);
     }
-  }, []);
+
+    // Get animalId from URL params
+    const animalIdParam = searchParams.get('animalId');
+    if (animalIdParam) {
+      setAnimalId(animalIdParam);
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
