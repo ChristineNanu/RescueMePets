@@ -1,15 +1,17 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
-import models, schemas, sample_data
-import database
+from models import User, Animal as AnimalModel, Center as CenterModel, Adoption
+from schemas import UserCreate, UserLogin, Animal, Center, AdoptionCreate
+from sample_data import create_sample_data
+from database import SessionLocal, engine, get_db, Base
 import hashlib
 
-database.Base.metadata.create_all(bind=database.engine)
+Base.metadata.create_all(bind=engine)
 
 # Create sample data
-db = database.SessionLocal()
-sample_data.create_sample_data(db)
+db = SessionLocal()
+create_sample_data(db)
 db.close()
 
 app = FastAPI()
@@ -30,41 +32,41 @@ def verify_password(plain_password, hashed_password):
     return get_password_hash(plain_password) == hashed_password
 
 def get_db():
-    db = database.SessionLocal()
+    db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
 
 @app.post("/register")
-def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
+def register(user: UserCreate, db: Session = Depends(get_db)):
     # Check if username already exists
-    db_user = db.query(models.User).filter(models.User.username == user.username).first()
+    db_user = db.query(User).filter(User.username == user.username).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Username already registered")
 
     # Check if email already exists
-    db_user_email = db.query(models.User).filter(models.User.email == user.email).first()
+    db_user_email = db.query(User).filter(User.email == user.email).first()
     if db_user_email:
         raise HTTPException(status_code=400, detail="Email already registered")
 
     hashed_password = get_password_hash(user.password)
-    db_user = models.User(username=user.username, email=user.email, password=hashed_password)
+    db_user = User(username=user.username, email=user.email, password=hashed_password)
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
     return {"message": "User registered successfully"}
 
 @app.post("/login")
-def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
-    db_user = db.query(models.User).filter(models.User.username == user.username).first()
+def login(user: UserLogin, db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.username == user.username).first()
     if not db_user or not verify_password(user.password, db_user.password):
         raise HTTPException(status_code=400, detail="Invalid credentials")
     return {"message": "Login successful", "user_id": db_user.id}
 
 @app.get("/animals")
 def get_animals(db: Session = Depends(get_db)):
-    animals = db.query(models.Animal).all()
+    animals = db.query(AnimalModel).all()
     result = []
     for animal in animals:
         animal_dict = {
@@ -86,14 +88,14 @@ def get_animals(db: Session = Depends(get_db)):
         result.append(animal_dict)
     return result
 
-@app.get("/centers", response_model=list[schemas.Center])
+@app.get("/centers", response_model=list[Center])
 def get_centers(db: Session = Depends(get_db)):
-    centers = db.query(models.Center).all()
+    centers = db.query(CenterModel).all()
     return centers
 
 @app.post("/adopt")
-def adopt(adoption: schemas.AdoptionCreate, db: Session = Depends(get_db)):
-    db_adoption = models.Adoption(**adoption.dict())
+def adopt(adoption: AdoptionCreate, db: Session = Depends(get_db)):
+    db_adoption = Adoption(**adoption.dict())
     db.add(db_adoption)
     db.commit()
     db.refresh(db_adoption)
