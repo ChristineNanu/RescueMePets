@@ -1,4 +1,4 @@
-# TODO: Backend and Frontend Integration
+# TODO: Backend Deployment Issues
 
 ## Completed Tasks
 
@@ -9,10 +9,14 @@
 - [x] Frontend components for login, register, animal list, centers, and adoption form
 - [x] CORS configuration for local development
 - [x] Sample data creation
+- [x] Removed backend-deploy directory as requested
 
 ## Remaining Tasks
 
-- [ ] Add environment variable for API base URL in production
+- [ ] Fix Render deployment compatibility issues with Python dependencies
+- [ ] Test backend deployment on Render
+- [ ] Update frontend API calls to use deployed backend URL
+- [ ] Verify CORS configuration works with production URLs
 - [ ] Implement proper error handling and loading states
 - [ ] Add user authentication persistence (JWT tokens)
 - [ ] Add image upload functionality for animals
@@ -21,4 +25,3 @@
 - [ ] Implement email notifications for adoption requests
 - [ ] Add unit and integration tests
 - [ ] Set up CI/CD pipeline
-- [ ] Deploy to production
