@@ -9,9 +9,14 @@ function Centers() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log('Fetching centers from:', `${API_BASE_URL}/centers`);
     fetch(`${API_BASE_URL}/centers`)
       .then(res => {
         console.log('Centers response status:', res.status);
+        console.log('Centers response headers:', res.headers);
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
         return res.json();
       })
       .then(centers => {
