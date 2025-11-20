@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { API_BASE_URL } from '../constants';
 
 export const Register = (props) => {
     const [username, setUsername] = useState('');
@@ -26,7 +27,7 @@ export const Register = (props) => {
         setMessage('');
 
         try {
-            const response = await fetch('http://localhost:8002/register', {
+            const response = await fetch(`${API_BASE_URL}/register`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

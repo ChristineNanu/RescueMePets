@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../constants';
 
 function AnimalList() {
   const [animals, setAnimals] = useState([]);
@@ -7,7 +8,7 @@ function AnimalList() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch('http://localhost:8002/animals')
+    fetch(`${API_BASE_URL}/animals`)
       .then(res => res.json())
       .then(data => {
         setAnimals(data);
