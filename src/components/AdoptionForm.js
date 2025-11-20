@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../constants';
 
 function AdoptionForm() {
   const [animals, setAnimals] = useState([]);
@@ -14,7 +15,7 @@ function AdoptionForm() {
 
   useEffect(() => {
     // Fetch animals for the dropdown
-    fetch('http://localhost:8002/animals')
+    fetch(`${API_BASE_URL}/animals`)
       .then(res => res.json())
       .then(data => {
         setAnimals(data);
@@ -48,7 +49,7 @@ function AdoptionForm() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch('http://localhost:8002/adopt', {
+      const response = await fetch(`${API_BASE_URL}/adopt`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

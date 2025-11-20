@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../constants';
 
 function Centers() {
   const [centers, setCenter] = useState([]);
@@ -8,16 +9,22 @@ function Centers() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch('http://localhost:8002/centers')
-      .then(res => res.json())
-      .then(centers => setCenter(centers))
-      .catch(error => console.error(error));
+    fetch(`${API_BASE_URL}/centers`)
+      .then(res => {
+        console.log('Centers response status:', res.status);
+        return res.json();
+      })
+      .then(centers => {
+        console.log('Centers data:', centers);
+        setCenter(centers);
+      })
+      .catch(error => console.error('Error fetching centers:', error));
   }, []);
 
   const handleVisitCenter = (center) => {
     setSelectedCenter(center);
     // Fetch animals for this center
-    fetch('http://localhost:8002/animals')
+    fetch(`${API_BASE_URL}/animals`)
       .then(res => res.json())
       .then(animals => {
         const filteredAnimals = animals.filter(animal => animal.center && animal.center.id === center.id);
