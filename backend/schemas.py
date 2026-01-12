@@ -16,8 +16,20 @@ class AnimalBase(BaseModel):
     breed: str
     age: int
     description: str
-    image: str
+    image: Optional[str] = None
     center_id: int
+
+class AnimalCreate(AnimalBase):
+    pass
+
+class AnimalUpdate(BaseModel):
+    name: Optional[str] = None
+    species: Optional[str] = None
+    breed: Optional[str] = None
+    age: Optional[int] = None
+    description: Optional[str] = None
+    image: Optional[str] = None
+    center_id: Optional[int] = None
 
 class Animal(AnimalBase):
     id: int

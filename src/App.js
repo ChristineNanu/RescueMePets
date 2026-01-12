@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import AnimalList from './components/AnimalList';
+import AnimalManagement from './components/AnimalManagement';
 import AdoptionForm from './components/AdoptionForm';
 import Centers from './components/Centers';
 import { Login } from "./components/Login";
@@ -54,6 +55,10 @@ function App() {
           <Route
             path="/animals"
             element={isLoggedIn ? <AnimalList /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/manage"
+            element={isLoggedIn ? <AnimalManagement /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/centers"
