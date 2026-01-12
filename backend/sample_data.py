@@ -2,6 +2,10 @@ from sqlalchemy.orm import Session
 import models
 
 def create_sample_data(db: Session):
+    # Check if sample data already exists
+    if db.query(models.Center).count() > 0:
+        return  # Data already exists
+
     # Sample centers
     center1 = models.Center(name="Happy Tails Shelter", location="New York", contact="contact@happytails.com")
     center2 = models.Center(name="Paws Rescue", location="California", contact="info@pawsrescue.com")

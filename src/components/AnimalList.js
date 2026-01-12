@@ -8,17 +8,20 @@ function AnimalList() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/animals`)
-      .then(res => res.json())
-      .then(data => {
-        setAnimals(data);
-        setLoading(false);
-      })
-      .catch(error => {
-        console.error(error);
-        setLoading(false);
-      });
+    fetchAnimals();
   }, []);
+
+  const fetchAnimals = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/animals`);
+      const data = await response.json();
+      setAnimals(data);
+      setLoading(false);
+    } catch (error) {
+      console.error(error);
+      setLoading(false);
+    }
+  };
 
   const handleAdopt = (animalId) => {
     navigate(`/adoption?animalId=${animalId}`);

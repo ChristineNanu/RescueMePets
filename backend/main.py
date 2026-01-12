@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
 from models import User, Animal as AnimalModel, Center as CenterModel, Adoption
-from schemas import UserCreate, UserLogin, Animal, Center, AdoptionCreate
+from schemas import UserCreate, UserLogin, Animal, Center, AdoptionCreate, AnimalCreate, AnimalUpdate
 from sample_data import create_sample_data
 from database import SessionLocal, engine, get_db, Base
 import hashlib
@@ -19,8 +19,8 @@ app = FastAPI()
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://rescue-me-pets-jth2-ceclh8haa-christinenanus-projects.vercel.app", "http://localhost:3000"],  # Allow Vercel frontend and local dev
-    allow_credentials=True,
+    allow_origins=["*"],  # Allow all origins for testing
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -90,8 +90,11 @@ def get_animals(db: Session = Depends(get_db)):
 
 @app.get("/centers", response_model=list[Center])
 def get_centers(db: Session = Depends(get_db)):
-    centers = db.query(CenterModel).all()
-    return centers
+    try:
+        centers = db.query(CenterModel).all()
+        return centers
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/adopt")
 def adopt(adoption: AdoptionCreate, db: Session = Depends(get_db)):
@@ -100,3 +103,48 @@ def adopt(adoption: AdoptionCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_adoption)
     return {"message": "Adoption request submitted"}
+
+@app.post("/animals")
+def create_animal(animal: AnimalCreate, db: Session = Depends(get_db)):
+    try:
+        # Convert to dict and handle empty image
+        animal_data = animal.dict()
+        if not animal_data.get('image'):
+            animal_data['image'] = f"https://picsum.photos/400/300?random={animal_data['center_id']}"
+        
+        db_animal = AnimalModel(**animal_data)
+        db.add(db_animal)
+        db.commit()
+        db.refresh(db_animal)
+        return {"message": "Animal created successfully", "id": db_animal.id}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Error creating animal: {str(e)}")
+
+@app.put("/animals/{animal_id}")
+def update_animal(animal_id: int, animal: AnimalUpdate, db: Session = Depends(get_db)):
+    db_animal = db.query(AnimalModel).filter(AnimalModel.id == animal_id).first()
+    if not db_animal:
+        raise HTTPException(status_code=404, detail="Animal not found")
+    
+    update_data = animal.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_animal, field, value)
+    
+    db.commit()
+    db.refresh(db_animal)
+    return {"message": "Animal updated successfully"}
+
+@app.delete("/animals/{animal_id}")
+def delete_animal(animal_id: int, db: Session = Depends(get_db)):
+    db_animal = db.query(AnimalModel).filter(AnimalModel.id == animal_id).first()
+    if not db_animal:
+        raise HTTPException(status_code=404, detail="Animal not found")
+    
+    db.delete(db_animal)
+    db.commit()
+    return {"message": "Animal deleted successfully"}
+
+@app.get("/test")
+def test_endpoint():
+    return {"message": "Backend is working!", "timestamp": "2024"}
