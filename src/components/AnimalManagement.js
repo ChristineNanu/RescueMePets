@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { API_BASE_URL } from '../constants';
+import { logger } from '../utils/logger';
 
 function AnimalManagement() {
   const [animals, setAnimals] = useState([]);
@@ -27,7 +28,7 @@ function AnimalManagement() {
       const data = await response.json();
       setAnimals(data);
     } catch (error) {
-      console.error('Error fetching animals:', error);
+      logger.error('Error fetching animals:', error);
     }
   };
 
@@ -37,7 +38,7 @@ function AnimalManagement() {
       const data = await response.json();
       setCenters(data);
     } catch (error) {
-      console.error('Error fetching centers:', error);
+      logger.error('Error fetching centers:', error);
     }
   };
 
@@ -52,10 +53,8 @@ function AnimalManagement() {
   const handleAddAnimal = async (e) => {
     e.preventDefault();
     
-    // Debug logging
-    console.log('Form data before submit:', formData);
+    logger.debug('Form data before submit:', formData);
     
-    // Validate required fields
     if (!formData.name || !formData.species || !formData.breed || !formData.age || !formData.description || !formData.center_id) {
       alert('Please fill in all required fields');
       return;
@@ -72,7 +71,7 @@ function AnimalManagement() {
         center_id: parseInt(formData.center_id)
       };
       
-      console.log('Sending payload:', payload);
+      logger.debug('Sending payload:', payload);
       
       const response = await fetch(`${API_BASE_URL}/animals`, {
         method: 'POST',
@@ -82,11 +81,11 @@ function AnimalManagement() {
         body: JSON.stringify(payload),
       });
 
-      console.log('Response status:', response.status);
+      logger.debug('Response status:', response.status);
       
       if (response.ok) {
         const result = await response.json();
-        console.log('Success result:', result);
+        logger.info('Animal added successfully:', result);
         alert('Animal added successfully!');
         setShowAddForm(false);
         setFormData({
@@ -101,11 +100,11 @@ function AnimalManagement() {
         fetchAnimals();
       } else {
         const errorData = await response.json();
-        console.error('Error response:', errorData);
+        logger.error('Error response:', errorData);
         alert(`Error adding animal: ${errorData.detail || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Network error:', error);
+      logger.error('Network error:', error);
       alert(`Network error: ${error.message}`);
     }
   };
@@ -197,21 +196,12 @@ function AnimalManagement() {
 
   return (
     <div className="app-container">
-      {/* Debug info */}
-      <div style={{ padding: '10px', backgroundColor: '#f0f0f0', margin: '10px', fontSize: '12px' }}>
-        <strong>Debug Info:</strong><br/>
-        showAddForm: {showAddForm.toString()}<br/>
-        editingAnimal: {editingAnimal ? editingAnimal.name : 'null'}<br/>
-        centers loaded: {centers.length}<br/>
-        animals loaded: {animals.length}
-      </div>
-      
       <div className="page-header">
         <h1>Animal Management</h1>
         <button 
           onClick={() => {
-            console.log('Add New Animal button clicked!');
-            console.log('Current showAddForm state:', showAddForm);
+            logger.debug('Add New Animal button clicked!');
+            logger.debug('Current showAddForm state:', showAddForm);
             setShowAddForm(!showAddForm);
           }}
           style={{ 
