@@ -5,6 +5,7 @@ from models import User, Animal as AnimalModel, Center as CenterModel, Adoption
 from schemas import UserCreate, UserLogin, Animal, Center, AdoptionCreate, AnimalCreate, AnimalUpdate
 from sample_data import create_sample_data
 from database import SessionLocal, engine, get_db, Base
+from sql_engine import SimpleSQL
 import hashlib
 
 Base.metadata.create_all(bind=engine)
@@ -16,15 +17,15 @@ db.close()
 
 app = FastAPI()
 
-# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for testing
+    allow_origins=["*"],  
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# password hashing 
 def get_password_hash(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
@@ -40,22 +41,23 @@ def get_db():
 
 @app.post("/register")
 def register(user: UserCreate, db: Session = Depends(get_db)):
-    # Check if username already exists
-    db_user = db.query(User).filter(User.username == user.username).first()
-    if db_user:
-        raise HTTPException(status_code=400, detail="Username already registered")
+    # make sure username isn't taken
+    existing_user = db.query(User).filter(User.username == user.username).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Username already taken")
 
-    # Check if email already exists
-    db_user_email = db.query(User).filter(User.email == user.email).first()
-    if db_user_email:
-        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    existing_email = db.query(User).filter(User.email == user.email).first()
+    if existing_email:
+        raise HTTPException(status_code=400, detail="Email already in use")
 
+    # create new user
     hashed_password = get_password_hash(user.password)
-    db_user = User(username=user.username, email=user.email, password=hashed_password)
-    db.add(db_user)
+    new_user = User(username=user.username, email=user.email, password=hashed_password)
+    db.add(new_user)
     db.commit()
-    db.refresh(db_user)
-    return {"message": "User registered successfully"}
+    db.refresh(new_user)
+    return {"message": "Account created successfully"}
 
 @app.post("/login")
 def login(user: UserLogin, db: Session = Depends(get_db)):
@@ -68,8 +70,9 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
 def get_animals(db: Session = Depends(get_db)):
     animals = db.query(AnimalModel).all()
     result = []
+    # build response with center info included
     for animal in animals:
-        animal_dict = {
+        animal_data = {
             "id": animal.id,
             "name": animal.name,
             "species": animal.species,
@@ -85,7 +88,7 @@ def get_animals(db: Session = Depends(get_db)):
                 "contact": animal.center.contact
             } if animal.center else None
         }
-        result.append(animal_dict)
+        result.append(animal_data)
     return result
 
 @app.get("/centers", response_model=list[Center])
@@ -148,3 +151,40 @@ def delete_animal(animal_id: int, db: Session = Depends(get_db)):
 @app.get("/test")
 def test_endpoint():
     return {"message": "Backend is working!", "timestamp": "2024"}
+
+@app.post("/sql")
+def execute_sql(request: dict, db: Session = Depends(get_db)):
+    query = request.get('query', '')
+    if not query:
+        return {"error": "No query provided"}
+    
+    sql_engine = SimpleSQL(db)
+    result = sql_engine.execute_query(query)
+    return result
+
+@app.get("/tables")
+def get_tables():
+    # Return info about our database schema
+    return {
+        "tables": {
+            "users": {
+                "columns": ["id", "username", "email", "password"],
+                "primary_key": "id",
+                "unique_keys": ["username", "email"]
+            },
+            "animals": {
+                "columns": ["id", "name", "species", "breed", "age", "description", "image", "center_id"],
+                "primary_key": "id",
+                "foreign_keys": {"center_id": "centers.id"}
+            },
+            "centers": {
+                "columns": ["id", "name", "location", "contact"],
+                "primary_key": "id"
+            },
+            "adoptions": {
+                "columns": ["id", "user_id", "animal_id", "message", "created_at"],
+                "primary_key": "id",
+                "foreign_keys": {"user_id": "users.id", "animal_id": "animals.id"}
+            }
+        }
+    }
