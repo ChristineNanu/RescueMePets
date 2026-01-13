@@ -188,3 +188,26 @@ def get_tables():
             }
         }
     }
+
+@app.post("/reset-db")
+def reset_database(db: Session = Depends(get_db)):
+    try:
+        # Clear all data
+        db.query(Adoption).delete()
+        db.query(AnimalModel).delete()
+        db.query(CenterModel).delete()
+        db.query(User).delete()
+        db.commit()
+        return {"message": "Database reset successfully"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error resetting database: {str(e)}")
+
+@app.post("/load-sample-data")
+def load_sample_data_endpoint(db: Session = Depends(get_db)):
+    try:
+        create_sample_data(db)
+        return {"message": "Sample data loaded successfully"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error loading sample data: {str(e)}")
