@@ -1,4 +1,3 @@
-// Logger utility for managing console output
 const isDevelopment = process.env.NODE_ENV === 'development';
 
 export const logger = {
@@ -33,12 +32,10 @@ export const logger = {
   }
 };
 
-// For production error tracking (optional)
 export const logError = (error, context = '') => {
   if (isDevelopment) {
     console.error(`[ERROR] ${context}:`, error);
   } else {
-    // In production, you might want to send to error tracking service
-    // like Sentry, LogRocket, etc.
+    
   }
 };

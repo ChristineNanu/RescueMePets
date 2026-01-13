@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Navbar from './components/Navbar';
 import AnimalList from './components/AnimalList';
 import AnimalManagement from './components/AnimalManagement';
+import SQLInterface from './components/SQLInterface';
 import AdoptionForm from './components/AdoptionForm';
 import Centers from './components/Centers';
 import { Login } from "./components/Login";
@@ -59,6 +60,10 @@ function App() {
           <Route
             path="/manage"
             element={isLoggedIn ? <AnimalManagement /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/sql"
+            element={isLoggedIn ? <SQLInterface /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/centers"

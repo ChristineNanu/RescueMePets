@@ -28,7 +28,7 @@ function AnimalManagement() {
       const data = await response.json();
       setAnimals(data);
     } catch (error) {
-      logger.error('Error fetching animals:', error);
+      logger.error('Failed to load animals:', error);
     }
   };
 
@@ -38,7 +38,7 @@ function AnimalManagement() {
       const data = await response.json();
       setCenters(data);
     } catch (error) {
-      logger.error('Error fetching centers:', error);
+      logger.error('Failed to load centers:', error);
     }
   };
 
@@ -56,7 +56,7 @@ function AnimalManagement() {
     logger.debug('Form data before submit:', formData);
     
     if (!formData.name || !formData.species || !formData.breed || !formData.age || !formData.description || !formData.center_id) {
-      alert('Please fill in all required fields');
+      alert('Please fill out all the required fields');
       return;
     }
     
@@ -86,7 +86,7 @@ function AnimalManagement() {
       if (response.ok) {
         const result = await response.json();
         logger.info('Animal added successfully:', result);
-        alert('Animal added successfully!');
+        alert('Animal added!');
         setShowAddForm(false);
         setFormData({
           name: '',
@@ -101,11 +101,11 @@ function AnimalManagement() {
       } else {
         const errorData = await response.json();
         logger.error('Error response:', errorData);
-        alert(`Error adding animal: ${errorData.detail || 'Unknown error'}`);
+        alert(`Couldn't add animal: ${errorData.detail || 'Something went wrong'}`);
       }
     } catch (error) {
       logger.error('Network error:', error);
-      alert(`Network error: ${error.message}`);
+      alert(`Network problem: ${error.message}`);
     }
   };
 
@@ -223,89 +223,299 @@ function AnimalManagement() {
       </div>
 
       {(showAddForm || editingAnimal) && (
-        <div className="form-container">
-          <h3>{editingAnimal ? 'Edit Animal' : 'Add New Animal'}</h3>
+        <div className="form-container" style={{
+          background: 'white',
+          padding: '2rem',
+          borderRadius: '20px',
+          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
+          margin: '2rem auto',
+          maxWidth: '800px',
+          border: '1px solid rgba(255, 255, 255, 0.8)'
+        }}>
+          <h3 style={{
+            textAlign: 'center',
+            fontSize: '2rem',
+            fontWeight: '700',
+            background: 'linear-gradient(45deg, #667eea, #764ba2)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            marginBottom: '2rem'
+          }}>{editingAnimal ? 'Edit Animal' : 'Add New Animal'}</h3>
+          
           <form onSubmit={editingAnimal ? handleEditAnimal : handleAddAnimal}>
-            <div className="form-group">
-              <label>Name:</label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                required
-              />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+              <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontWeight: '600', color: '#4a5568', fontSize: '1rem' }}>🐾 Name:</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  required
+                  style={{
+                    padding: '1rem',
+                    border: '2px solid #e2e8f0',
+                    borderRadius: '12px',
+                    fontSize: '1rem',
+                    transition: 'all 0.3s ease',
+                    background: '#f7fafc'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#667eea';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+                    e.target.style.background = 'white';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#e2e8f0';
+                    e.target.style.boxShadow = 'none';
+                    e.target.style.background = '#f7fafc';
+                  }}
+                />
+              </div>
+              
+              <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontWeight: '600', color: '#4a5568', fontSize: '1rem' }}>🦴 Species:</label>
+                <input
+                  type="text"
+                  name="species"
+                  value={formData.species}
+                  onChange={handleInputChange}
+                  required
+                  style={{
+                    padding: '1rem',
+                    border: '2px solid #e2e8f0',
+                    borderRadius: '12px',
+                    fontSize: '1rem',
+                    transition: 'all 0.3s ease',
+                    background: '#f7fafc'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#667eea';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+                    e.target.style.background = 'white';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#e2e8f0';
+                    e.target.style.boxShadow = 'none';
+                    e.target.style.background = '#f7fafc';
+                  }}
+                />
+              </div>
+              
+              <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontWeight: '600', color: '#4a5568', fontSize: '1rem' }}>🏷️ Breed:</label>
+                <input
+                  type="text"
+                  name="breed"
+                  value={formData.breed}
+                  onChange={handleInputChange}
+                  required
+                  style={{
+                    padding: '1rem',
+                    border: '2px solid #e2e8f0',
+                    borderRadius: '12px',
+                    fontSize: '1rem',
+                    transition: 'all 0.3s ease',
+                    background: '#f7fafc'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#667eea';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+                    e.target.style.background = 'white';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#e2e8f0';
+                    e.target.style.boxShadow = 'none';
+                    e.target.style.background = '#f7fafc';
+                  }}
+                />
+              </div>
+              
+              <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontWeight: '600', color: '#4a5568', fontSize: '1rem' }}>🎂 Age (years):</label>
+                <input
+                  type="number"
+                  name="age"
+                  value={formData.age}
+                  onChange={handleInputChange}
+                  required
+                  min="0"
+                  max="30"
+                  style={{
+                    padding: '1rem',
+                    border: '2px solid #e2e8f0',
+                    borderRadius: '12px',
+                    fontSize: '1rem',
+                    transition: 'all 0.3s ease',
+                    background: '#f7fafc'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#667eea';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+                    e.target.style.background = 'white';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#e2e8f0';
+                    e.target.style.boxShadow = 'none';
+                    e.target.style.background = '#f7fafc';
+                  }}
+                />
+              </div>
             </div>
-            <div className="form-group">
-              <label>Species:</label>
-              <input
-                type="text"
-                name="species"
-                value={formData.species}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>Breed:</label>
-              <input
-                type="text"
-                name="breed"
-                value={formData.breed}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>Age:</label>
-              <input
-                type="number"
-                name="age"
-                value={formData.age}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>Description:</label>
+            
+            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
+              <label style={{ fontWeight: '600', color: '#4a5568', fontSize: '1rem' }}>📝 Description:</label>
               <textarea
                 name="description"
                 value={formData.description}
                 onChange={handleInputChange}
                 required
+                rows="4"
+                placeholder="Tell us about this wonderful animal..."
+                style={{
+                  padding: '1rem',
+                  border: '2px solid #e2e8f0',
+                  borderRadius: '12px',
+                  fontSize: '1rem',
+                  transition: 'all 0.3s ease',
+                  background: '#f7fafc',
+                  resize: 'vertical',
+                  minHeight: '120px',
+                  fontFamily: 'inherit'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#667eea';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+                  e.target.style.background = 'white';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#e2e8f0';
+                  e.target.style.boxShadow = 'none';
+                  e.target.style.background = '#f7fafc';
+                }}
               />
             </div>
-            <div className="form-group">
-              <label>Image URL:</label>
-              <input
-                type="url"
-                name="image"
-                value={formData.image}
-                onChange={handleInputChange}
-              />
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+              <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontWeight: '600', color: '#4a5568', fontSize: '1rem' }}>📸 Image URL (optional):</label>
+                <input
+                  type="url"
+                  name="image"
+                  value={formData.image}
+                  onChange={handleInputChange}
+                  placeholder="https://example.com/image.jpg"
+                  style={{
+                    padding: '1rem',
+                    border: '2px solid #e2e8f0',
+                    borderRadius: '12px',
+                    fontSize: '1rem',
+                    transition: 'all 0.3s ease',
+                    background: '#f7fafc'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#667eea';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+                    e.target.style.background = 'white';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#e2e8f0';
+                    e.target.style.boxShadow = 'none';
+                    e.target.style.background = '#f7fafc';
+                  }}
+                />
+              </div>
+              
+              <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontWeight: '600', color: '#4a5568', fontSize: '1rem' }}>🏠 Rescue Center:</label>
+                <select
+                  name="center_id"
+                  value={formData.center_id}
+                  onChange={handleInputChange}
+                  required
+                  style={{
+                    padding: '1rem',
+                    border: '2px solid #e2e8f0',
+                    borderRadius: '12px',
+                    fontSize: '1rem',
+                    transition: 'all 0.3s ease',
+                    background: '#f7fafc',
+                    cursor: 'pointer'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#667eea';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+                    e.target.style.background = 'white';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#e2e8f0';
+                    e.target.style.boxShadow = 'none';
+                    e.target.style.background = '#f7fafc';
+                  }}
+                >
+                  <option value="">Select a rescue center</option>
+                  {centers.map(center => (
+                    <option key={center.id} value={center.id}>
+                      {center.name} - {center.location}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div className="form-group">
-              <label>Center:</label>
-              <select
-                name="center_id"
-                value={formData.center_id}
-                onChange={handleInputChange}
-                required
+            
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+              <button 
+                type="submit" 
+                style={{
+                  background: 'linear-gradient(45deg, #667eea, #764ba2)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '1rem 2rem',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  fontSize: '1.1rem',
+                  fontWeight: '600',
+                  transition: 'all 0.3s ease',
+                  minWidth: '150px'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = 'none';
+                }}
               >
-                <option value="">Select a center</option>
-                {centers.map(center => (
-                  <option key={center.id} value={center.id}>
-                    {center.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="form-actions">
-              <button type="submit" className="btn-primary">
-                {editingAnimal ? 'Update Animal' : 'Add Animal'}
+                {editingAnimal ? '✅ Update Animal' : '➕ Add Animal'}
               </button>
-              <button type="button" onClick={editingAnimal ? cancelEdit : () => setShowAddForm(false)} className="btn-secondary">
-                Cancel
+              
+              <button 
+                type="button" 
+                onClick={editingAnimal ? cancelEdit : () => setShowAddForm(false)}
+                style={{
+                  background: 'linear-gradient(45deg, #718096, #4a5568)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '1rem 2rem',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  fontSize: '1.1rem',
+                  fontWeight: '600',
+                  transition: 'all 0.3s ease',
+                  minWidth: '150px'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 8px 25px rgba(113, 128, 150, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = 'none';
+                }}
+              >
+                ❌ Cancel
               </button>
             </div>
           </form>
