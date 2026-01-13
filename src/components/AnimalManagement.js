@@ -53,8 +53,6 @@ function AnimalManagement() {
   const handleAddAnimal = async (e) => {
     e.preventDefault();
     
-    logger.debug('Form data before submit:', formData);
-    
     if (!formData.name || !formData.species || !formData.breed || !formData.age || !formData.description || !formData.center_id) {
       alert('Please fill out all the required fields');
       return;
@@ -71,8 +69,6 @@ function AnimalManagement() {
         center_id: parseInt(formData.center_id)
       };
       
-      logger.debug('Sending payload:', payload);
-      
       const response = await fetch(`${API_BASE_URL}/animals`, {
         method: 'POST',
         headers: {
@@ -81,11 +77,7 @@ function AnimalManagement() {
         body: JSON.stringify(payload),
       });
 
-      logger.debug('Response status:', response.status);
-      
       if (response.ok) {
-        const result = await response.json();
-        logger.info('Animal added successfully:', result);
         alert('Animal added!');
         setShowAddForm(false);
         setFormData({
@@ -100,32 +92,37 @@ function AnimalManagement() {
         fetchAnimals();
       } else {
         const errorData = await response.json();
-        logger.error('Error response:', errorData);
         alert(`Couldn't add animal: ${errorData.detail || 'Something went wrong'}`);
       }
     } catch (error) {
-      logger.error('Network error:', error);
       alert(`Network problem: ${error.message}`);
     }
   };
 
   const handleEditAnimal = async (e) => {
     e.preventDefault();
+    
     try {
+      const payload = {
+        name: formData.name,
+        species: formData.species,
+        breed: formData.breed,
+        age: parseInt(formData.age),
+        description: formData.description,
+        image: formData.image || '',
+        center_id: parseInt(formData.center_id)
+      };
+      
       const response = await fetch(`${API_BASE_URL}/animals/${editingAnimal.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...formData,
-          age: parseInt(formData.age),
-          center_id: parseInt(formData.center_id)
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (response.ok) {
-        alert('Animal updated successfully!');
+        alert('Animal updated!');
         setEditingAnimal(null);
         setFormData({
           name: '',
@@ -142,7 +139,6 @@ function AnimalManagement() {
         alert(`Error updating animal: ${errorData.detail || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Error updating animal:', error);
       alert('Error updating animal');
     }
   };
@@ -155,14 +151,13 @@ function AnimalManagement() {
         });
 
         if (response.ok) {
-          alert('Animal deleted successfully!');
+          alert('Animal deleted!');
           fetchAnimals();
         } else {
           const errorData = await response.json();
           alert(`Error deleting animal: ${errorData.detail || 'Unknown error'}`);
         }
       } catch (error) {
-        console.error('Error deleting animal:', error);
         alert('Error deleting animal');
       }
     }
