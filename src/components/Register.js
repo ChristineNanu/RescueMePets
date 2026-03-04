@@ -1,7 +1,9 @@
 import React, { useState } from "react";
+import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../constants';
 
 export const Register = (props) => {
+    const navigate = useNavigate();
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [pass, setPass] = useState('');
@@ -38,7 +40,7 @@ export const Register = (props) => {
             if (response.ok) {
                 setMessage(data.message);
                 // Switch to login after successful registration
-                setTimeout(() => props.onFormSwitch('login'), 2000);
+                setTimeout(() => navigate('/login'), 2000);
             } else {
                 setMessage(data.detail);
             }
@@ -123,7 +125,7 @@ export const Register = (props) => {
                 )}
                 <button
                     className="link-btn"
-                    onClick={() => props.onFormSwitch('login')}
+                    onClick={() => navigate('/login')}
                 >
                     Already have an account? Login here.
                 </button>

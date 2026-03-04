@@ -3,15 +3,14 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Navbar from './components/Navbar';
 import AnimalList from './components/AnimalList';
 import AnimalManagement from './components/AnimalManagement';
-import SQLInterface from './components/SQLInterface';
 import AdoptionForm from './components/AdoptionForm';
 import Centers from './components/Centers';
+import LandingPage from './components/LandingPage';
 import { Login } from "./components/Login";
 import { Register } from "./components/Register";
 import './App.css';
 
 function App() {
-  const [currentForm, setCurrentForm] = useState('login');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
@@ -21,7 +20,7 @@ function App() {
   }, []);
 
   const toggleForm = (formName) => {
-    setCurrentForm(formName);
+    // Not used anymore but keeping for compatibility
   };
 
   const handleLogin = () => {
@@ -36,23 +35,10 @@ function App() {
   return (
     <Router>
       <div className="App">
-        <Navbar isLoggedIn={isLoggedIn} onLogout={handleLogout} />
+        {isLoggedIn && <Navbar isLoggedIn={isLoggedIn} onLogout={handleLogout} />}
 
         <Routes>
-          <Route
-            path="/"
-            element={
-              isLoggedIn ? (
-                <Navigate to="/animals" replace />
-              ) : (
-                currentForm === 'login' ? (
-                  <Login onFormSwitch={toggleForm} onLogin={handleLogin} />
-                ) : (
-                  <Register onFormSwitch={toggleForm} />
-                )
-              )
-            }
-          />
+          <Route path="/" element={<LandingPage />} />
           <Route
             path="/animals"
             element={isLoggedIn ? <AnimalList /> : <Navigate to="/login" replace />}
@@ -60,10 +46,6 @@ function App() {
           <Route
             path="/manage"
             element={isLoggedIn ? <AnimalManagement /> : <Navigate to="/login" replace />}
-          />
-          <Route
-            path="/sql"
-            element={isLoggedIn ? <SQLInterface /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/centers"

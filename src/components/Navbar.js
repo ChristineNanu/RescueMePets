@@ -19,7 +19,6 @@ function Navbar({ isLoggedIn, onLogout }) {
             <li><Link to="/animals" className={location.pathname === '/animals' ? 'active' : ''}>🐕 Animals</Link></li>
             <li><Link to="/centers" className={location.pathname === '/centers' ? 'active' : ''}>🏠 Centers</Link></li>
             <li><Link to="/manage" className={location.pathname === '/manage' ? 'active' : ''}>⚙️ Manage</Link></li>
-            <li><Link to="/sql" className={location.pathname === '/sql' ? 'active' : ''}>🗄️ SQL</Link></li>
             <li><Link to="/adoption" className={location.pathname === '/adoption' ? 'active' : ''}>📋 Adopt</Link></li>
             <li><button onClick={handleLogout} className="logout-btn">🚪 Logout</button></li>
           </>
