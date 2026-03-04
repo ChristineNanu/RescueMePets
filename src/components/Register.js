@@ -54,7 +54,7 @@ export const Register = (props) => {
     return (
         <div className="auth-container">
             <div className="auth-form-container">
-                <h1 className="auth-title">Join Our Community 🐾</h1>
+                <h1 className="auth-title">Join AgentHub 🤖</h1>
                 <form className="auth-form" onSubmit={handleSubmit}>
                     <div className="form-group">
                         <label className="form-label" htmlFor="username">Username</label>
