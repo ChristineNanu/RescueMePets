@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
-import AnimalList from './components/AnimalList';
-import AnimalManagement from './components/AnimalManagement';
-import AdoptionForm from './components/AdoptionForm';
-import Centers from './components/Centers';
 import LandingPage from './components/LandingPage';
+import AgentMarketplace from './components/AgentMarketplace';
+import MyAgents from './components/MyAgents';
 import { Login } from "./components/Login";
 import { Register } from "./components/Register";
 import './App.css';
@@ -14,9 +12,8 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    // Check if user is logged in
-    const userId = localStorage.getItem('user_id');
-    setIsLoggedIn(!!userId);
+    const user = localStorage.getItem('user');
+    setIsLoggedIn(!!user);
   }, []);
 
   const toggleForm = (formName) => {
@@ -28,7 +25,7 @@ function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('user_id');
+    localStorage.removeItem('user');
     setIsLoggedIn(false);
   };
 
@@ -40,26 +37,18 @@ function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route
-            path="/animals"
-            element={isLoggedIn ? <AnimalList /> : <Navigate to="/login" replace />}
+            path="/marketplace"
+            element={isLoggedIn ? <AgentMarketplace /> : <Navigate to="/login" replace />}
           />
           <Route
-            path="/manage"
-            element={isLoggedIn ? <AnimalManagement /> : <Navigate to="/login" replace />}
-          />
-          <Route
-            path="/centers"
-            element={isLoggedIn ? <Centers /> : <Navigate to="/login" replace />}
-          />
-          <Route
-            path="/adoption"
-            element={isLoggedIn ? <AdoptionForm /> : <Navigate to="/login" replace />}
+            path="/my-agents"
+            element={isLoggedIn ? <MyAgents /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/login"
             element={
               isLoggedIn ? (
-                <Navigate to="/animals" replace />
+                <Navigate to="/marketplace" replace />
               ) : (
                 <Login onFormSwitch={toggleForm} onLogin={handleLogin} />
               )
@@ -69,7 +58,7 @@ function App() {
             path="/register"
             element={
               isLoggedIn ? (
-                <Navigate to="/animals" replace />
+                <Navigate to="/marketplace" replace />
               ) : (
                 <Register onFormSwitch={toggleForm} />
               )

@@ -25,13 +25,11 @@ export const Login = (props) => {
             const data = await response.json();
             if (response.ok) {
                 setMessage(data.message);
-                // Store user_id in localStorage
-                localStorage.setItem('user_id', data.user_id);
-                // Notify parent component and redirect
+                localStorage.setItem('user', JSON.stringify(data.user));
                 if (props.onLogin) {
                     props.onLogin();
                 }
-                setTimeout(() => navigate('/animals'), 1000);
+                setTimeout(() => navigate('/marketplace'), 1000);
             } else {
                 setMessage(data.detail);
             }
@@ -45,7 +43,7 @@ export const Login = (props) => {
     return (
         <div className="auth-container">
             <div className="auth-form-container">
-                <h1 className="auth-title">Welcome Back! 🐾</h1>
+                <h1 className="auth-title">Welcome to AgentHub 🤖</h1>
                 <form className="auth-form" onSubmit={handleSubmit}>
                     <div className="form-group">
                         <label className="form-label" htmlFor="username">Username</label>

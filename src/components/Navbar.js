@@ -12,14 +12,12 @@ function Navbar({ isLoggedIn, onLogout }) {
 
   return (
     <nav className="Navbar">
-      <Link to="/" className="Navbar-logo">🐾 RescueMe Pets</Link>
+      <Link to="/" className="Navbar-logo">🤖 AgentHub</Link>
       <ul className="Navbar-nav">
         {isLoggedIn ? (
           <>
-            <li><Link to="/animals" className={location.pathname === '/animals' ? 'active' : ''}>🐕 Animals</Link></li>
-            <li><Link to="/centers" className={location.pathname === '/centers' ? 'active' : ''}>🏠 Centers</Link></li>
-            <li><Link to="/manage" className={location.pathname === '/manage' ? 'active' : ''}>⚙️ Manage</Link></li>
-            <li><Link to="/adoption" className={location.pathname === '/adoption' ? 'active' : ''}>📋 Adopt</Link></li>
+            <li><Link to="/marketplace" className={location.pathname === '/marketplace' ? 'active' : ''}>🛒 Marketplace</Link></li>
+            <li><Link to="/my-agents" className={location.pathname === '/my-agents' ? 'active' : ''}>⚡ My Agents</Link></li>
             <li><button onClick={handleLogout} className="logout-btn">🚪 Logout</button></li>
           </>
         ) : (

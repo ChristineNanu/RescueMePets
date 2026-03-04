@@ -1,55 +1,61 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
+from datetime import datetime
 
 class UserCreate(BaseModel):
     username: str
     email: str
     password: str
+    company_name: Optional[str] = None
 
 class UserLogin(BaseModel):
     username: str
     password: str
 
-class AnimalBase(BaseModel):
+class Agent(BaseModel):
+    id: int
     name: str
-    species: str
-    breed: str
-    age: int
+    category: str
     description: str
-    image: Optional[str] = None
-    center_id: int
-
-class AnimalCreate(AnimalBase):
-    pass
-
-class AnimalUpdate(BaseModel):
-    name: Optional[str] = None
-    species: Optional[str] = None
-    breed: Optional[str] = None
-    age: Optional[int] = None
-    description: Optional[str] = None
-    image: Optional[str] = None
-    center_id: Optional[int] = None
-
-class Animal(AnimalBase):
-    id: int
-    center: Optional[dict]
-
+    icon: str
+    price_monthly: float
+    tasks_included: int
+    features: str
+    is_popular: bool
+    total_purchases: int
+    rating: float
+    
     class Config:
         from_attributes = True
 
-class CenterBase(BaseModel):
-    name: str
-    location: str
-    contact: str
+class PurchaseAgentRequest(BaseModel):
+    agent_id: int
 
-class Center(CenterBase):
+class PurchasedAgent(BaseModel):
     id: int
-
-    class Config:
-        from_attributes = True
-
-class AdoptionCreate(BaseModel):
     user_id: int
-    animal_id: int
-    message: str
+    agent_id: int
+    purchased_at: datetime
+    is_active: bool
+    tasks_used: int
+    tasks_limit: int
+    agent: Agent
+    
+    class Config:
+        from_attributes = True
+
+class ExecuteAgentRequest(BaseModel):
+    purchased_agent_id: int
+    input_text: str
+    task_type: str
+
+class UsageLog(BaseModel):
+    id: int
+    task_type: str
+    input_text: str
+    output_text: str
+    tokens_used: int
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
