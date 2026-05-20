@@ -29,7 +29,7 @@ export const Login = (props) => {
                 if (props.onLogin) {
                     props.onLogin();
                 }
-                setTimeout(() => navigate('/marketplace'), 1000);
+                setTimeout(() => navigate('/dashboard'), 1000);
             } else {
                 setMessage(data.detail);
             }

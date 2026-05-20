@@ -33,20 +33,32 @@ function AgentMarketplace() {
 
   const handlePurchase = async (agentId) => {
     try {
+      const user = JSON.parse(localStorage.getItem('user'));
+      if (!user || !user.id) {
+        alert('Please log in to purchase agents');
+        return;
+      }
+      
+      console.log('Purchasing agent:', { user_id: user.id, agent_id: agentId });
+      
       const response = await fetch(`${API_BASE_URL}/purchase-agent`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agent_id: agentId })
+        body: JSON.stringify({ user_id: user.id, agent_id: agentId })
       });
+
+      const data = await response.json();
+      console.log('Purchase response:', data);
 
       if (response.ok) {
         alert('🎉 Agent purchased successfully!');
+        fetchStats();
       } else {
-        const error = await response.json();
-        alert(error.detail || 'Failed to purchase agent');
+        alert(data.detail || 'Failed to purchase agent');
       }
     } catch (error) {
-      alert('Error purchasing agent');
+      console.error('Purchase error:', error);
+      alert('Error purchasing agent: ' + error.message);
     }
   };
 

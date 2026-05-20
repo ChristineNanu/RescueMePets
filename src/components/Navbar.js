@@ -16,6 +16,7 @@ function Navbar({ isLoggedIn, onLogout }) {
       <ul className="Navbar-nav">
         {isLoggedIn ? (
           <>
+            <li><Link to="/dashboard" className={location.pathname === '/dashboard' ? 'active' : ''}>📊 Dashboard</Link></li>
             <li><Link to="/marketplace" className={location.pathname === '/marketplace' ? 'active' : ''}>🛒 Marketplace</Link></li>
             <li><Link to="/my-agents" className={location.pathname === '/my-agents' ? 'active' : ''}>⚡ My Agents</Link></li>
             <li><button onClick={handleLogout} className="logout-btn">🚪 Logout</button></li>

@@ -11,7 +11,7 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     password = Column(String)
     company_name = Column(String, nullable=True)
-    subscription_tier = Column(String, default="free")  # free, starter, professional, enterprise
+    subscription_tier = Column(String, default="starter")  # starter, professional, enterprise
     
     purchased_agents = relationship("PurchasedAgent", back_populates="user")
     usage_logs = relationship("UsageLog", back_populates="user")
@@ -54,11 +54,9 @@ class UsageLog(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     purchased_agent_id = Column(Integer, ForeignKey("purchased_agents.id"))
-    task_type = Column(String)
-    input_text = Column(Text)
-    output_text = Column(Text)
-    tokens_used = Column(Integer)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    task_description = Column(Text)
+    result = Column(Text)
+    executed_at = Column(DateTime, default=datetime.utcnow)
     
     user = relationship("User", back_populates="usage_logs")
     purchased_agent = relationship("PurchasedAgent", back_populates="usage_logs")

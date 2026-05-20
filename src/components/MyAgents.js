@@ -14,8 +14,16 @@ function MyAgents() {
   const fetchMyAgents = async () => {
     try {
       const user = JSON.parse(localStorage.getItem('user'));
+      if (!user || !user.id) {
+        console.error('No user found in localStorage');
+        setLoading(false);
+        return;
+      }
+      
+      console.log('Fetching agents for user:', user.id);
       const response = await fetch(`http://localhost:8002/my-agents?user_id=${user.id}`);
       const data = await response.json();
+      console.log('My agents response:', data);
       setMyAgents(data);
     } catch (error) {
       console.error('Error fetching agents:', error);

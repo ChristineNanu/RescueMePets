@@ -4,6 +4,7 @@ import Navbar from './components/Navbar';
 import LandingPage from './components/LandingPage';
 import AgentMarketplace from './components/AgentMarketplace';
 import MyAgents from './components/MyAgents';
+import Dashboard from './components/Dashboard';
 import { Login } from "./components/Login";
 import { Register } from "./components/Register";
 import './App.css';
@@ -37,6 +38,10 @@ function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route
+            path="/dashboard"
+            element={isLoggedIn ? <Dashboard /> : <Navigate to="/login" replace />}
+          />
+          <Route
             path="/marketplace"
             element={isLoggedIn ? <AgentMarketplace /> : <Navigate to="/login" replace />}
           />
@@ -48,7 +53,7 @@ function App() {
             path="/login"
             element={
               isLoggedIn ? (
-                <Navigate to="/marketplace" replace />
+                <Navigate to="/dashboard" replace />
               ) : (
                 <Login onFormSwitch={toggleForm} onLogin={handleLogin} />
               )
@@ -58,7 +63,7 @@ function App() {
             path="/register"
             element={
               isLoggedIn ? (
-                <Navigate to="/marketplace" replace />
+                <Navigate to="/dashboard" replace />
               ) : (
                 <Register onFormSwitch={toggleForm} />
               )

@@ -59,8 +59,13 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Invalid credentials")
     return {
         "message": "Login successful", 
-        "user_id": db_user.id,
-        "subscription_tier": db_user.subscription_tier
+        "user": {
+            "id": db_user.id,
+            "username": db_user.username,
+            "email": db_user.email,
+            "company_name": db_user.company_name,
+            "subscription_tier": db_user.subscription_tier
+        }
     }
 
 @app.get("/agents")
@@ -112,15 +117,12 @@ def get_agent(agent_id: int, db: Session = Depends(get_db)):
 
 @app.post("/purchase-agent")
 def purchase_agent(request: PurchaseAgentRequest, db: Session = Depends(get_db)):
-    user_id = 1  # TODO: Get from auth
-    
     agent = db.query(Agent).filter(Agent.id == request.agent_id).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     
-    # Check if already purchased
     existing = db.query(PurchasedAgent).filter(
-        PurchasedAgent.user_id == user_id,
+        PurchasedAgent.user_id == request.user_id,
         PurchasedAgent.agent_id == request.agent_id,
         PurchasedAgent.is_active == True
     ).first()
@@ -129,24 +131,19 @@ def purchase_agent(request: PurchaseAgentRequest, db: Session = Depends(get_db))
         raise HTTPException(status_code=400, detail="Agent already purchased")
     
     purchased = PurchasedAgent(
-        user_id=user_id,
+        user_id=request.user_id,
         agent_id=request.agent_id,
         tasks_limit=agent.tasks_included
     )
     db.add(purchased)
-    
-    # Update agent stats
     agent.total_purchases += 1
-    
     db.commit()
     db.refresh(purchased)
     
     return {"message": "Agent purchased successfully", "id": purchased.id}
 
 @app.get("/my-agents")
-def get_my_agents(db: Session = Depends(get_db)):
-    user_id = 1  # TODO: Get from auth
-    
+def get_my_agents(user_id: int, db: Session = Depends(get_db)):
     purchased = db.query(PurchasedAgent).filter(
         PurchasedAgent.user_id == user_id,
         PurchasedAgent.is_active == True
@@ -156,11 +153,14 @@ def get_my_agents(db: Session = Depends(get_db)):
     for p in purchased:
         agent = p.agent
         result.append({
-            "purchased_id": p.id,
-            "agent_id": agent.id,
-            "name": agent.name,
-            "category": agent.category,
-            "icon": agent.icon,
+            "id": p.id,
+            "agent": {
+                "id": agent.id,
+                "name": agent.name,
+                "category": agent.category,
+                "icon": agent.icon,
+                "tasks_included": agent.tasks_included
+            },
             "tasks_used": p.tasks_used,
             "tasks_limit": p.tasks_limit,
             "purchased_at": p.purchased_at.isoformat()
@@ -170,11 +170,9 @@ def get_my_agents(db: Session = Depends(get_db)):
 
 @app.post("/execute-agent")
 def execute_agent(request: ExecuteAgentRequest, db: Session = Depends(get_db)):
-    user_id = 1  # TODO: Get from auth
-    
     purchased = db.query(PurchasedAgent).filter(
         PurchasedAgent.id == request.purchased_agent_id,
-        PurchasedAgent.user_id == user_id
+        PurchasedAgent.user_id == request.user_id
     ).first()
     
     if not purchased:
@@ -183,29 +181,19 @@ def execute_agent(request: ExecuteAgentRequest, db: Session = Depends(get_db)):
     if purchased.tasks_used >= purchased.tasks_limit:
         raise HTTPException(status_code=403, detail="Task limit reached")
     
-    # Simulate AI execution (in production, call OpenAI API here)
-    output = f"AI Response: Processed '{request.input_text}' for {request.task_type}"
+    result = f"✅ Task completed successfully!\n\nAgent: {purchased.agent.name}\nTask: {request.task_description}\n\nResult: Processed and executed as requested. In production, this would connect to real AI APIs."
     
-    # Log usage
     log = UsageLog(
-        user_id=user_id,
+        user_id=request.user_id,
         purchased_agent_id=purchased.id,
-        task_type=request.task_type,
-        input_text=request.input_text,
-        output_text=output,
-        tokens_used=100
+        task_description=request.task_description,
+        result=result
     )
     db.add(log)
-    
-    # Update usage count
     purchased.tasks_used += 1
-    
     db.commit()
     
-    return {
-        "output": output,
-        "tasks_remaining": purchased.tasks_limit - purchased.tasks_used
-    }
+    return {"result": result, "tasks_remaining": purchased.tasks_limit - purchased.tasks_used}
 
 @app.get("/stats")
 def get_stats(db: Session = Depends(get_db)):
@@ -240,3 +228,54 @@ def load_sample_data_endpoint(db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/dashboard/stats")
+def get_dashboard_stats(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    total_agents = db.query(PurchasedAgent).filter(
+        PurchasedAgent.user_id == user_id,
+        PurchasedAgent.is_active == True
+    ).count()
+    
+    total_tasks = db.query(UsageLog).filter(UsageLog.user_id == user_id).count()
+    
+    purchased_agents = db.query(PurchasedAgent).filter(
+        PurchasedAgent.user_id == user_id,
+        PurchasedAgent.is_active == True
+    ).all()
+    
+    total_spent = sum(agent.agent.price_monthly for agent in purchased_agents)
+    hours_saved = total_tasks * 0.5  # Estimate 30 min saved per task
+    
+    monthly_cost = 99 if user.subscription_tier == "starter" else 299 if user.subscription_tier == "professional" else 999
+    
+    return {
+        "total_agents": total_agents,
+        "total_tasks": total_tasks,
+        "total_spent": total_spent,
+        "hours_saved": int(hours_saved),
+        "subscription_tier": user.subscription_tier.capitalize(),
+        "monthly_cost": monthly_cost
+    }
+
+@app.get("/dashboard/activity")
+def get_dashboard_activity(user_id: int, db: Session = Depends(get_db)):
+    logs = db.query(UsageLog).filter(
+        UsageLog.user_id == user_id
+    ).order_by(UsageLog.executed_at.desc()).limit(10).all()
+    
+    result = []
+    for log in logs:
+        purchased = db.query(PurchasedAgent).filter(PurchasedAgent.id == log.purchased_agent_id).first()
+        if purchased:
+            result.append({
+                "agent_name": purchased.agent.name,
+                "agent_icon": purchased.agent.icon,
+                "task_description": log.task_description,
+                "executed_at": log.executed_at.isoformat()
+            })
+    
+    return result

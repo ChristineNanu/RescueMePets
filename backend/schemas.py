@@ -29,6 +29,7 @@ class Agent(BaseModel):
         from_attributes = True
 
 class PurchaseAgentRequest(BaseModel):
+    user_id: int
     agent_id: int
 
 class PurchasedAgent(BaseModel):
@@ -45,9 +46,9 @@ class PurchasedAgent(BaseModel):
         from_attributes = True
 
 class ExecuteAgentRequest(BaseModel):
+    user_id: int
     purchased_agent_id: int
-    input_text: str
-    task_type: str
+    task_description: str
 
 class UsageLog(BaseModel):
     id: int
