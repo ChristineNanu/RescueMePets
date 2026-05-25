@@ -32,8 +32,7 @@ function AdoptionForm() {
 
   const handleSubmit = async () => {
     if (!userId) { navigate('/login'); return; }
-    setIsLoading(true);
-    setError('');
+    setIsLoading(true); setError('');
     try {
       const fullMessage = `${message}\n\nHome type: ${homeType} | Children: ${hasChildren} | Other pets: ${hasPets}`;
       const res = await fetch(`${API_BASE_URL}/adopt`, {
@@ -49,141 +48,174 @@ function AdoptionForm() {
   };
 
   if (isSubmitted) return (
-    <div className="app-container">
-      <div style={{ maxWidth: '600px', margin: '4rem auto', padding: '3rem', background: 'white', borderRadius: '24px', boxShadow: '0 20px 60px rgba(0,0,0,0.1)', textAlign: 'center' }}>
-        <div style={{ width: '80px', height: '80px', background: 'linear-gradient(135deg, #667eea, #764ba2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem', margin: '0 auto 1.5rem' }}>🎉</div>
-        <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#2d3748', marginBottom: '1rem' }}>Application Submitted!</h2>
-        <p style={{ color: '#718096', fontSize: '1.1rem', lineHeight: 1.7, marginBottom: '0.5rem' }}>
-          Your adoption request for <strong style={{ color: '#667eea' }}>{selectedAnimal?.name}</strong> has been received.
+    <div className="min-h-screen bg-gradient-to-br from-violet-50 to-purple-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl p-10 max-w-md w-full shadow-xl text-center">
+        <div className="w-20 h-20 bg-gradient-to-br from-violet-500 to-purple-600 rounded-full flex items-center justify-center text-4xl mx-auto mb-5">🎉</div>
+        <h2 className="text-2xl font-extrabold text-gray-800 mb-2">Application Submitted!</h2>
+        <p className="text-gray-500 mb-1">
+          Your adoption request for <span className="font-bold text-violet-600">{selectedAnimal?.name}</span> has been received.
         </p>
-        <p style={{ color: '#718096', marginBottom: '2rem' }}>The rescue center will review your application and get back to you soon. 🐾</p>
-        <div style={{ background: '#f8f9ff', borderRadius: '12px', padding: '1rem', marginBottom: '2rem', fontSize: '0.9rem', color: '#667eea' }}>
-          💡 Track your application status in <strong>My Profile → Applications</strong>
+        <p className="text-gray-400 text-sm mb-5">The rescue center will review and get back to you soon. 🐾</p>
+        <div className="bg-violet-50 rounded-xl p-3 mb-6 text-sm text-violet-700">
+          💡 Track your application in <strong>My Profile → Applications</strong>
         </div>
-        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-          <button className="form-submit-btn" style={{ width: 'auto', padding: '0.75rem 2rem' }} onClick={() => navigate('/animals')}>Browse More Animals</button>
-          <button onClick={() => navigate('/my-profile')} style={{ padding: '0.75rem 2rem', border: '2px solid #667eea', borderRadius: '12px', background: 'transparent', color: '#667eea', fontWeight: 600, cursor: 'pointer' }}>View My Applications</button>
+        <div className="flex gap-3">
+          <button onClick={() => navigate('/animals')}
+            className="flex-1 py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-violet-600 to-purple-700 text-white border-0 cursor-pointer hover:shadow-lg transition-all">
+            Browse More
+          </button>
+          <button onClick={() => navigate('/my-profile')}
+            className="flex-1 py-3 rounded-xl font-bold text-sm border-2 border-violet-200 text-violet-600 bg-transparent cursor-pointer hover:bg-violet-50 transition-all">
+            My Applications
+          </button>
         </div>
       </div>
     </div>
   );
 
   return (
-    <div className="app-container">
-      <div className="page-header">
-        <h1>Adopt a Pet 🐾</h1>
-        <p>Complete your adoption application in just a few steps</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-violet-50/30 to-purple-50/20">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-violet-600 to-purple-700 px-6 py-10 text-center">
+        <h1 className="text-3xl font-extrabold text-white mb-1">Adopt a Pet 🐾</h1>
+        <p className="text-violet-200">Complete your adoption application in just a few steps</p>
       </div>
 
-      <div style={{ maxWidth: '700px', margin: '0 auto', padding: '2rem' }}>
+      <div className="max-w-2xl mx-auto px-4 py-8">
         {/* Progress Steps */}
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2.5rem' }}>
+        <div className="flex items-center mb-8">
           {STEPS.map((s, i) => (
             <React.Fragment key={i}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '1rem', transition: 'all 0.3s',
-                  background: i < step ? 'linear-gradient(135deg, #667eea, #764ba2)' : i === step ? 'linear-gradient(135deg, #667eea, #764ba2)' : '#e2e8f0',
-                  color: i <= step ? 'white' : '#a0aec0' }}>
+              <div className="flex flex-col items-center flex-1">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all
+                  ${i < step ? 'bg-gradient-to-br from-violet-600 to-purple-700 text-white' :
+                    i === step ? 'bg-gradient-to-br from-violet-600 to-purple-700 text-white ring-4 ring-violet-200' :
+                    'bg-gray-100 text-gray-400'}`}>
                   {i < step ? '✓' : i + 1}
                 </div>
-                <div style={{ fontSize: '0.8rem', marginTop: '0.4rem', fontWeight: 600, color: i <= step ? '#667eea' : '#a0aec0' }}>{s}</div>
+                <p className={`text-xs mt-1.5 font-semibold ${i <= step ? 'text-violet-600' : 'text-gray-400'}`}>{s}</p>
               </div>
               {i < STEPS.length - 1 && (
-                <div style={{ flex: 1, height: '3px', background: i < step ? 'linear-gradient(135deg, #667eea, #764ba2)' : '#e2e8f0', transition: 'all 0.3s', marginBottom: '1.5rem' }} />
+                <div className={`flex-1 h-1 rounded-full mb-5 transition-all ${i < step ? 'bg-gradient-to-r from-violet-600 to-purple-700' : 'bg-gray-200'}`} />
               )}
             </React.Fragment>
           ))}
         </div>
 
-        <div style={{ background: 'white', borderRadius: '20px', padding: '2.5rem', boxShadow: '0 8px 30px rgba(0,0,0,0.08)' }}>
+        <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
 
           {/* Step 0: Choose Animal */}
           {step === 0 && (
             <div>
-              <h3 style={{ color: '#2d3748', fontWeight: 700, marginBottom: '1.5rem', fontSize: '1.3rem' }}>Which animal would you like to adopt?</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '400px', overflowY: 'auto' }}>
+              <h3 className="text-xl font-extrabold text-gray-800 mb-5">Which animal would you like to adopt?</h3>
+              <div className="flex flex-col gap-3 max-h-96 overflow-y-auto pr-1">
                 {animals.map(animal => (
                   <div key={animal.id} onClick={() => setAnimalId(String(animal.id))}
-                    style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', borderRadius: '12px', border: `2px solid ${animalId === String(animal.id) ? '#667eea' : '#e2e8f0'}`, cursor: 'pointer', transition: 'all 0.2s', background: animalId === String(animal.id) ? 'rgba(102,126,234,0.05)' : 'white' }}>
-                    <img src={animal.image} alt={animal.name} style={{ width: '60px', height: '60px', borderRadius: '10px', objectFit: 'cover', flexShrink: 0 }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 700, color: '#2d3748' }}>{animal.name}</div>
-                      <div style={{ color: '#718096', fontSize: '0.9rem' }}>{animal.species} · {animal.breed} · {animal.age} yrs</div>
-                      <div style={{ color: '#718096', fontSize: '0.85rem' }}>{animal.center?.name}</div>
+                    className={`flex items-center gap-3 p-3 rounded-2xl border-2 cursor-pointer transition-all
+                      ${animalId === String(animal.id) ? 'border-violet-500 bg-violet-50' : 'border-gray-100 hover:border-violet-200 hover:bg-violet-50/50'}`}>
+                    <img src={animal.image} alt={animal.name}
+                      className="w-14 h-14 rounded-xl object-cover flex-shrink-0"
+                      onError={e => e.target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=100&q=80'} />
+                    <div className="flex-1">
+                      <p className="font-bold text-gray-800">{animal.name}</p>
+                      <p className="text-gray-400 text-xs">{animal.species} · {animal.breed} · {animal.age} yrs</p>
+                      <p className="text-gray-400 text-xs">📍 {animal.center?.name}</p>
                     </div>
-                    {animalId === String(animal.id) && <div style={{ color: '#667eea', fontSize: '1.5rem' }}>✓</div>}
+                    {animalId === String(animal.id) && <span className="text-violet-600 text-xl">✓</span>}
                   </div>
                 ))}
               </div>
-              <button className="form-submit-btn" style={{ marginTop: '1.5rem' }} disabled={!animalId} onClick={() => setStep(1)}>
+              <button disabled={!animalId} onClick={() => setStep(1)}
+                className={`w-full mt-5 py-3 rounded-xl font-bold text-base transition-all border-0
+                  ${animalId ? 'bg-gradient-to-r from-violet-600 to-purple-700 text-white cursor-pointer hover:shadow-lg' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
                 Continue →
               </button>
             </div>
           )}
 
-          {/* Step 1: Your Details */}
+          {/* Step 1: Details */}
           {step === 1 && (
             <div>
               {selectedAnimal && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: 'linear-gradient(135deg, rgba(102,126,234,0.08), rgba(118,75,162,0.08))', borderRadius: '12px', marginBottom: '1.5rem', border: '1px solid rgba(102,126,234,0.2)' }}>
-                  <img src={selectedAnimal.image} alt={selectedAnimal.name} style={{ width: '60px', height: '60px', borderRadius: '10px', objectFit: 'cover' }} />
-                  <div>
-                    <div style={{ fontWeight: 700, color: '#2d3748' }}>{selectedAnimal.name}</div>
-                    <div style={{ color: '#718096', fontSize: '0.9rem' }}>{selectedAnimal.species} · {selectedAnimal.breed}</div>
+                <div className="flex items-center gap-3 p-3 bg-violet-50 rounded-2xl border border-violet-100 mb-6">
+                  <img src={selectedAnimal.image} alt={selectedAnimal.name}
+                    className="w-14 h-14 rounded-xl object-cover"
+                    onError={e => e.target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=100&q=80'} />
+                  <div className="flex-1">
+                    <p className="font-bold text-gray-800">{selectedAnimal.name}</p>
+                    <p className="text-gray-400 text-xs">{selectedAnimal.species} · {selectedAnimal.breed}</p>
                   </div>
-                  <button onClick={() => setStep(0)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#667eea', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem' }}>Change</button>
+                  <button onClick={() => setStep(0)} className="text-violet-600 text-xs font-semibold bg-transparent border-0 cursor-pointer">Change</button>
                 </div>
               )}
 
-              <h3 style={{ color: '#2d3748', fontWeight: 700, marginBottom: '1.5rem', fontSize: '1.3rem' }}>Tell us about your home</h3>
+              <h3 className="text-xl font-extrabold text-gray-800 mb-5">Tell us about your home</h3>
 
-              <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-                <label className="form-label">Home Type</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
-                  {['House', 'Apartment', 'Farm'].map(type => (
+              <div className="mb-5">
+                <label className="block text-sm font-semibold text-gray-600 mb-2">Home Type</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[['House', '🏠'], ['Apartment', '🏢'], ['Farm', '🌾']].map(([type, icon]) => (
                     <div key={type} onClick={() => setHomeType(type)}
-                      style={{ padding: '0.75rem', textAlign: 'center', borderRadius: '10px', border: `2px solid ${homeType === type ? '#667eea' : '#e2e8f0'}`, cursor: 'pointer', fontWeight: 600, color: homeType === type ? '#667eea' : '#4a5568', background: homeType === type ? 'rgba(102,126,234,0.05)' : 'white', transition: 'all 0.2s' }}>
-                      {type === 'House' ? '🏠' : type === 'Apartment' ? '🏢' : '🌾'} {type}
+                      className={`p-3 text-center rounded-xl border-2 cursor-pointer font-semibold text-sm transition-all
+                        ${homeType === type ? 'border-violet-500 bg-violet-50 text-violet-700' : 'border-gray-100 text-gray-600 hover:border-violet-200'}`}>
+                      <div className="text-xl mb-1">{icon}</div>{type}
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-                <label className="form-label">Do you have children?</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                  {['Yes', 'No'].map(opt => (
+              <div className="mb-5">
+                <label className="block text-sm font-semibold text-gray-600 mb-2">Do you have children?</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[['Yes', '👨‍👩‍👧'], ['No', '👤']].map(([opt, icon]) => (
                     <div key={opt} onClick={() => setHasChildren(opt)}
-                      style={{ padding: '0.75rem', textAlign: 'center', borderRadius: '10px', border: `2px solid ${hasChildren === opt ? '#667eea' : '#e2e8f0'}`, cursor: 'pointer', fontWeight: 600, color: hasChildren === opt ? '#667eea' : '#4a5568', background: hasChildren === opt ? 'rgba(102,126,234,0.05)' : 'white', transition: 'all 0.2s' }}>
-                      {opt === 'Yes' ? '👨‍👩‍👧' : '👤'} {opt}
+                      className={`p-3 text-center rounded-xl border-2 cursor-pointer font-semibold text-sm transition-all
+                        ${hasChildren === opt ? 'border-violet-500 bg-violet-50 text-violet-700' : 'border-gray-100 text-gray-600 hover:border-violet-200'}`}>
+                      <div className="text-xl mb-1">{icon}</div>{opt}
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-                <label className="form-label">Do you have other pets?</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                  {['Yes', 'No'].map(opt => (
+              <div className="mb-5">
+                <label className="block text-sm font-semibold text-gray-600 mb-2">Do you have other pets?</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[['Yes', '🐾'], ['No', '❌']].map(([opt, icon]) => (
                     <div key={opt} onClick={() => setHasPets(opt)}
-                      style={{ padding: '0.75rem', textAlign: 'center', borderRadius: '10px', border: `2px solid ${hasPets === opt ? '#667eea' : '#e2e8f0'}`, cursor: 'pointer', fontWeight: 600, color: hasPets === opt ? '#667eea' : '#4a5568', background: hasPets === opt ? 'rgba(102,126,234,0.05)' : 'white', transition: 'all 0.2s' }}>
-                      {opt === 'Yes' ? '🐾' : '❌'} {opt}
+                      className={`p-3 text-center rounded-xl border-2 cursor-pointer font-semibold text-sm transition-all
+                        ${hasPets === opt ? 'border-violet-500 bg-violet-50 text-violet-700' : 'border-gray-100 text-gray-600 hover:border-violet-200'}`}>
+                      <div className="text-xl mb-1">{icon}</div>{opt}
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                <label className="form-label">Why do you want to adopt {selectedAnimal?.name}?</label>
-                <textarea className="form-input form-textarea" value={message} onChange={e => setMessage(e.target.value)}
-                  placeholder={`Tell us why you'd be a perfect match for ${selectedAnimal?.name || 'this animal'}...`} rows="4" required />
+              <div className="mb-5">
+                <label className="block text-sm font-semibold text-gray-600 mb-2">
+                  Why do you want to adopt {selectedAnimal?.name}?
+                </label>
+                <textarea
+                  value={message} onChange={e => setMessage(e.target.value)}
+                  placeholder={`Tell us why you'd be a perfect match for ${selectedAnimal?.name || 'this animal'}...`}
+                  rows={4}
+                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-violet-400 focus:outline-none text-gray-700 text-sm resize-none transition-colors"
+                />
               </div>
 
-              {error && <div className="error-message">{error}</div>}
+              {error && <p className="text-red-500 text-sm mb-4">⚠️ {error}</p>}
 
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <button onClick={() => setStep(0)} style={{ flex: 1, padding: '1rem', border: '2px solid #e2e8f0', borderRadius: '12px', background: 'white', color: '#4a5568', fontWeight: 600, cursor: 'pointer', fontSize: '1rem' }}>← Back</button>
-                <button className="form-submit-btn" style={{ flex: 2, margin: 0 }} disabled={!message || !homeType || !hasChildren || !hasPets} onClick={() => setStep(2)}>Review Application →</button>
+              <div className="flex gap-3">
+                <button onClick={() => setStep(0)}
+                  className="flex-1 py-3 rounded-xl font-bold text-sm border-2 border-gray-200 text-gray-600 bg-transparent cursor-pointer hover:bg-gray-50 transition-all">
+                  ← Back
+                </button>
+                <button disabled={!message || !homeType || !hasChildren || !hasPets} onClick={() => setStep(2)}
+                  className={`flex-[2] py-3 rounded-xl font-bold text-sm transition-all border-0
+                    ${message && homeType && hasChildren && hasPets
+                      ? 'bg-gradient-to-r from-violet-600 to-purple-700 text-white cursor-pointer hover:shadow-lg'
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
+                  Review Application →
+                </button>
               </div>
             </div>
           )}
@@ -191,42 +223,45 @@ function AdoptionForm() {
           {/* Step 2: Review */}
           {step === 2 && (
             <div>
-              <h3 style={{ color: '#2d3748', fontWeight: 700, marginBottom: '1.5rem', fontSize: '1.3rem' }}>Review Your Application</h3>
+              <h3 className="text-xl font-extrabold text-gray-800 mb-5">Review Your Application</h3>
 
               {selectedAnimal && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem', background: 'linear-gradient(135deg, rgba(102,126,234,0.08), rgba(118,75,162,0.08))', borderRadius: '12px', marginBottom: '1.5rem', border: '1px solid rgba(102,126,234,0.2)' }}>
-                  <img src={selectedAnimal.image} alt={selectedAnimal.name} style={{ width: '70px', height: '70px', borderRadius: '12px', objectFit: 'cover' }} />
+                <div className="flex items-center gap-3 p-4 bg-violet-50 rounded-2xl border border-violet-100 mb-5">
+                  <img src={selectedAnimal.image} alt={selectedAnimal.name}
+                    className="w-16 h-16 rounded-xl object-cover"
+                    onError={e => e.target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=100&q=80'} />
                   <div>
-                    <div style={{ fontWeight: 700, color: '#2d3748', fontSize: '1.1rem' }}>{selectedAnimal.name}</div>
-                    <div style={{ color: '#718096' }}>{selectedAnimal.species} · {selectedAnimal.breed} · {selectedAnimal.age} yrs</div>
-                    <div style={{ color: '#718096', fontSize: '0.85rem' }}>📍 {selectedAnimal.center?.name}</div>
+                    <p className="font-bold text-gray-800 text-base">{selectedAnimal.name}</p>
+                    <p className="text-gray-400 text-sm">{selectedAnimal.species} · {selectedAnimal.breed} · {selectedAnimal.age} yrs</p>
+                    <p className="text-gray-400 text-xs">📍 {selectedAnimal.center?.name}</p>
                   </div>
                 </div>
               )}
 
-              <div style={{ background: '#f8f9ff', borderRadius: '12px', padding: '1.25rem', marginBottom: '1.5rem' }}>
-                {[
-                  { label: 'Home Type', value: homeType },
-                  { label: 'Has Children', value: hasChildren },
-                  { label: 'Has Other Pets', value: hasPets },
-                ].map((item, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: i < 2 ? '1px solid #e2e8f0' : 'none' }}>
-                    <span style={{ color: '#718096', fontWeight: 500 }}>{item.label}</span>
-                    <span style={{ color: '#2d3748', fontWeight: 700 }}>{item.value}</span>
+              <div className="bg-gray-50 rounded-2xl p-4 mb-4">
+                {[['Home Type', homeType], ['Has Children', hasChildren], ['Has Other Pets', hasPets]].map(([label, val], i, arr) => (
+                  <div key={label} className={`flex justify-between py-2.5 ${i < arr.length - 1 ? 'border-b border-gray-200' : ''}`}>
+                    <span className="text-gray-500 text-sm">{label}</span>
+                    <span className="font-bold text-gray-700 text-sm">{val}</span>
                   </div>
                 ))}
               </div>
 
-              <div style={{ background: '#f8f9ff', borderRadius: '12px', padding: '1.25rem', marginBottom: '1.5rem' }}>
-                <div style={{ color: '#718096', fontSize: '0.85rem', marginBottom: '0.5rem', fontWeight: 600 }}>YOUR MESSAGE</div>
-                <p style={{ color: '#2d3748', margin: 0, lineHeight: 1.6, fontStyle: 'italic' }}>"{message}"</p>
+              <div className="bg-gray-50 rounded-2xl p-4 mb-5">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Your Message</p>
+                <p className="text-gray-600 text-sm italic leading-relaxed">"{message}"</p>
               </div>
 
-              {error && <div className="error-message" style={{ marginBottom: '1rem' }}>{error}</div>}
+              {error && <p className="text-red-500 text-sm mb-4">⚠️ {error}</p>}
 
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <button onClick={() => setStep(1)} style={{ flex: 1, padding: '1rem', border: '2px solid #e2e8f0', borderRadius: '12px', background: 'white', color: '#4a5568', fontWeight: 600, cursor: 'pointer', fontSize: '1rem' }}>← Back</button>
-                <button className="form-submit-btn" style={{ flex: 2, margin: 0 }} disabled={isLoading} onClick={handleSubmit}>
+              <div className="flex gap-3">
+                <button onClick={() => setStep(1)}
+                  className="flex-1 py-3 rounded-xl font-bold text-sm border-2 border-gray-200 text-gray-600 bg-transparent cursor-pointer hover:bg-gray-50 transition-all">
+                  ← Back
+                </button>
+                <button disabled={isLoading} onClick={handleSubmit}
+                  className={`flex-[2] py-3 rounded-xl font-bold text-sm transition-all border-0
+                    ${isLoading ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-violet-600 to-purple-700 text-white cursor-pointer hover:shadow-lg'}`}>
                   {isLoading ? '⏳ Submitting...' : '🐾 Submit Application'}
                 </button>
               </div>

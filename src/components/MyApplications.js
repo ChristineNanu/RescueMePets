@@ -2,10 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../constants';
 
-const STATUS_STYLES = {
-  pending:  { bg: '#fffbeb', color: '#92400e', icon: '⏳', label: 'Pending Review' },
-  approved: { bg: '#f0fff4', color: '#276749', icon: '✅', label: 'Approved!' },
-  rejected: { bg: '#fff5f5', color: '#9b2c2c', icon: '❌', label: 'Not Approved' },
+const STATUS_MAP = {
+  pending:  { bg: 'bg-amber-100',  text: 'text-amber-700',  icon: '⏳', label: 'Pending Review' },
+  approved: { bg: 'bg-emerald-100', text: 'text-emerald-700', icon: '✅', label: 'Approved!' },
+  rejected: { bg: 'bg-red-100',    text: 'text-red-600',    icon: '❌', label: 'Not Approved' },
 };
 
 function MyApplications() {
@@ -15,6 +15,7 @@ function MyApplications() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const userId = localStorage.getItem('user_id');
+  const username = localStorage.getItem('username');
 
   useEffect(() => {
     if (!userId) { navigate('/login'); return; }
@@ -29,66 +30,106 @@ function MyApplications() {
   }, [userId, navigate]);
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #f5f7fa, #c3cfe2)' }}>
-      <div style={{ textAlign: 'center', fontSize: '1.2rem', color: '#667eea', fontWeight: 600 }}>⏳ Loading...</div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 to-purple-50">
+      <div className="text-center">
+        <div className="text-5xl mb-4 animate-bounce">⏳</div>
+        <p className="text-violet-600 font-semibold text-lg">Loading your profile...</p>
+      </div>
     </div>
   );
 
+  const pending = applications.filter(a => a.status === 'pending').length;
+
   return (
-    <div className="app-container">
-      <div className="page-header">
-        <h1>My Profile 🐾</h1>
-        <p>Track your adoption applications and saved animals</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-violet-50/30 to-purple-50/20">
+
+      {/* Profile Header */}
+      <div className="bg-gradient-to-r from-violet-600 to-purple-700 px-6 py-12 text-center relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10 text-8xl flex items-center justify-around pointer-events-none">
+          <span>🐾</span><span>❤️</span><span>🏠</span>
+        </div>
+        <div className="relative z-10">
+          <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm border-4 border-white/40 flex items-center justify-center text-3xl font-extrabold text-white mx-auto mb-3">
+            {username?.[0]?.toUpperCase() || 'U'}
+          </div>
+          <h1 className="text-3xl font-extrabold text-white mb-1">{username}</h1>
+          <p className="text-violet-200 text-base">Pet Adoption Profile</p>
+        </div>
       </div>
 
-      <div style={{ maxWidth: '900px', margin: '0 auto', padding: '2rem' }}>
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+      {/* Stats */}
+      <div className="max-w-3xl mx-auto px-4 -mt-6 mb-6 relative z-10">
+        <div className="grid grid-cols-3 gap-3">
           {[
-            { key: 'applications', label: `📋 Applications (${applications.length})` },
-            { key: 'favorites', label: `❤️ Saved Animals (${favorites.length})` },
+            { label: 'Applications', value: applications.length, icon: '📋', color: 'text-violet-600' },
+            { label: 'Pending', value: pending, icon: '⏳', color: 'text-amber-600' },
+            { label: 'Saved', value: favorites.length, icon: '❤️', color: 'text-pink-500' },
+          ].map((s, i) => (
+            <div key={i} className="bg-white rounded-2xl p-4 text-center shadow-md border border-gray-100">
+              <div className="text-2xl mb-1">{s.icon}</div>
+              <p className={`text-2xl font-extrabold ${s.color}`}>{s.value}</p>
+              <p className="text-xs text-gray-400 font-medium">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="max-w-3xl mx-auto px-4 pb-10">
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6 bg-white rounded-2xl p-1.5 shadow-sm border border-gray-100">
+          {[
+            { key: 'applications', icon: '📋', label: `Applications (${applications.length})` },
+            { key: 'favorites',    icon: '❤️', label: `Saved Animals (${favorites.length})` },
           ].map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)} style={{
-              padding: '0.75rem 1.5rem', borderRadius: '12px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '1rem', transition: 'all 0.2s',
-              background: tab === t.key ? 'linear-gradient(135deg, #667eea, #764ba2)' : 'white',
-              color: tab === t.key ? 'white' : '#4a5568',
-              boxShadow: tab === t.key ? '0 4px 15px rgba(102,126,234,0.4)' : '0 2px 8px rgba(0,0,0,0.08)'
-            }}>
-              {t.label}
+            <button key={t.key} onClick={() => setTab(t.key)}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all border-0 cursor-pointer
+                ${tab === t.key
+                  ? 'bg-gradient-to-r from-violet-600 to-purple-700 text-white shadow-md'
+                  : 'text-gray-500 hover:text-violet-600 bg-transparent'}`}>
+              {t.icon} {t.label}
             </button>
           ))}
         </div>
 
         {/* Applications Tab */}
         {tab === 'applications' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="flex flex-col gap-4">
             {applications.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '4rem', background: 'white', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
-                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📋</div>
-                <h3 style={{ color: '#2d3748', marginBottom: '0.5rem' }}>No applications yet</h3>
-                <p style={{ color: '#718096', marginBottom: '1.5rem' }}>Browse animals and submit your first adoption request</p>
-                <button onClick={() => navigate('/animals')} className="form-submit-btn" style={{ width: 'auto', padding: '0.75rem 2rem' }}>
+              <div className="text-center py-16 bg-white rounded-2xl shadow-sm border border-gray-100">
+                <div className="text-5xl mb-3">📋</div>
+                <h3 className="font-bold text-gray-700 mb-1">No applications yet</h3>
+                <p className="text-gray-400 text-sm mb-4">Browse animals and submit your first adoption request</p>
+                <button onClick={() => navigate('/animals')}
+                  className="bg-gradient-to-r from-violet-600 to-purple-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm border-0 cursor-pointer hover:shadow-lg transition-all">
                   Browse Animals
                 </button>
               </div>
-            ) : applications.map(app => (
-              <div key={app.id} style={{ background: 'white', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 4px 20px rgba(0,0,0,0.06)', display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-                <img src={app.animal_image} alt={app.animal_name} style={{ width: '80px', height: '80px', borderRadius: '12px', objectFit: 'cover', flexShrink: 0 }} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                      <h3 style={{ margin: 0, color: '#2d3748', fontSize: '1.2rem' }}>{app.animal_name}</h3>
-                      <div style={{ color: '#718096', fontSize: '0.9rem', marginTop: '0.25rem' }}>{app.animal_species}</div>
+            ) : applications.map(app => {
+              const s = STATUS_MAP[app.status] || STATUS_MAP.pending;
+              return (
+                <div key={app.id}
+                  className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex gap-4 items-center hover:shadow-md transition-shadow">
+                  <img src={app.animal_image} alt={app.animal_name}
+                    className="w-16 h-16 rounded-xl object-cover flex-shrink-0"
+                    onError={e => e.target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=100&q=80'} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h3 className="font-bold text-gray-800 text-base">{app.animal_name}</h3>
+                        <p className="text-gray-400 text-xs">{app.animal_species}</p>
+                      </div>
+                      <span className={`text-xs font-bold px-3 py-1 rounded-full flex-shrink-0 ${s.bg} ${s.text}`}>
+                        {s.icon} {s.label}
+                      </span>
                     </div>
-                    <div style={{ padding: '0.4rem 1rem', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 700, background: STATUS_STYLES[app.status]?.bg, color: STATUS_STYLES[app.status]?.color }}>
-                      {STATUS_STYLES[app.status]?.icon} {STATUS_STYLES[app.status]?.label}
-                    </div>
+                    <p className="text-gray-500 text-xs mt-2 italic line-clamp-1">"{app.message?.split('\n')[0]}"</p>
+                    <p className="text-gray-300 text-xs mt-1">
+                      Applied {new Date(app.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    </p>
                   </div>
-                  <p style={{ color: '#718096', fontSize: '0.9rem', margin: '0.75rem 0 0.25rem', fontStyle: 'italic' }}>"{app.message}"</p>
-                  <div style={{ color: '#a0aec0', fontSize: '0.8rem' }}>Applied {new Date(app.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -96,26 +137,33 @@ function MyApplications() {
         {tab === 'favorites' && (
           <div>
             {favorites.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '4rem', background: 'white', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
-                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🤍</div>
-                <h3 style={{ color: '#2d3748', marginBottom: '0.5rem' }}>No saved animals yet</h3>
-                <p style={{ color: '#718096', marginBottom: '1.5rem' }}>Tap the heart on any animal to save them here</p>
-                <button onClick={() => navigate('/animals')} className="form-submit-btn" style={{ width: 'auto', padding: '0.75rem 2rem' }}>
+              <div className="text-center py-16 bg-white rounded-2xl shadow-sm border border-gray-100">
+                <div className="text-5xl mb-3">🤍</div>
+                <h3 className="font-bold text-gray-700 mb-1">No saved animals yet</h3>
+                <p className="text-gray-400 text-sm mb-4">Tap the heart on any animal to save them here</p>
+                <button onClick={() => navigate('/animals')}
+                  className="bg-gradient-to-r from-violet-600 to-purple-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm border-0 cursor-pointer hover:shadow-lg transition-all">
                   Browse Animals
                 </button>
               </div>
             ) : (
-              <div className="animal-list" style={{ padding: 0 }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {favorites.map(animal => (
-                  <div key={animal.id} className="animal-card fade-in">
-                    <img src={animal.image} alt={animal.name} className="animal-image" />
-                    <div className="animal-card-content">
-                      <h3 className="animal-name">{animal.name}</h3>
-                      <div className="animal-details">
-                        <div className="animal-detail"><strong>Breed:</strong> {animal.breed}</div>
-                        <div className="animal-detail"><strong>Age:</strong> {animal.age} yrs</div>
-                      </div>
-                      <button onClick={() => navigate(`/adoption?animalId=${animal.id}`)}>🐾 Adopt Me!</button>
+                  <div key={animal.id}
+                    className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all group">
+                    <div className="relative h-40 overflow-hidden">
+                      <img src={animal.image} alt={animal.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={e => e.target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=400&q=80'} />
+                      <div className="absolute top-2 right-2 bg-white/90 rounded-full w-7 h-7 flex items-center justify-center text-sm">❤️</div>
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-bold text-gray-800 mb-0.5">{animal.name}</h3>
+                      <p className="text-gray-400 text-xs mb-3">{animal.breed} · {animal.age} yrs</p>
+                      <button onClick={() => navigate(`/adoption?animalId=${animal.id}`)}
+                        className="w-full py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-violet-600 to-purple-700 text-white border-0 cursor-pointer hover:shadow-md transition-all">
+                        🐾 Adopt Me!
+                      </button>
                     </div>
                   </div>
                 ))}

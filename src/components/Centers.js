@@ -9,10 +9,10 @@ const CENTER_IMAGES = [
   'https://images.unsplash.com/photo-1544568100-847a948585b9?w=800&q=80',
 ];
 
-const STATUS_COLORS = {
-  available: { bg: '#f0fff4', color: '#276749', label: '🟢 Available' },
-  pending:   { bg: '#fffbeb', color: '#92400e', label: '🟡 Pending' },
-  adopted:   { bg: '#fff5f5', color: '#9b2c2c', label: '🔴 Adopted' },
+const STATUS = {
+  available: { pill: 'bg-emerald-100 text-emerald-700', dot: '🟢', label: 'Available' },
+  pending:   { pill: 'bg-amber-100 text-amber-700',   dot: '🟡', label: 'Pending' },
+  adopted:   { pill: 'bg-red-100 text-red-600',       dot: '🔴', label: 'Adopted' },
 };
 
 function Centers() {
@@ -56,98 +56,107 @@ function Centers() {
   };
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #f5f7fa, #c3cfe2)' }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🏠</div>
-        <div style={{ fontSize: '1.2rem', color: '#667eea', fontWeight: 600 }}>Loading centers...</div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 to-purple-50">
+      <div className="text-center">
+        <div className="text-5xl mb-4 animate-bounce">🏠</div>
+        <p className="text-violet-600 font-semibold text-lg">Loading centers...</p>
       </div>
     </div>
   );
 
-  // Center detail view
+  // ── Center Detail View ──
   if (selectedCenter) {
     const available = centerAnimals.filter(a => a.status === 'available').length;
     return (
-      <div className="app-container">
-        {/* Center Hero */}
-        <div style={{ position: 'relative', height: '300px', overflow: 'hidden' }}>
-          <img src={CENTER_IMAGES[(selectedCenter.id - 1) % CENTER_IMAGES.length]} alt={selectedCenter.name}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 100%)' }} />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-violet-50/30 to-purple-50/20">
+        {/* Hero */}
+        <div className="relative h-72 overflow-hidden">
+          <img src={CENTER_IMAGES[(selectedCenter.id - 1) % CENTER_IMAGES.length]}
+            alt={selectedCenter.name} className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
           <button onClick={() => { setSelectedCenter(null); setCenterAnimals([]); }}
-            style={{ position: 'absolute', top: '1.5rem', left: '1.5rem', background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.3)', color: 'white', padding: '0.6rem 1.2rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem' }}>
+            className="absolute top-5 left-5 bg-white/20 backdrop-blur-md border border-white/30 text-white px-4 py-2 rounded-xl font-semibold text-sm hover:bg-white/30 transition-all cursor-pointer">
             ← Back to Centers
           </button>
-          <div style={{ position: 'absolute', bottom: '2rem', left: '2rem', color: 'white' }}>
-            <h1 style={{ margin: 0, fontSize: '2.5rem', fontWeight: 800, textShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>{selectedCenter.name}</h1>
-            <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.75rem', fontSize: '1rem', opacity: 0.9 }}>
+          <div className="absolute bottom-6 left-6 right-6">
+            <h1 className="text-3xl font-extrabold text-white mb-2">{selectedCenter.name}</h1>
+            <div className="flex flex-wrap gap-4 text-white/80 text-sm">
               <span>📍 {selectedCenter.location}</span>
               <span>📧 {selectedCenter.contact}</span>
-              <span>🐾 {available} available</span>
+              <span className="bg-white/20 px-3 py-0.5 rounded-full font-semibold">🐾 {available} available</span>
             </div>
           </div>
         </div>
 
         {/* Stats bar */}
-        <div style={{ background: 'white', padding: '1.5rem 2rem', display: 'flex', gap: '3rem', boxShadow: '0 2px 10px rgba(0,0,0,0.06)', justifyContent: 'center' }}>
-          {[
-            { label: 'Total Animals', value: centerAnimals.length, color: '#667eea' },
-            { label: 'Available', value: centerAnimals.filter(a => a.status === 'available').length, color: '#48bb78' },
-            { label: 'Pending', value: centerAnimals.filter(a => a.status === 'pending').length, color: '#ed8936' },
-            { label: 'Adopted', value: centerAnimals.filter(a => a.status === 'adopted').length, color: '#e53e3e' },
-          ].map((s, i) => (
-            <div key={i} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '2rem', fontWeight: 800, color: s.color }}>{s.value}</div>
-              <div style={{ color: '#718096', fontSize: '0.9rem' }}>{s.label}</div>
-            </div>
-          ))}
+        <div className="bg-white border-b border-gray-100 shadow-sm">
+          <div className="max-w-7xl mx-auto px-6 py-4 grid grid-cols-4 gap-4 text-center">
+            {[
+              { label: 'Total', value: centerAnimals.length, color: 'text-violet-600' },
+              { label: 'Available', value: centerAnimals.filter(a => a.status === 'available').length, color: 'text-emerald-600' },
+              { label: 'Pending', value: centerAnimals.filter(a => a.status === 'pending').length, color: 'text-amber-600' },
+              { label: 'Adopted', value: centerAnimals.filter(a => a.status === 'adopted').length, color: 'text-red-500' },
+            ].map((s, i) => (
+              <div key={i}>
+                <p className={`text-2xl font-extrabold ${s.color}`}>{s.value}</p>
+                <p className="text-xs text-gray-400 font-medium">{s.label}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Animals */}
-        <div style={{ maxWidth: '1200px', margin: '2rem auto', padding: '0 2rem' }}>
-          <h2 style={{ color: '#2d3748', fontWeight: 700, marginBottom: '1.5rem' }}>Animals at {selectedCenter.name}</h2>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <h2 className="text-xl font-extrabold text-gray-800 mb-6">Animals at {selectedCenter.name}</h2>
           {animalsLoading ? (
-            <div style={{ textAlign: 'center', padding: '3rem', color: '#667eea' }}>Loading animals...</div>
+            <div className="text-center py-16 text-violet-600 font-semibold">Loading animals...</div>
           ) : centerAnimals.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '4rem', background: 'white', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
-              <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🐾</div>
-              <h3 style={{ color: '#2d3748' }}>No animals at this center yet</h3>
-              <p style={{ color: '#718096' }}>Check back soon!</p>
+            <div className="text-center py-20 bg-white rounded-2xl shadow-sm">
+              <div className="text-5xl mb-3">🐾</div>
+              <h3 className="font-bold text-gray-700 mb-1">No animals at this center yet</h3>
+              <p className="text-gray-400 text-sm">Check back soon!</p>
             </div>
           ) : (
-            <div className="animal-list" style={{ padding: 0 }}>
-              {centerAnimals.map(animal => (
-                <div className="animal-card fade-in" key={animal.id}>
-                  <div style={{ position: 'absolute', top: '1rem', left: '1rem', zIndex: 2, padding: '0.3rem 0.75rem', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 700, background: STATUS_COLORS[animal.status]?.bg, color: STATUS_COLORS[animal.status]?.color }}>
-                    {STATUS_COLORS[animal.status]?.label}
-                  </div>
-                  <button onClick={(e) => toggleFavorite(e, animal.id)} style={{ position: 'absolute', top: '1rem', right: '1rem', zIndex: 2, background: 'white', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', fontSize: '1.2rem', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {animal.is_favorited ? '❤️' : '🤍'}
-                  </button>
-                  <img src={animal.image} alt={animal.name} className="animal-image"
-                    onError={e => e.target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=600&q=80'} />
-                  <div className="animal-card-content">
-                    <h3 className="animal-name">{animal.name}</h3>
-                    <div className="animal-details">
-                      <div className="animal-detail"><strong>Species:</strong> {animal.species}</div>
-                      <div className="animal-detail"><strong>Breed:</strong> {animal.breed}</div>
-                      <div className="animal-detail"><strong>Age:</strong> {animal.age} yr{animal.age !== 1 ? 's' : ''}</div>
-                    </div>
-                    {animal.tags?.length > 0 && (
-                      <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', margin: '0.75rem 0' }}>
-                        {animal.tags.map((tag, i) => (
-                          <span key={i} style={{ padding: '0.2rem 0.6rem', background: 'rgba(102,126,234,0.1)', color: '#667eea', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 600 }}>{tag}</span>
-                        ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              {centerAnimals.map(animal => {
+                const s = STATUS[animal.status] || STATUS.available;
+                return (
+                  <div key={animal.id}
+                    className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 group">
+                    <div className="relative h-44 overflow-hidden">
+                      <img src={animal.image} alt={animal.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        onError={e => e.target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=600&q=80'} />
+                      <div className={`absolute top-3 left-3 text-xs font-bold px-2.5 py-1 rounded-full ${s.pill}`}>
+                        {s.dot} {s.label}
                       </div>
-                    )}
-                    <p className="animal-description">{animal.description}</p>
-                    <button onClick={() => navigate(`/adoption?animalId=${animal.id}`)} disabled={animal.status === 'adopted'}
-                      style={{ opacity: animal.status === 'adopted' ? 0.5 : 1, cursor: animal.status === 'adopted' ? 'not-allowed' : 'pointer' }}>
-                      {animal.status === 'adopted' ? '🏠 Already Adopted' : '🐾 Adopt Me!'}
-                    </button>
+                      <button onClick={e => toggleFavorite(e, animal.id)}
+                        className="absolute top-3 right-3 bg-white/90 rounded-full w-8 h-8 flex items-center justify-center text-base shadow-sm hover:scale-110 transition-transform border-0 cursor-pointer">
+                        {animal.is_favorited ? '❤️' : '🤍'}
+                      </button>
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-bold text-gray-800 text-base mb-0.5">{animal.name}</h3>
+                      <p className="text-gray-500 text-xs mb-3">{animal.breed} · {animal.age} yr{animal.age !== 1 ? 's' : ''}</p>
+                      {animal.tags?.length > 0 && (
+                        <div className="flex gap-1 flex-wrap mb-3">
+                          {animal.tags.slice(0, 2).map((tag, i) => (
+                            <span key={i} className="bg-violet-50 text-violet-600 text-xs font-semibold px-2 py-0.5 rounded-full">{tag}</span>
+                          ))}
+                        </div>
+                      )}
+                      <button onClick={() => navigate(`/adoption?animalId=${animal.id}`)}
+                        disabled={animal.status === 'adopted'}
+                        className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all border-0
+                          ${animal.status === 'adopted'
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'bg-gradient-to-r from-violet-600 to-purple-700 text-white hover:shadow-md cursor-pointer'}`}>
+                        {animal.status === 'adopted' ? '🏠 Adopted' : '🐾 Adopt Me!'}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -155,36 +164,49 @@ function Centers() {
     );
   }
 
-  // Centers list view
+  // ── Centers List View ──
   return (
-    <div className="app-container">
-      <div className="page-header">
-        <h1>🏠 Rescue Centers</h1>
-        <p>Visit our {centers.length} partner rescue centers and meet the animals</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-violet-50/30 to-purple-50/20">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-violet-600 to-purple-700 px-6 py-12 text-center relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10 text-8xl flex items-center justify-around pointer-events-none">
+          <span>🏠</span><span>🐾</span><span>🏡</span><span>🐕</span>
+        </div>
+        <h1 className="text-4xl font-extrabold text-white mb-2 relative z-10">🏠 Rescue Centers</h1>
+        <p className="text-violet-200 text-lg relative z-10">
+          Visit our {centers.length} partner rescue centers and meet the animals
+        </p>
       </div>
 
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(520px, 1fr))', gap: '2rem' }}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {centers.map((center, idx) => (
-            <div key={center.id} style={{ background: 'white', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 8px 30px rgba(0,0,0,0.1)', transition: 'all 0.3s', cursor: 'pointer' }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.boxShadow = '0 16px 40px rgba(102,126,234,0.2)'; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.1)'; }}
+            <div key={center.id}
+              className="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer group"
               onClick={() => handleVisitCenter(center)}>
-              <div style={{ position: 'relative', height: '200px' }}>
+              <div className="relative h-52 overflow-hidden">
                 <img src={CENTER_IMAGES[idx % CENTER_IMAGES.length]} alt={center.name}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)' }} />
-                <div style={{ position: 'absolute', bottom: '1rem', right: '1rem', background: 'rgba(255,255,255,0.95)', borderRadius: '20px', padding: '0.4rem 1rem', fontWeight: 700, color: '#667eea', fontSize: '0.9rem' }}>
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                <div className="absolute top-4 right-4 bg-white/95 rounded-full px-3 py-1.5 text-xs font-bold text-violet-700 shadow-sm">
                   🐾 {center.animal_count} available
                 </div>
-              </div>
-              <div style={{ padding: '1.5rem' }}>
-                <h3 style={{ margin: '0 0 0.75rem', fontSize: '1.4rem', fontWeight: 700, color: '#2d3748' }}>{center.name}</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1.25rem' }}>
-                  <div style={{ color: '#718096', fontSize: '0.95rem' }}>📍 {center.location}</div>
-                  <div style={{ color: '#718096', fontSize: '0.95rem' }}>📧 {center.contact}</div>
+                <div className="absolute bottom-4 left-4">
+                  <h3 className="text-xl font-extrabold text-white">{center.name}</h3>
                 </div>
-                <button className="center-button" onClick={e => { e.stopPropagation(); handleVisitCenter(center); }}>
+              </div>
+              <div className="p-5">
+                <div className="flex flex-col gap-1.5 mb-4">
+                  <div className="flex items-center gap-2 text-gray-500 text-sm">
+                    <span>📍</span><span>{center.location}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-500 text-sm">
+                    <span>📧</span><span>{center.contact}</span>
+                  </div>
+                </div>
+                <button
+                  className="w-full py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-violet-600 to-purple-700 text-white hover:shadow-lg hover:shadow-violet-200 transition-all border-0 cursor-pointer"
+                  onClick={e => { e.stopPropagation(); handleVisitCenter(center); }}>
                   Visit Center →
                 </button>
               </div>

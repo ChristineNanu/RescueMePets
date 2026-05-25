@@ -24,7 +24,7 @@ export const Login = ({ onLogin }) => {
         localStorage.setItem('user_id', data.user_id);
         localStorage.setItem('username', data.username);
         if (onLogin) onLogin();
-        navigate('/animals');
+        navigate('/dashboard');
       } else {
         setMessage(data.detail);
       }

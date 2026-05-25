@@ -2,13 +2,83 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../constants';
 
-const STATUS_COLORS = {
-  available: { bg: '#f0fff4', color: '#276749', label: '🟢 Available' },
-  pending:   { bg: '#fffbeb', color: '#92400e', label: '🟡 Pending' },
-  adopted:   { bg: '#fff5f5', color: '#9b2c2c', label: '🔴 Adopted' },
+const STATUS = {
+  available: { pill: 'bg-emerald-100 text-emerald-700', dot: '🟢', label: 'Available' },
+  pending:   { pill: 'bg-amber-100 text-amber-700',   dot: '🟡', label: 'Pending' },
+  adopted:   { pill: 'bg-red-100 text-red-600',       dot: '🔴', label: 'Adopted' },
 };
 
-const SPECIES = ['All', 'Dog', 'Cat', 'Rabbit', 'Bird'];
+const SPECIES = [
+  { key: 'All', icon: '🐾' },
+  { key: 'Dog', icon: '🐕' },
+  { key: 'Cat', icon: '🐈' },
+  { key: 'Rabbit', icon: '🐇' },
+  { key: 'Bird', icon: '🦜' },
+];
+
+function AnimalModal({ animal, onClose, onAdopt }) {
+  if (!animal) return null;
+  const s = STATUS[animal.status] || STATUS.available;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      onClick={onClose}>
+      <div className="bg-white rounded-3xl overflow-hidden max-w-lg w-full shadow-2xl"
+        onClick={e => e.stopPropagation()}>
+        <div className="relative h-64">
+          <img src={animal.image} alt={animal.name}
+            className="w-full h-full object-cover"
+            onError={e => e.target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=600&q=80'} />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+          <button onClick={onClose}
+            className="absolute top-4 right-4 bg-white/90 rounded-full w-9 h-9 flex items-center justify-center text-gray-600 hover:bg-white font-bold border-0 cursor-pointer text-lg">
+            ✕
+          </button>
+          <div className="absolute bottom-4 left-4 right-4">
+            <h2 className="text-2xl font-extrabold text-white">{animal.name}</h2>
+            <p className="text-white/80 text-sm">{animal.breed} · {animal.age} yr{animal.age !== 1 ? 's' : ''}</p>
+          </div>
+        </div>
+        <div className="p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <span className={`text-xs font-bold px-3 py-1 rounded-full ${s.pill}`}>{s.dot} {s.label}</span>
+            <span className="text-xs font-semibold bg-violet-50 text-violet-600 px-3 py-1 rounded-full">{animal.species}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-gray-400 text-xs font-medium">Breed</p>
+              <p className="font-semibold text-gray-700">{animal.breed}</p>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-gray-400 text-xs font-medium">Age</p>
+              <p className="font-semibold text-gray-700">{animal.age} yr{animal.age !== 1 ? 's' : ''}</p>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3 col-span-2">
+              <p className="text-gray-400 text-xs font-medium">Rescue Center</p>
+              <p className="font-semibold text-gray-700">📍 {animal.center?.name || 'Unknown'}</p>
+            </div>
+          </div>
+          {animal.tags?.length > 0 && (
+            <div className="flex gap-1.5 flex-wrap mb-4">
+              {animal.tags.map((tag, i) => (
+                <span key={i} className="bg-violet-50 text-violet-600 text-xs font-semibold px-2.5 py-1 rounded-full">{tag}</span>
+              ))}
+            </div>
+          )}
+          <p className="text-gray-500 text-sm leading-relaxed mb-5 italic">"{animal.description}"</p>
+          <button
+            onClick={() => onAdopt(animal.id)}
+            disabled={animal.status === 'adopted'}
+            className={`w-full py-3 rounded-xl font-bold text-base transition-all
+              ${animal.status === 'adopted'
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-gradient-to-r from-violet-600 to-purple-700 text-white hover:shadow-lg hover:shadow-violet-200 hover:-translate-y-0.5 cursor-pointer'}`}>
+            {animal.status === 'adopted' ? '🏠 Already Adopted' : animal.status === 'pending' ? '⏳ Apply Anyway' : '🐾 Adopt Me!'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function AnimalList() {
   const [animals, setAnimals] = useState([]);
@@ -16,7 +86,7 @@ function AnimalList() {
   const [search, setSearch] = useState('');
   const [species, setSpecies] = useState('All');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [favorites, setFavorites] = useState([]);
+  const [selectedAnimal, setSelectedAnimal] = useState(null);
   const navigate = useNavigate();
   const userId = localStorage.getItem('user_id');
 
@@ -28,9 +98,7 @@ function AnimalList() {
       if (statusFilter !== 'all') params.append('status', statusFilter);
       if (userId) params.append('user_id', userId);
       const res = await fetch(`${API_BASE_URL}/animals?${params}`);
-      const data = await res.json();
-      setAnimals(data);
-      setFavorites(data.filter(a => a.is_favorited).map(a => a.id));
+      setAnimals(await res.json());
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   }, [species, search, statusFilter, userId]);
@@ -46,142 +114,136 @@ function AnimalList() {
       body: JSON.stringify({ user_id: parseInt(userId), animal_id: animalId })
     });
     const data = await res.json();
-    setFavorites(prev => data.favorited ? [...prev, animalId] : prev.filter(id => id !== animalId));
     setAnimals(prev => prev.map(a => a.id === animalId ? { ...a, is_favorited: data.favorited } : a));
+    if (selectedAnimal?.id === animalId) setSelectedAnimal(prev => ({ ...prev, is_favorited: data.favorited }));
   };
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #f5f7fa, #c3cfe2)' }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🐾</div>
-        <div style={{ fontSize: '1.2rem', color: '#667eea', fontWeight: 600 }}>Loading animals...</div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 to-purple-50">
+      <div className="text-center">
+        <div className="text-5xl mb-4 animate-bounce">🐾</div>
+        <p className="text-violet-600 font-semibold text-lg">Loading animals...</p>
       </div>
     </div>
   );
 
   return (
-    <div className="app-container">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-violet-50/30 to-purple-50/20">
+
       {/* Header */}
-      <div className="page-header">
-        <h1>Find Your Perfect Companion</h1>
-        <p>Browse {animals.length} amazing animals waiting for their forever homes</p>
+      <div className="bg-gradient-to-r from-violet-600 to-purple-700 px-6 py-12 text-center relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10 text-8xl flex items-center justify-around pointer-events-none">
+          <span>🐕</span><span>🐈</span><span>🐇</span><span>🦜</span>
+        </div>
+        <h1 className="text-4xl font-extrabold text-white mb-2 relative z-10">Find Your Perfect Companion</h1>
+        <p className="text-violet-200 text-lg relative z-10">
+          {animals.length} amazing animals waiting for their forever homes
+        </p>
       </div>
 
-      {/* Search & Filters */}
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1.5rem 2rem 0' }}>
-        {/* Search bar */}
-        <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
-          <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', fontSize: '1.2rem' }}>🔍</span>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        {/* Search */}
+        <div className="relative mb-5">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg">🔍</span>
           <input
             type="text"
             placeholder="Search by name or breed..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            style={{ width: '100%', padding: '1rem 1rem 1rem 3rem', borderRadius: '12px', border: '2px solid #e2e8f0', fontSize: '1rem', outline: 'none', background: 'white', boxSizing: 'border-box', transition: 'border-color 0.3s' }}
-            onFocus={e => e.target.style.borderColor = '#667eea'}
-            onBlur={e => e.target.style.borderColor = '#e2e8f0'}
+            className="w-full pl-12 pr-4 py-3.5 rounded-2xl border-2 border-gray-200 focus:border-violet-400 focus:outline-none bg-white text-gray-700 text-base shadow-sm transition-colors"
           />
         </div>
 
-        {/* Species filter */}
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-          {SPECIES.map(s => (
-            <button key={s} onClick={() => setSpecies(s)} style={{
-              padding: '0.5rem 1.25rem', borderRadius: '20px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', transition: 'all 0.2s',
-              background: species === s ? 'linear-gradient(135deg, #667eea, #764ba2)' : 'white',
-              color: species === s ? 'white' : '#4a5568',
-              boxShadow: species === s ? '0 4px 15px rgba(102,126,234,0.4)' : '0 2px 8px rgba(0,0,0,0.08)'
-            }}>
-              {s === 'All' ? '🐾' : s === 'Dog' ? '🐕' : s === 'Cat' ? '🐈' : s === 'Rabbit' ? '🐇' : '🦜'} {s}
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-2 mb-8">
+          {SPECIES.map(({ key, icon }) => (
+            <button key={key} onClick={() => setSpecies(key)}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all border-0 cursor-pointer
+                ${species === key
+                  ? 'bg-gradient-to-r from-violet-600 to-purple-700 text-white shadow-md shadow-violet-200'
+                  : 'bg-white text-gray-600 hover:text-violet-600 hover:bg-violet-50 shadow-sm'}`}>
+              {icon} {key}
             </button>
           ))}
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem' }}>
+          <div className="ml-auto flex gap-2">
             {['all', 'available', 'pending', 'adopted'].map(st => (
-              <button key={st} onClick={() => setStatusFilter(st)} style={{
-                padding: '0.5rem 1rem', borderRadius: '20px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', transition: 'all 0.2s', textTransform: 'capitalize',
-                background: statusFilter === st ? '#2d3748' : 'white',
-                color: statusFilter === st ? 'white' : '#4a5568',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-              }}>
+              <button key={st} onClick={() => setStatusFilter(st)}
+                className={`px-3 py-2 rounded-full text-xs font-bold capitalize transition-all border-0 cursor-pointer
+                  ${statusFilter === st ? 'bg-gray-800 text-white' : 'bg-white text-gray-500 hover:bg-gray-100 shadow-sm'}`}>
                 {st === 'all' ? 'All Status' : st}
               </button>
             ))}
           </div>
         </div>
-      </div>
 
-      {/* Animals Grid */}
-      <div className="animal-list">
+        {/* Grid */}
         {animals.length === 0 ? (
-          <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '4rem', color: '#718096' }}>
-            <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🔍</div>
-            <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>No animals found</h3>
-            <p>Try adjusting your search or filters</p>
+          <div className="text-center py-20">
+            <div className="text-6xl mb-4">🔍</div>
+            <h3 className="text-xl font-bold text-gray-700 mb-2">No animals found</h3>
+            <p className="text-gray-400">Try adjusting your search or filters</p>
           </div>
-        ) : animals.map(animal => (
-          <div className="animal-card fade-in" key={animal.id} style={{ cursor: 'pointer' }}>
-            {/* Status badge */}
-            <div style={{
-              position: 'absolute', top: '1rem', left: '1rem', zIndex: 2,
-              padding: '0.3rem 0.75rem', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 700,
-              background: STATUS_COLORS[animal.status]?.bg,
-              color: STATUS_COLORS[animal.status]?.color,
-            }}>
-              {STATUS_COLORS[animal.status]?.label}
-            </div>
-
-            {/* Favorite button */}
-            <button onClick={(e) => toggleFavorite(e, animal.id)} style={{
-              position: 'absolute', top: '1rem', right: '1rem', zIndex: 2,
-              background: 'white', border: 'none', borderRadius: '50%', width: '36px', height: '36px',
-              cursor: 'pointer', fontSize: '1.2rem', boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform 0.2s'
-            }}
-              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.2)'}
-              onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
-              {animal.is_favorited ? '❤️' : '🤍'}
-            </button>
-
-            <img
-              src={animal.image || 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=600&q=80'}
-              alt={animal.name}
-              className="animal-image"
-              onError={e => e.target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=600&q=80'}
-            />
-
-            <div className="animal-card-content">
-              <h3 className="animal-name">{animal.name}</h3>
-              <div className="animal-details">
-                <div className="animal-detail"><strong>Species:</strong> {animal.species}</div>
-                <div className="animal-detail"><strong>Breed:</strong> {animal.breed}</div>
-                <div className="animal-detail"><strong>Age:</strong> {animal.age} yr{animal.age !== 1 ? 's' : ''}</div>
-                <div className="animal-detail"><strong>Center:</strong> {animal.center?.name || 'Unknown'}</div>
-              </div>
-
-              {/* Tags */}
-              {animal.tags?.length > 0 && (
-                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', margin: '0.75rem 0' }}>
-                  {animal.tags.map((tag, i) => (
-                    <span key={i} style={{ padding: '0.2rem 0.6rem', background: 'rgba(102,126,234,0.1)', color: '#667eea', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 600 }}>
-                      {tag}
-                    </span>
-                  ))}
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {animals.map(animal => {
+              const s = STATUS[animal.status] || STATUS.available;
+              return (
+                <div key={animal.id}
+                  className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer group"
+                  onClick={() => setSelectedAnimal(animal)}>
+                  <div className="relative h-48 overflow-hidden">
+                    <img src={animal.image || 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=600&q=80'}
+                      alt={animal.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      onError={e => e.target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=600&q=80'} />
+                    {/* Status badge */}
+                    <div className={`absolute top-3 left-3 text-xs font-bold px-2.5 py-1 rounded-full ${s.pill}`}>
+                      {s.dot} {s.label}
+                    </div>
+                    {/* Favorite */}
+                    <button onClick={e => toggleFavorite(e, animal.id)}
+                      className="absolute top-3 right-3 bg-white/90 rounded-full w-8 h-8 flex items-center justify-center text-base shadow-sm hover:scale-110 transition-transform border-0 cursor-pointer">
+                      {animal.is_favorited ? '❤️' : '🤍'}
+                    </button>
+                  </div>
+                  <div className="p-4">
+                    <div className="flex items-start justify-between mb-1">
+                      <h3 className="font-bold text-gray-800 text-base">{animal.name}</h3>
+                      <span className="text-xs text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">{animal.species}</span>
+                    </div>
+                    <p className="text-gray-500 text-xs mb-1">{animal.breed} · {animal.age} yr{animal.age !== 1 ? 's' : ''}</p>
+                    <p className="text-gray-400 text-xs mb-3">📍 {animal.center?.name || 'Unknown'}</p>
+                    {animal.tags?.length > 0 && (
+                      <div className="flex gap-1 flex-wrap mb-3">
+                        {animal.tags.slice(0, 3).map((tag, i) => (
+                          <span key={i} className="bg-violet-50 text-violet-600 text-xs font-semibold px-2 py-0.5 rounded-full">{tag}</span>
+                        ))}
+                      </div>
+                    )}
+                    <button
+                      onClick={e => { e.stopPropagation(); navigate(`/adoption?animalId=${animal.id}`); }}
+                      disabled={animal.status === 'adopted'}
+                      className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all border-0
+                        ${animal.status === 'adopted'
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-gradient-to-r from-violet-600 to-purple-700 text-white hover:shadow-md hover:shadow-violet-200 cursor-pointer'}`}>
+                      {animal.status === 'adopted' ? '🏠 Adopted' : animal.status === 'pending' ? '⏳ Apply' : '🐾 Adopt Me!'}
+                    </button>
+                  </div>
                 </div>
-              )}
-
-              <p className="animal-description">{animal.description}</p>
-
-              <button
-                onClick={() => navigate(`/adoption?animalId=${animal.id}`)}
-                disabled={animal.status === 'adopted'}
-                style={{ opacity: animal.status === 'adopted' ? 0.5 : 1, cursor: animal.status === 'adopted' ? 'not-allowed' : 'pointer' }}
-              >
-                {animal.status === 'adopted' ? '🏠 Already Adopted' : animal.status === 'pending' ? '⏳ Apply Anyway' : '🐾 Adopt Me!'}
-              </button>
-            </div>
+              );
+            })}
           </div>
-        ))}
+        )}
       </div>
+
+      {/* Modal */}
+      <AnimalModal
+        animal={selectedAnimal}
+        onClose={() => setSelectedAnimal(null)}
+        onAdopt={id => { setSelectedAnimal(null); navigate(`/adoption?animalId=${id}`); }}
+      />
     </div>
   );
 }
