@@ -253,6 +253,71 @@ def get_waitlist(animal_id: int, user_id: int = None, db: Session = Depends(get_
         ).first() is not None
     return {"count": count, "on_waitlist": on_list}
 
+@app.get("/profile")
+def get_profile(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"id": user.id, "username": user.username, "email": user.email, "avatar": user.avatar or "", "wallet_balance": user.wallet_balance or 0}
+
+@app.patch("/profile")
+def update_profile(user_id: int, body: schemas.ProfileUpdate, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if body.username and body.username != user.username:
+        if db.query(models.User).filter(models.User.username == body.username).first():
+            raise HTTPException(status_code=400, detail="Username already taken")
+        user.username = body.username
+    if body.email and body.email != user.email:
+        if db.query(models.User).filter(models.User.email == body.email).first():
+            raise HTTPException(status_code=400, detail="Email already taken")
+        user.email = body.email
+    if body.avatar is not None:
+        user.avatar = body.avatar
+    db.commit()
+    return {"message": "Profile updated", "username": user.username, "email": user.email, "avatar": user.avatar}
+
+@app.post("/wallet/topup")
+def topup_wallet(user_id: int, body: schemas.WalletTopUp, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.wallet_balance = (user.wallet_balance or 0) + body.amount
+    db.commit()
+    return {"wallet_balance": user.wallet_balance}
+
+@app.post("/sponsor")
+def sponsor_animal(req: schemas.SponsorRequest, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == req.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if (user.wallet_balance or 0) < req.amount:
+        raise HTTPException(status_code=400, detail="Insufficient wallet balance")
+    existing = db.query(models.Sponsor).filter(
+        models.Sponsor.user_id == req.user_id, models.Sponsor.animal_id == req.animal_id
+    ).first()
+    if existing:
+        existing.amount = req.amount
+    else:
+        db.add(models.Sponsor(user_id=req.user_id, animal_id=req.animal_id, amount=req.amount))
+    user.wallet_balance -= req.amount
+    db.commit()
+    total = sum(s.amount for s in db.query(models.Sponsor).filter(models.Sponsor.animal_id == req.animal_id).all())
+    return {"message": "Sponsorship confirmed", "wallet_balance": user.wallet_balance, "total_sponsored": total}
+
+@app.get("/sponsor/{animal_id}")
+def get_sponsors(animal_id: int, user_id: int = None, db: Session = Depends(get_db)):
+    sponsors = db.query(models.Sponsor).filter(models.Sponsor.animal_id == animal_id).all()
+    total = sum(s.amount for s in sponsors)
+    user_amount = next((s.amount for s in sponsors if s.user_id == user_id), 0) if user_id else 0
+    return {"total": total, "count": len(sponsors), "user_amount": user_amount, "goal": 5000}
+
+@app.get("/my-sponsorships")
+def get_my_sponsorships(user_id: int, db: Session = Depends(get_db)):
+    sponsors = db.query(models.Sponsor).filter(models.Sponsor.user_id == user_id).all()
+    return [{"id": s.id, "animal_id": s.animal_id, "animal_name": s.animal.name, "animal_image": s.animal.image, "animal_species": s.animal.species, "amount": s.amount, "created_at": s.created_at.isoformat()} for s in sponsors]
+
 @app.get("/stats")
 def get_stats(db: Session = Depends(get_db)):
     return {

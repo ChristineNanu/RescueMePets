@@ -73,6 +73,19 @@ class WaitlistRequest(BaseModel):
     user_id: int
     animal_id: int
 
+class SponsorRequest(BaseModel):
+    user_id: int
+    animal_id: int
+    amount: int  # in cents e.g. 500 = $5
+
+class ProfileUpdate(BaseModel):
+    username: Optional[str] = None
+    email: Optional[str] = None
+    avatar: Optional[str] = None
+
+class WalletTopUp(BaseModel):
+    amount: int  # in cents
+
 class QuizAnswers(BaseModel):
     activity: str        # active, moderate, relaxed
     home: str            # house, apartment, farm

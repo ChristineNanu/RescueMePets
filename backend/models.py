@@ -10,6 +10,8 @@ class User(Base):
     username = Column(String, unique=True, index=True)
     email = Column(String, unique=True, index=True)
     password = Column(String)
+    avatar = Column(String, default="")
+    wallet_balance = Column(Integer, default=0)  # stored in cents
 
 class Animal(Base):
     __tablename__ = "animals"
@@ -68,6 +70,16 @@ class Waitlist(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     animal_id = Column(Integer, ForeignKey("animals.id"))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    user = relationship("User")
+    animal = relationship("Animal")
+
+class Sponsor(Base):
+    __tablename__ = "sponsors"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    animal_id = Column(Integer, ForeignKey("animals.id"))
+    amount = Column(Integer)  # monthly amount in cents
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     user = relationship("User")
     animal = relationship("Animal")

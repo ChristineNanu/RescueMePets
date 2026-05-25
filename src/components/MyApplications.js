@@ -8,14 +8,22 @@ const STATUS_MAP = {
   rejected: { bg: 'bg-red-100',     text: 'text-red-600',     icon: '❌', label: 'Not Approved' },
 };
 
+const TOPUP_AMOUNTS = [1000, 2000, 5000, 10000]; // cents
+
 function MyApplications() {
-  const [applications, setApplications] = useState([]);
-  const [favorites, setFavorites]       = useState([]);
-  const [tab, setTab]                   = useState('applications');
-  const [loading, setLoading]           = useState(true);
-  const navigate  = useNavigate();
-  const userId    = localStorage.getItem('user_id');
-  const username  = localStorage.getItem('username');
+  const [applications, setApplications]   = useState([]);
+  const [favorites, setFavorites]         = useState([]);
+  const [sponsorships, setSponsorships]   = useState([]);
+  const [profile, setProfile]             = useState(null);
+  const [tab, setTab]                     = useState('applications');
+  const [loading, setLoading]             = useState(true);
+  const [editing, setEditing]             = useState(false);
+  const [editForm, setEditForm]           = useState({});
+  const [editMsg, setEditMsg]             = useState('');
+  const [topUpAmount, setTopUpAmount]     = useState(1000);
+  const [walletMsg, setWalletMsg]         = useState('');
+  const navigate = useNavigate();
+  const userId   = localStorage.getItem('user_id');
 
   const handleLogout = () => {
     localStorage.removeItem('user_id');
@@ -29,21 +37,58 @@ function MyApplications() {
     Promise.all([
       fetch(`${API_BASE_URL}/my-applications?user_id=${userId}`).then(r => r.json()),
       fetch(`${API_BASE_URL}/favorites?user_id=${userId}`).then(r => r.json()),
-    ]).then(([apps, favs]) => {
+      fetch(`${API_BASE_URL}/my-sponsorships?user_id=${userId}`).then(r => r.json()),
+      fetch(`${API_BASE_URL}/profile?user_id=${userId}`).then(r => r.json()),
+    ]).then(([apps, favs, sponsors, prof]) => {
       setApplications(apps);
       setFavorites(favs);
+      setSponsorships(sponsors);
+      setProfile(prof);
+      setEditForm({ username: prof.username, email: prof.email, avatar: prof.avatar });
     }).catch(console.error)
       .finally(() => setLoading(false));
   }, [userId, navigate]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  // Mark all as read when this page is visited
   useEffect(() => {
     if (!userId) return;
-    fetch(`${API_BASE_URL}/notifications/mark-read?user_id=${userId}`, { method: 'POST' })
-      .catch(() => {});
+    fetch(`${API_BASE_URL}/notifications/mark-read?user_id=${userId}`, { method: 'POST' }).catch(() => {});
   }, [userId]);
+
+  const saveProfile = async () => {
+    setEditMsg('');
+    const res = await fetch(`${API_BASE_URL}/profile?user_id=${userId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editForm),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setProfile(p => ({ ...p, ...data }));
+      localStorage.setItem('username', data.username);
+      setEditing(false);
+      setEditMsg('');
+    } else {
+      setEditMsg(data.detail || 'Update failed');
+    }
+  };
+
+  const handleTopUp = async () => {
+    setWalletMsg('');
+    const res = await fetch(`${API_BASE_URL}/wallet/topup?user_id=${userId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount: topUpAmount }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setProfile(p => ({ ...p, wallet_balance: data.wallet_balance }));
+      setWalletMsg(`✅ $${(topUpAmount / 100).toFixed(0)} added!`);
+    } else {
+      setWalletMsg('❌ Top up failed');
+    }
+  };
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-amber-50">
@@ -66,25 +111,75 @@ function MyApplications() {
           <span>🐾</span><span>❤️</span><span>🏠</span>
         </div>
         <div className="relative z-10">
-          <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm border-4 border-white/40 flex items-center justify-center text-3xl font-extrabold text-white mx-auto mb-3">
-            {username?.[0]?.toUpperCase() || 'U'}
+          {/* Avatar */}
+          <div className="w-24 h-24 rounded-full bg-white/20 backdrop-blur-sm border-4 border-white/40 flex items-center justify-center mx-auto mb-3 overflow-hidden">
+            {profile?.avatar
+              ? <img src={profile.avatar} alt="avatar" className="w-full h-full object-cover" onError={e => e.target.style.display='none'} />
+              : <span className="text-4xl font-extrabold text-white">{profile?.username?.[0]?.toUpperCase() || 'U'}</span>
+            }
           </div>
-          <h1 className="text-3xl font-extrabold text-white mb-1">{username}</h1>
-          <p className="text-amber-100 text-base">Pet Adoption Profile</p>
+          <h1 className="text-3xl font-extrabold text-white mb-0.5">{profile?.username}</h1>
+          <p className="text-amber-100 text-sm">{profile?.email}</p>
+          <button onClick={() => { setEditing(true); setEditMsg(''); }}
+            className="mt-3 bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-4 py-1.5 rounded-full border border-white/30 cursor-pointer transition-all">
+            ✏️ Edit Profile
+          </button>
         </div>
       </div>
 
+      {/* Edit Profile Modal */}
+      {editing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+            <h2 className="text-lg font-extrabold text-gray-800 mb-4">Edit Profile</h2>
+            <div className="flex flex-col gap-3">
+              <div>
+                <label className="text-xs font-bold text-gray-500 mb-1 block">Username</label>
+                <input value={editForm.username || ''} onChange={e => setEditForm(f => ({ ...f, username: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-400" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-500 mb-1 block">Email</label>
+                <input value={editForm.email || ''} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-400" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-500 mb-1 block">Avatar URL</label>
+                <input value={editForm.avatar || ''} onChange={e => setEditForm(f => ({ ...f, avatar: e.target.value }))}
+                  placeholder="https://..." className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-400" />
+                {editForm.avatar && (
+                  <img src={editForm.avatar} alt="preview" className="w-12 h-12 rounded-full object-cover mt-2 border-2 border-amber-200"
+                    onError={e => e.target.style.display='none'} />
+                )}
+              </div>
+              {editMsg && <p className="text-xs text-red-500 font-semibold">{editMsg}</p>}
+              <div className="flex gap-2 mt-1">
+                <button onClick={() => setEditing(false)}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-bold text-gray-500 bg-gray-100 border-0 cursor-pointer hover:bg-gray-200 transition-all">
+                  Cancel
+                </button>
+                <button onClick={saveProfile}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-amber-500 to-amber-600 border-0 cursor-pointer hover:shadow-lg transition-all">
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Stats */}
       <div className="max-w-3xl mx-auto px-4 -mt-6 mb-6 relative z-10">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-4 gap-3">
           {[
             { label: 'Applications', value: applications.length, icon: '📋' },
             { label: 'Approved',     value: approved,            icon: '✅' },
             { label: 'Saved',        value: favorites.length,    icon: '❤️' },
+            { label: 'Sponsoring',   value: sponsorships.length, icon: '💜' },
           ].map((s, i) => (
-            <div key={i} className="bg-white rounded-2xl p-4 text-center shadow-md border border-gray-100">
-              <div className="text-2xl mb-1">{s.icon}</div>
-              <p className="text-2xl font-extrabold text-amber-600">{s.value}</p>
+            <div key={i} className="bg-white rounded-2xl p-3 text-center shadow-md border border-gray-100">
+              <div className="text-xl mb-1">{s.icon}</div>
+              <p className="text-xl font-extrabold text-amber-600">{s.value}</p>
               <p className="text-xs text-gray-400 font-medium">{s.label}</p>
             </div>
           ))}
@@ -92,6 +187,32 @@ function MyApplications() {
       </div>
 
       <div className="max-w-3xl mx-auto px-4 pb-6">
+
+        {/* Wallet Card */}
+        <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl p-5 mb-5 text-white shadow-lg">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-xs font-bold opacity-80 uppercase tracking-wide">💳 My Wallet</p>
+              <p className="text-3xl font-extrabold">${((profile?.wallet_balance || 0) / 100).toFixed(2)}</p>
+              <p className="text-xs opacity-70">Available balance</p>
+            </div>
+            <div className="text-5xl opacity-30">💜</div>
+          </div>
+          <div className="flex gap-2 flex-wrap mb-2">
+            {TOPUP_AMOUNTS.map(amt => (
+              <button key={amt} onClick={() => setTopUpAmount(amt)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold border-0 cursor-pointer transition-all
+                  ${topUpAmount === amt ? 'bg-white text-purple-600 shadow-md' : 'bg-white/20 text-white hover:bg-white/30'}`}>
+                +${amt / 100}
+              </button>
+            ))}
+          </div>
+          {walletMsg && <p className="text-xs font-semibold mb-2">{walletMsg}</p>}
+          <button onClick={handleTopUp}
+            className="w-full py-2.5 rounded-xl text-sm font-bold bg-white text-purple-600 border-0 cursor-pointer hover:shadow-lg transition-all">
+            Top Up ${(topUpAmount / 100).toFixed(0)}
+          </button>
+        </div>
 
         {/* Unread notification banner */}
         {unread.length > 0 && (
@@ -106,8 +227,7 @@ function MyApplications() {
                   const s = STATUS_MAP[app.status] || STATUS_MAP.pending;
                   return (
                     <p key={app.id} className="text-xs text-gray-500">
-                      <span className="font-semibold text-gray-700">{app.animal_name}</span>
-                      {' '}— application {' '}
+                      <span className="font-semibold text-gray-700">{app.animal_name}</span>{' '}—{' '}
                       <span className={`font-bold ${app.status === 'approved' ? 'text-emerald-600' : 'text-red-500'}`}>
                         {s.icon} {s.label}
                       </span>
@@ -120,13 +240,14 @@ function MyApplications() {
         )}
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-5 bg-white rounded-2xl p-1.5 shadow-sm border border-gray-100">
+        <div className="flex gap-1.5 mb-5 bg-white rounded-2xl p-1.5 shadow-sm border border-gray-100 overflow-x-auto">
           {[
             { key: 'applications', icon: '📋', label: `Applications (${applications.length})` },
             { key: 'favorites',    icon: '❤️', label: `Saved (${favorites.length})` },
+            { key: 'sponsorships', icon: '💜', label: `Sponsoring (${sponsorships.length})` },
           ].map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all border-0 cursor-pointer
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all border-0 cursor-pointer whitespace-nowrap
                 ${tab === t.key
                   ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md'
                   : 'text-gray-500 hover:text-amber-600 bg-transparent'}`}>
@@ -159,18 +280,14 @@ function MyApplications() {
                     <img src={app.animal_image} alt={app.animal_name}
                       className="w-16 h-16 rounded-xl object-cover"
                       onError={e => e.target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=100&q=80'} />
-                    {isUnread && (
-                      <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 rounded-full border-2 border-white" />
-                    )}
+                    {isUnread && <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 rounded-full border-2 border-white" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <div className="flex items-center gap-2">
                           <h3 className="font-bold text-gray-800 text-base">{app.animal_name}</h3>
-                          {isUnread && (
-                            <span className="text-xs bg-red-100 text-red-600 font-bold px-2 py-0.5 rounded-full">NEW</span>
-                          )}
+                          {isUnread && <span className="text-xs bg-red-100 text-red-600 font-bold px-2 py-0.5 rounded-full">NEW</span>}
                         </div>
                         <p className="text-gray-400 text-xs">{app.animal_species}</p>
                       </div>
@@ -223,6 +340,47 @@ function MyApplications() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Sponsorships Tab */}
+        {tab === 'sponsorships' && (
+          <div>
+            {sponsorships.length === 0 ? (
+              <div className="text-center py-16 bg-white rounded-2xl shadow-sm border border-gray-100">
+                <div className="text-5xl mb-3">💜</div>
+                <h3 className="font-bold text-gray-700 mb-1">Not sponsoring anyone yet</h3>
+                <p className="text-gray-400 text-sm mb-4">Open any animal profile to sponsor their care</p>
+                <button onClick={() => navigate('/animals')}
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold px-6 py-2.5 rounded-xl text-sm border-0 cursor-pointer hover:shadow-lg transition-all">
+                  Browse Animals
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {sponsorships.map(s => (
+                  <div key={s.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex gap-4 items-center">
+                    <img src={s.animal_image} alt={s.animal_name}
+                      className="w-14 h-14 rounded-xl object-cover flex-shrink-0"
+                      onError={e => e.target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=100&q=80'} />
+                    <div className="flex-1">
+                      <h3 className="font-bold text-gray-800">{s.animal_name}</h3>
+                      <p className="text-gray-400 text-xs">{s.animal_species}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-extrabold text-purple-600">${(s.amount / 100).toFixed(0)}</p>
+                      <p className="text-xs text-gray-400">per month</p>
+                    </div>
+                  </div>
+                ))}
+                <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-4 border border-purple-100 text-center">
+                  <p className="text-sm font-bold text-purple-700">
+                    💜 Total: ${(sponsorships.reduce((sum, s) => sum + s.amount, 0) / 100).toFixed(0)}/month
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">Thank you for making a difference!</p>
+                </div>
               </div>
             )}
           </div>
