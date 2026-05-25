@@ -57,6 +57,7 @@ def animal_to_dict(animal, favorites=None):
         "good_with_kids": animal.good_with_kids or False,
         "good_with_pets": animal.good_with_pets or False,
         "energy_level": animal.energy_level or "medium",
+        "personality_badges": animal.personality_badges.split(",") if animal.personality_badges else [],
     }
 
 @app.post("/register")
@@ -227,6 +228,30 @@ def get_favorites(user_id: int, db: Session = Depends(get_db)):
     favorites = [f.animal_id for f in favs]
     animals = db.query(models.Animal).filter(models.Animal.id.in_(favorites)).all()
     return [animal_to_dict(a, favorites) for a in animals]
+
+@app.post("/waitlist")
+def join_waitlist(req: schemas.WaitlistRequest, db: Session = Depends(get_db)):
+    existing = db.query(models.Waitlist).filter(
+        models.Waitlist.user_id == req.user_id,
+        models.Waitlist.animal_id == req.animal_id
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Already on waitlist")
+    db.add(models.Waitlist(user_id=req.user_id, animal_id=req.animal_id))
+    db.commit()
+    count = db.query(models.Waitlist).filter(models.Waitlist.animal_id == req.animal_id).count()
+    return {"message": "Added to waitlist", "count": count}
+
+@app.get("/waitlist/{animal_id}")
+def get_waitlist(animal_id: int, user_id: int = None, db: Session = Depends(get_db)):
+    count = db.query(models.Waitlist).filter(models.Waitlist.animal_id == animal_id).count()
+    on_list = False
+    if user_id:
+        on_list = db.query(models.Waitlist).filter(
+            models.Waitlist.animal_id == animal_id,
+            models.Waitlist.user_id == user_id
+        ).first() is not None
+    return {"count": count, "on_waitlist": on_list}
 
 @app.get("/stats")
 def get_stats(db: Session = Depends(get_db)):

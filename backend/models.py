@@ -30,6 +30,7 @@ class Animal(Base):
     good_with_kids = Column(Boolean, default=False)
     good_with_pets = Column(Boolean, default=False)
     energy_level = Column(String, default="medium")
+    personality_badges = Column(String, default="")
 
 class Center(Base):
     __tablename__ = "centers"
@@ -60,4 +61,13 @@ class Favorite(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     animal_id = Column(Integer, ForeignKey("animals.id"))
+    animal = relationship("Animal")
+
+class Waitlist(Base):
+    __tablename__ = "waitlist"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    animal_id = Column(Integer, ForeignKey("animals.id"))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    user = relationship("User")
     animal = relationship("Animal")

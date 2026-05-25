@@ -27,6 +27,7 @@ class AnimalBase(BaseModel):
     good_with_kids: Optional[bool] = False
     good_with_pets: Optional[bool] = False
     energy_level: Optional[str] = "medium"
+    personality_badges: Optional[str] = ""
 
 class Animal(AnimalBase):
     id: int
@@ -67,6 +68,10 @@ class FavoriteRequest(BaseModel):
 
 class StatusUpdate(BaseModel):
     status: str  # approved, rejected
+
+class WaitlistRequest(BaseModel):
+    user_id: int
+    animal_id: int
 
 class QuizAnswers(BaseModel):
     activity: str        # active, moderate, relaxed

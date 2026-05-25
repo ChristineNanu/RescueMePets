@@ -16,7 +16,38 @@ const SPECIES = [
   { key: 'Bird', icon: '🦜' },
 ];
 
-function AnimalModal({ animal, onClose, onAdopt }) {
+const PERSONALITY_BADGES = {
+  'Couch Potato':    { icon: '🛋️', bg: 'bg-purple-50 text-purple-700 border-purple-200' },
+  'Adventure Buddy': { icon: '🏃', bg: 'bg-orange-50 text-orange-700 border-orange-200' },
+  'Kid Friendly':    { icon: '👶', bg: 'bg-pink-50 text-pink-700 border-pink-200' },
+  'Cuddle Bug':      { icon: '🤗', bg: 'bg-rose-50 text-rose-700 border-rose-200' },
+  'Playful':         { icon: '🎾', bg: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
+  'Independent':     { icon: '😎', bg: 'bg-slate-50 text-slate-700 border-slate-200' },
+  'Social Butterfly':{ icon: '🦋', bg: 'bg-sky-50 text-sky-700 border-sky-200' },
+  'Gentle Giant':    { icon: '🐻', bg: 'bg-amber-50 text-amber-700 border-amber-200' },
+};
+
+function AnimalModal({ animal, onClose, onAdopt, userId }) {
+  const [waitlist, setWaitlist] = useState({ count: 0, on_waitlist: false });
+
+  useEffect(() => {
+    if (!animal) return;
+    fetch(`${API_BASE_URL}/waitlist/${animal.id}${userId ? `?user_id=${userId}` : ''}`)
+      .then(r => r.json()).then(setWaitlist).catch(() => {});
+  }, [animal, userId]);
+
+  const joinWaitlist = async () => {
+    if (!userId) return;
+    const res = await fetch(`${API_BASE_URL}/waitlist`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: parseInt(userId), animal_id: animal.id })
+    });
+    const data = await res.json();
+    const newCount = typeof data.count === 'number' ? data.count : waitlist.count + 1;
+    setWaitlist({ on_waitlist: true, count: newCount });
+  };
+
   if (!animal) return null;
   const s = STATUS[animal.status] || STATUS.available;
 
@@ -101,10 +132,37 @@ function AnimalModal({ animal, onClose, onAdopt }) {
             </div>
           )}
 
+          {/* Personality badges */}
+          {animal.personality_badges?.length > 0 && (
+            <div className="mb-4">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Personality</p>
+              <div className="flex gap-2 flex-wrap">
+                {animal.personality_badges.map((badge, i) => {
+                  const b = PERSONALITY_BADGES[badge] || { icon: '✨', bg: 'bg-gray-50 text-gray-600 border-gray-200' };
+                  return (
+                    <span key={i} className={`flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full border ${b.bg}`}>
+                      {b.icon} {badge}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <p className="text-gray-500 text-sm leading-relaxed mb-5 italic">"{animal.description}"</p>
 
+          {animal.status === 'pending' && (
+            <button
+              onClick={joinWaitlist}
+              disabled={waitlist.on_waitlist || !userId}
+              className={`w-full py-2.5 rounded-xl font-bold text-sm transition-all mb-2 border-0
+                ${waitlist.on_waitlist
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:shadow-lg cursor-pointer'}`}>
+              {waitlist.on_waitlist ? `✅ On Waitlist (${waitlist.count})` : `🔔 Join Waitlist${waitlist.count > 0 ? ` (${waitlist.count} waiting)` : ''}`}
+            </button>
+          )}
           <button
-            onClick={() => onAdopt(animal.id)}
             disabled={animal.status === 'adopted'}
             className={`w-full py-3 rounded-xl font-bold text-base transition-all
               ${animal.status === 'adopted'
@@ -263,6 +321,19 @@ function AnimalList({ onOpenQuiz }) {
                         ))}
                       </div>
                     )}
+                    {/* Personality badges */}
+                    {animal.personality_badges?.length > 0 && (
+                      <div className="flex gap-1.5 flex-wrap mb-3">
+                        {animal.personality_badges.slice(0, 2).map((badge, i) => {
+                          const b = PERSONALITY_BADGES[badge] || { icon: '✨', bg: 'bg-gray-50 text-gray-600 border-gray-200' };
+                          return (
+                            <span key={i} className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${b.bg}`}>
+                              {b.icon} {badge}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
                     {/* Mini health badges */}
                     <div className="flex gap-1.5 flex-wrap mb-4">
                       {animal.vaccinated && <span className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200 font-medium">💉 Vacc</span>}
@@ -291,6 +362,7 @@ function AnimalList({ onOpenQuiz }) {
         animal={selectedAnimal}
         onClose={() => setSelectedAnimal(null)}
         onAdopt={id => { setSelectedAnimal(null); navigate(`/adoption?animalId=${id}`); }}
+        userId={userId}
       />
     </div>
   );
