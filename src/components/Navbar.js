@@ -2,10 +2,9 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 const NAV_LINKS = [
-  { to: '/animals',   icon: '🐾', label: 'Animals' },
-  { to: '/centers',   icon: '🏠', label: 'Centers' },
-  { to: '/adoption',  icon: '📋', label: 'Adopt' },
-  { to: '/my-profile',icon: '👤', label: 'My Profile' },
+  { to: '/animals',  icon: '🐾', label: 'Animals' },
+  { to: '/centers',  icon: '🏠', label: 'Centers' },
+  { to: '/adoption', icon: '📋', label: 'Adopt' },
 ];
 
 function Navbar({ isLoggedIn, onLogout }) {
@@ -52,12 +51,12 @@ function Navbar({ isLoggedIn, onLogout }) {
           <div className="flex items-center gap-3">
             {isLoggedIn ? (
               <>
-                {/* Avatar + username */}
-                <div className="hidden md:flex items-center gap-2 bg-violet-50 rounded-full px-3 py-1.5">
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
-                    {username?.[0]?.toUpperCase() || 'U'}
-                  </div>
-                  <span className="text-sm font-semibold text-gray-700">{username}</span>
+                {/* Avatar → Profile */}
+                <div
+                  onClick={() => navigate('/my-profile')}
+                  title={username}
+                  className="hidden md:flex w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 items-center justify-center text-white text-sm font-bold cursor-pointer hover:shadow-md hover:scale-105 transition-all">
+                  {username?.[0]?.toUpperCase() || 'U'}
                 </div>
                 <button onClick={handleLogout}
                   className="hidden md:flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold text-gray-500 hover:text-red-500 hover:bg-red-50 transition-all duration-200 border-0 bg-transparent cursor-pointer">
@@ -98,6 +97,11 @@ function Navbar({ isLoggedIn, onLogout }) {
               </Link>
             );
           })}
+          <Link to="/my-profile" onClick={() => setMenuOpen(false)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold no-underline transition-all
+              ${location.pathname === '/my-profile' ? 'bg-violet-600 text-white' : 'text-gray-600 hover:bg-violet-50 hover:text-violet-600'}`}>
+            <span>👤</span> Profile
+          </Link>
           <button onClick={handleLogout}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-red-500 hover:bg-red-50 border-0 bg-transparent cursor-pointer text-left">
             🚪 Logout
