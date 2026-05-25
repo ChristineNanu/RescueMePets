@@ -19,12 +19,28 @@ const SPECIES = [
 function AnimalModal({ animal, onClose, onAdopt }) {
   if (!animal) return null;
   const s = STATUS[animal.status] || STATUS.available;
+
+  const healthBadges = [
+    { show: animal.vaccinated,     icon: '💉', label: 'Vaccinated',    bg: 'bg-green-50 text-green-700 border-green-200' },
+    { show: animal.neutered,       icon: '✂️', label: 'Neutered',      bg: 'bg-blue-50 text-blue-700 border-blue-200' },
+    { show: animal.microchipped,   icon: '📡', label: 'Microchipped',  bg: 'bg-purple-50 text-purple-700 border-purple-200' },
+    { show: animal.good_with_kids, icon: '👶', label: 'Good w/ Kids',  bg: 'bg-amber-50 text-amber-700 border-amber-200' },
+    { show: animal.good_with_pets, icon: '🐾', label: 'Good w/ Pets',  bg: 'bg-amber-50 text-amber-700 border-amber-200' },
+  ].filter(b => b.show);
+
+  const energyMap = {
+    low:    { label: 'Low Energy',    icon: '😴', cls: 'bg-gray-50 text-gray-600 border-gray-200' },
+    medium: { label: 'Medium Energy', icon: '🚶', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+    high:   { label: 'High Energy',   icon: '🏃', cls: 'bg-red-50 text-red-600 border-red-200' },
+  };
+  const energy = energyMap[animal.energy_level] || energyMap.medium;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
       onClick={onClose}>
-      <div className="bg-white rounded-3xl overflow-hidden max-w-lg w-full shadow-2xl"
+      <div className="bg-white rounded-3xl overflow-hidden max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}>
-        <div className="relative h-64">
+        <div className="relative h-64 flex-shrink-0">
           <img src={animal.image} alt={animal.name}
             className="w-full h-full object-cover"
             onError={e => e.target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=600&q=80'} />
@@ -39,10 +55,14 @@ function AnimalModal({ animal, onClose, onAdopt }) {
           </div>
         </div>
         <div className="p-6">
+          {/* Status + species */}
           <div className="flex items-center gap-2 mb-4">
             <span className={`text-xs font-bold px-3 py-1 rounded-full ${s.pill}`}>{s.dot} {s.label}</span>
-            <span className="text-xs font-semibold bg-amber-50 text-amber-600 px-3 py-1 rounded-full">{animal.species}</span>
+            <span className="text-xs font-semibold bg-amber-50 text-amber-600 px-3 py-1 rounded-full border border-amber-200">{animal.species}</span>
+            <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${energy.cls}`}>{energy.icon} {energy.label}</span>
           </div>
+
+          {/* Quick info grid */}
           <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
             <div className="bg-gray-50 rounded-xl p-3">
               <p className="text-gray-400 text-xs font-medium">Breed</p>
@@ -57,14 +77,32 @@ function AnimalModal({ animal, onClose, onAdopt }) {
               <p className="font-semibold text-gray-700">📍 {animal.center?.name || 'Unknown'}</p>
             </div>
           </div>
+
+          {/* Health badges */}
+          {healthBadges.length > 0 && (
+            <div className="mb-4">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Health & Care</p>
+              <div className="flex gap-2 flex-wrap">
+                {healthBadges.map((b, i) => (
+                  <span key={i} className={`flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full border ${b.bg}`}>
+                    {b.icon} {b.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Tags */}
           {animal.tags?.length > 0 && (
             <div className="flex gap-1.5 flex-wrap mb-4">
               {animal.tags.map((tag, i) => (
-                <span key={i} className="bg-amber-50 text-amber-600 text-xs font-semibold px-2.5 py-1 rounded-full">{tag}</span>
+                <span key={i} className="bg-amber-50 text-amber-600 text-xs font-semibold px-2.5 py-1 rounded-full border border-amber-100">{tag}</span>
               ))}
             </div>
           )}
+
           <p className="text-gray-500 text-sm leading-relaxed mb-5 italic">"{animal.description}"</p>
+
           <button
             onClick={() => onAdopt(animal.id)}
             disabled={animal.status === 'adopted'}
@@ -215,12 +253,18 @@ function AnimalList() {
                     <p className="text-gray-500 text-xs mb-1">{animal.breed} · {animal.age} yr{animal.age !== 1 ? 's' : ''}</p>
                     <p className="text-gray-400 text-xs mb-3">📍 {animal.center?.name || 'Unknown'}</p>
                     {animal.tags?.length > 0 && (
-                      <div className="flex gap-1 flex-wrap mb-3">
+                      <div className="flex gap-1 flex-wrap mb-2">
                         {animal.tags.slice(0, 3).map((tag, i) => (
                           <span key={i} className="bg-amber-50 text-amber-600 text-xs font-semibold px-2 py-0.5 rounded-full">{tag}</span>
                         ))}
                       </div>
                     )}
+                    {/* Mini health badges */}
+                    <div className="flex gap-1 flex-wrap mb-3">
+                      {animal.vaccinated && <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full border border-green-200">💉 Vacc</span>}
+                      {animal.neutered   && <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full border border-blue-200">✂️ Neutered</span>}
+                      {animal.microchipped && <span className="text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full border border-purple-200">📡 Chipped</span>}
+                    </div>
                     <button
                       onClick={e => { e.stopPropagation(); navigate(`/adoption?animalId=${animal.id}`); }}
                       disabled={animal.status === 'adopted'}

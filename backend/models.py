@@ -21,9 +21,16 @@ class Animal(Base):
     description = Column(Text)
     image = Column(String)
     status = Column(String, default="available")  # available, pending, adopted
-    tags = Column(String, default="")  # comma-separated: friendly,playful,calm
+    tags = Column(String, default="")  # comma-separated
     center_id = Column(Integer, ForeignKey("centers.id"))
     center = relationship("Center")
+    # Health & care info
+    vaccinated = Column(Boolean, default=False)
+    neutered = Column(Boolean, default=False)
+    microchipped = Column(Boolean, default=False)
+    good_with_kids = Column(Boolean, default=False)
+    good_with_pets = Column(Boolean, default=False)
+    energy_level = Column(String, default="medium")  # low, medium, high
 
 class Center(Base):
     __tablename__ = "centers"

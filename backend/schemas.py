@@ -21,6 +21,12 @@ class AnimalBase(BaseModel):
     center_id: int
     status: Optional[str] = "available"
     tags: Optional[str] = ""
+    vaccinated: Optional[bool] = False
+    neutered: Optional[bool] = False
+    microchipped: Optional[bool] = False
+    good_with_kids: Optional[bool] = False
+    good_with_pets: Optional[bool] = False
+    energy_level: Optional[str] = "medium"
 
 class Animal(AnimalBase):
     id: int

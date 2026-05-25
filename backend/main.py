@@ -50,7 +50,13 @@ def animal_to_dict(animal, favorites=None):
             "location": animal.center.location,
             "contact": animal.center.contact
         } if animal.center else None,
-        "is_favorited": animal.id in (favorites or [])
+        "is_favorited": animal.id in (favorites or []),
+        "vaccinated": animal.vaccinated or False,
+        "neutered": animal.neutered or False,
+        "microchipped": animal.microchipped or False,
+        "good_with_kids": animal.good_with_kids or False,
+        "good_with_pets": animal.good_with_pets or False,
+        "energy_level": animal.energy_level or "medium",
     }
 
 @app.post("/register")

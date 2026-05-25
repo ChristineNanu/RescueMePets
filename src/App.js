@@ -7,6 +7,7 @@ import AnimalList from './components/AnimalList';
 import AdoptionForm from './components/AdoptionForm';
 import Centers from './components/Centers';
 import MyApplications from './components/MyApplications';
+import Chatbot from './components/Chatbot';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
 import './App.css';
@@ -36,6 +37,7 @@ function AppContent({ isLoggedIn, handleLogin, handleLogout }) {
         {/* Fallback */}
         <Route path="*" element={<Navigate to={isLoggedIn ? '/dashboard' : '/'} replace />} />
       </Routes>
+      {isLoggedIn && <Chatbot />}
     </div>
   );
 }
