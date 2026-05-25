@@ -41,7 +41,7 @@ function AnimalModal({ animal, onClose, onAdopt }) {
         <div className="p-6">
           <div className="flex items-center gap-2 mb-4">
             <span className={`text-xs font-bold px-3 py-1 rounded-full ${s.pill}`}>{s.dot} {s.label}</span>
-            <span className="text-xs font-semibold bg-violet-50 text-violet-600 px-3 py-1 rounded-full">{animal.species}</span>
+            <span className="text-xs font-semibold bg-amber-50 text-amber-600 px-3 py-1 rounded-full">{animal.species}</span>
           </div>
           <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
             <div className="bg-gray-50 rounded-xl p-3">
@@ -60,7 +60,7 @@ function AnimalModal({ animal, onClose, onAdopt }) {
           {animal.tags?.length > 0 && (
             <div className="flex gap-1.5 flex-wrap mb-4">
               {animal.tags.map((tag, i) => (
-                <span key={i} className="bg-violet-50 text-violet-600 text-xs font-semibold px-2.5 py-1 rounded-full">{tag}</span>
+                <span key={i} className="bg-amber-50 text-amber-600 text-xs font-semibold px-2.5 py-1 rounded-full">{tag}</span>
               ))}
             </div>
           )}
@@ -71,7 +71,7 @@ function AnimalModal({ animal, onClose, onAdopt }) {
             className={`w-full py-3 rounded-xl font-bold text-base transition-all
               ${animal.status === 'adopted'
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-gradient-to-r from-violet-600 to-purple-700 text-white hover:shadow-lg hover:shadow-violet-200 hover:-translate-y-0.5 cursor-pointer'}`}>
+                : 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:shadow-lg hover:shadow-amber-200 hover:-translate-y-0.5 cursor-pointer'}`}>
             {animal.status === 'adopted' ? '🏠 Already Adopted' : animal.status === 'pending' ? '⏳ Apply Anyway' : '🐾 Adopt Me!'}
           </button>
         </div>
@@ -119,24 +119,24 @@ function AnimalList() {
   };
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 to-purple-50">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-stone-50">
       <div className="text-center">
         <div className="text-5xl mb-4 animate-bounce">🐾</div>
-        <p className="text-violet-600 font-semibold text-lg">Loading animals...</p>
+        <p className="text-amber-600 font-semibold text-lg">Loading animals...</p>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-violet-50/30 to-purple-50/20">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-amber-50/20">
 
       {/* Header */}
-      <div className="bg-gradient-to-r from-violet-600 to-purple-700 px-6 py-12 text-center relative overflow-hidden">
+      <div className="bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-12 text-center relative overflow-hidden">
         <div className="absolute inset-0 opacity-10 text-8xl flex items-center justify-around pointer-events-none">
           <span>🐕</span><span>🐈</span><span>🐇</span><span>🦜</span>
         </div>
         <h1 className="text-4xl font-extrabold text-white mb-2 relative z-10">Find Your Perfect Companion</h1>
-        <p className="text-violet-200 text-lg relative z-10">
+        <p className="text-amber-100 text-lg relative z-10">
           {animals.length} amazing animals waiting for their forever homes
         </p>
       </div>
@@ -151,7 +151,7 @@ function AnimalList() {
             placeholder="Search by name or breed..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-12 pr-4 py-3.5 rounded-2xl border-2 border-gray-200 focus:border-violet-400 focus:outline-none bg-white text-gray-700 text-base shadow-sm transition-colors"
+            className="w-full pl-12 pr-4 py-3.5 rounded-2xl border-2 border-gray-200 focus:border-amber-400 focus:outline-none bg-white text-gray-700 text-base shadow-sm transition-colors"
           />
         </div>
 
@@ -161,8 +161,8 @@ function AnimalList() {
             <button key={key} onClick={() => setSpecies(key)}
               className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all border-0 cursor-pointer
                 ${species === key
-                  ? 'bg-gradient-to-r from-violet-600 to-purple-700 text-white shadow-md shadow-violet-200'
-                  : 'bg-white text-gray-600 hover:text-violet-600 hover:bg-violet-50 shadow-sm'}`}>
+                  ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md shadow-amber-200'
+                  : 'bg-white text-gray-600 hover:text-amber-600 hover:bg-amber-50 shadow-sm'}`}>
               {icon} {key}
             </button>
           ))}
@@ -217,7 +217,7 @@ function AnimalList() {
                     {animal.tags?.length > 0 && (
                       <div className="flex gap-1 flex-wrap mb-3">
                         {animal.tags.slice(0, 3).map((tag, i) => (
-                          <span key={i} className="bg-violet-50 text-violet-600 text-xs font-semibold px-2 py-0.5 rounded-full">{tag}</span>
+                          <span key={i} className="bg-amber-50 text-amber-600 text-xs font-semibold px-2 py-0.5 rounded-full">{tag}</span>
                         ))}
                       </div>
                     )}
@@ -227,7 +227,7 @@ function AnimalList() {
                       className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all border-0
                         ${animal.status === 'adopted'
                           ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                          : 'bg-gradient-to-r from-violet-600 to-purple-700 text-white hover:shadow-md hover:shadow-violet-200 cursor-pointer'}`}>
+                          : 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:shadow-md hover:shadow-amber-200 cursor-pointer'}`}>
                       {animal.status === 'adopted' ? '🏠 Adopted' : animal.status === 'pending' ? '⏳ Apply' : '🐾 Adopt Me!'}
                     </button>
                   </div>

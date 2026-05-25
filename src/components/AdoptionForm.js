@@ -48,24 +48,24 @@ function AdoptionForm() {
   };
 
   if (isSubmitted) return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-50 to-purple-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-stone-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl p-10 max-w-md w-full shadow-xl text-center">
-        <div className="w-20 h-20 bg-gradient-to-br from-violet-500 to-purple-600 rounded-full flex items-center justify-center text-4xl mx-auto mb-5">🎉</div>
+        <div className="w-20 h-20 bg-gradient-to-br from-amber-400 to-amber-500 rounded-full flex items-center justify-center text-4xl mx-auto mb-5">🎉</div>
         <h2 className="text-2xl font-extrabold text-gray-800 mb-2">Application Submitted!</h2>
         <p className="text-gray-500 mb-1">
-          Your adoption request for <span className="font-bold text-violet-600">{selectedAnimal?.name}</span> has been received.
+          Your adoption request for <span className="font-bold text-amber-600">{selectedAnimal?.name}</span> has been received.
         </p>
         <p className="text-gray-400 text-sm mb-5">The rescue center will review and get back to you soon. 🐾</p>
-        <div className="bg-violet-50 rounded-xl p-3 mb-6 text-sm text-violet-700">
+        <div className="bg-amber-50 rounded-xl p-3 mb-6 text-sm text-amber-700">
           💡 Track your application in <strong>My Profile → Applications</strong>
         </div>
         <div className="flex gap-3">
           <button onClick={() => navigate('/animals')}
-            className="flex-1 py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-violet-600 to-purple-700 text-white border-0 cursor-pointer hover:shadow-lg transition-all">
+            className="flex-1 py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-amber-500 to-amber-600 text-white border-0 cursor-pointer hover:shadow-lg transition-all">
             Browse More
           </button>
           <button onClick={() => navigate('/my-profile')}
-            className="flex-1 py-3 rounded-xl font-bold text-sm border-2 border-violet-200 text-violet-600 bg-transparent cursor-pointer hover:bg-violet-50 transition-all">
+            className="flex-1 py-3 rounded-xl font-bold text-sm border-2 border-amber-200 text-amber-600 bg-transparent cursor-pointer hover:bg-amber-50 transition-all">
             My Applications
           </button>
         </div>
@@ -74,11 +74,11 @@ function AdoptionForm() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-violet-50/30 to-purple-50/20">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-amber-50/20">
       {/* Header */}
-      <div className="bg-gradient-to-r from-violet-600 to-purple-700 px-6 py-10 text-center">
+      <div className="bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-10 text-center">
         <h1 className="text-3xl font-extrabold text-white mb-1">Adopt a Pet 🐾</h1>
-        <p className="text-violet-200">Complete your adoption application in just a few steps</p>
+        <p className="text-amber-100">Complete your adoption application in just a few steps</p>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-8">
@@ -88,15 +88,15 @@ function AdoptionForm() {
             <React.Fragment key={i}>
               <div className="flex flex-col items-center flex-1">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all
-                  ${i < step ? 'bg-gradient-to-br from-violet-600 to-purple-700 text-white' :
-                    i === step ? 'bg-gradient-to-br from-violet-600 to-purple-700 text-white ring-4 ring-violet-200' :
+                  ${i < step ? 'bg-gradient-to-br from-amber-500 to-amber-600 text-white' :
+                    i === step ? 'bg-gradient-to-br from-amber-500 to-amber-600 text-white ring-4 ring-amber-200' :
                     'bg-gray-100 text-gray-400'}`}>
                   {i < step ? '✓' : i + 1}
                 </div>
-                <p className={`text-xs mt-1.5 font-semibold ${i <= step ? 'text-violet-600' : 'text-gray-400'}`}>{s}</p>
+                <p className={`text-xs mt-1.5 font-semibold ${i <= step ? 'text-amber-600' : 'text-gray-400'}`}>{s}</p>
               </div>
               {i < STEPS.length - 1 && (
-                <div className={`flex-1 h-1 rounded-full mb-5 transition-all ${i < step ? 'bg-gradient-to-r from-violet-600 to-purple-700' : 'bg-gray-200'}`} />
+                <div className={`flex-1 h-1 rounded-full mb-5 transition-all ${i < step ? 'bg-gradient-to-r from-amber-500 to-amber-600' : 'bg-gray-200'}`} />
               )}
             </React.Fragment>
           ))}
@@ -112,7 +112,7 @@ function AdoptionForm() {
                 {animals.map(animal => (
                   <div key={animal.id} onClick={() => setAnimalId(String(animal.id))}
                     className={`flex items-center gap-3 p-3 rounded-2xl border-2 cursor-pointer transition-all
-                      ${animalId === String(animal.id) ? 'border-violet-500 bg-violet-50' : 'border-gray-100 hover:border-violet-200 hover:bg-violet-50/50'}`}>
+                      ${animalId === String(animal.id) ? 'border-amber-500 bg-amber-50' : 'border-gray-100 hover:border-amber-200 hover:bg-amber-50/50'}`}>
                     <img src={animal.image} alt={animal.name}
                       className="w-14 h-14 rounded-xl object-cover flex-shrink-0"
                       onError={e => e.target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=100&q=80'} />
@@ -121,13 +121,13 @@ function AdoptionForm() {
                       <p className="text-gray-400 text-xs">{animal.species} · {animal.breed} · {animal.age} yrs</p>
                       <p className="text-gray-400 text-xs">📍 {animal.center?.name}</p>
                     </div>
-                    {animalId === String(animal.id) && <span className="text-violet-600 text-xl">✓</span>}
+                    {animalId === String(animal.id) && <span className="text-amber-600 text-xl">✓</span>}
                   </div>
                 ))}
               </div>
               <button disabled={!animalId} onClick={() => setStep(1)}
                 className={`w-full mt-5 py-3 rounded-xl font-bold text-base transition-all border-0
-                  ${animalId ? 'bg-gradient-to-r from-violet-600 to-purple-700 text-white cursor-pointer hover:shadow-lg' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
+                  ${animalId ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white cursor-pointer hover:shadow-lg' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
                 Continue →
               </button>
             </div>
@@ -137,7 +137,7 @@ function AdoptionForm() {
           {step === 1 && (
             <div>
               {selectedAnimal && (
-                <div className="flex items-center gap-3 p-3 bg-violet-50 rounded-2xl border border-violet-100 mb-6">
+                <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-2xl border border-amber-100 mb-6">
                   <img src={selectedAnimal.image} alt={selectedAnimal.name}
                     className="w-14 h-14 rounded-xl object-cover"
                     onError={e => e.target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=100&q=80'} />
@@ -145,7 +145,7 @@ function AdoptionForm() {
                     <p className="font-bold text-gray-800">{selectedAnimal.name}</p>
                     <p className="text-gray-400 text-xs">{selectedAnimal.species} · {selectedAnimal.breed}</p>
                   </div>
-                  <button onClick={() => setStep(0)} className="text-violet-600 text-xs font-semibold bg-transparent border-0 cursor-pointer">Change</button>
+                  <button onClick={() => setStep(0)} className="text-amber-600 text-xs font-semibold bg-transparent border-0 cursor-pointer">Change</button>
                 </div>
               )}
 
@@ -157,7 +157,7 @@ function AdoptionForm() {
                   {[['House', '🏠'], ['Apartment', '🏢'], ['Farm', '🌾']].map(([type, icon]) => (
                     <div key={type} onClick={() => setHomeType(type)}
                       className={`p-3 text-center rounded-xl border-2 cursor-pointer font-semibold text-sm transition-all
-                        ${homeType === type ? 'border-violet-500 bg-violet-50 text-violet-700' : 'border-gray-100 text-gray-600 hover:border-violet-200'}`}>
+                        ${homeType === type ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-gray-100 text-gray-600 hover:border-amber-200'}`}>
                       <div className="text-xl mb-1">{icon}</div>{type}
                     </div>
                   ))}
@@ -170,7 +170,7 @@ function AdoptionForm() {
                   {[['Yes', '👨‍👩‍👧'], ['No', '👤']].map(([opt, icon]) => (
                     <div key={opt} onClick={() => setHasChildren(opt)}
                       className={`p-3 text-center rounded-xl border-2 cursor-pointer font-semibold text-sm transition-all
-                        ${hasChildren === opt ? 'border-violet-500 bg-violet-50 text-violet-700' : 'border-gray-100 text-gray-600 hover:border-violet-200'}`}>
+                        ${hasChildren === opt ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-gray-100 text-gray-600 hover:border-amber-200'}`}>
                       <div className="text-xl mb-1">{icon}</div>{opt}
                     </div>
                   ))}
@@ -183,7 +183,7 @@ function AdoptionForm() {
                   {[['Yes', '🐾'], ['No', '❌']].map(([opt, icon]) => (
                     <div key={opt} onClick={() => setHasPets(opt)}
                       className={`p-3 text-center rounded-xl border-2 cursor-pointer font-semibold text-sm transition-all
-                        ${hasPets === opt ? 'border-violet-500 bg-violet-50 text-violet-700' : 'border-gray-100 text-gray-600 hover:border-violet-200'}`}>
+                        ${hasPets === opt ? 'border-amber-500 bg-amber-50 text-amber-700' : 'border-gray-100 text-gray-600 hover:border-amber-200'}`}>
                       <div className="text-xl mb-1">{icon}</div>{opt}
                     </div>
                   ))}
@@ -198,7 +198,7 @@ function AdoptionForm() {
                   value={message} onChange={e => setMessage(e.target.value)}
                   placeholder={`Tell us why you'd be a perfect match for ${selectedAnimal?.name || 'this animal'}...`}
                   rows={4}
-                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-violet-400 focus:outline-none text-gray-700 text-sm resize-none transition-colors"
+                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-amber-400 focus:outline-none text-gray-700 text-sm resize-none transition-colors"
                 />
               </div>
 
@@ -212,7 +212,7 @@ function AdoptionForm() {
                 <button disabled={!message || !homeType || !hasChildren || !hasPets} onClick={() => setStep(2)}
                   className={`flex-[2] py-3 rounded-xl font-bold text-sm transition-all border-0
                     ${message && homeType && hasChildren && hasPets
-                      ? 'bg-gradient-to-r from-violet-600 to-purple-700 text-white cursor-pointer hover:shadow-lg'
+                      ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white cursor-pointer hover:shadow-lg'
                       : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
                   Review Application →
                 </button>
@@ -226,7 +226,7 @@ function AdoptionForm() {
               <h3 className="text-xl font-extrabold text-gray-800 mb-5">Review Your Application</h3>
 
               {selectedAnimal && (
-                <div className="flex items-center gap-3 p-4 bg-violet-50 rounded-2xl border border-violet-100 mb-5">
+                <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-2xl border border-amber-100 mb-5">
                   <img src={selectedAnimal.image} alt={selectedAnimal.name}
                     className="w-16 h-16 rounded-xl object-cover"
                     onError={e => e.target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=100&q=80'} />
@@ -261,7 +261,7 @@ function AdoptionForm() {
                 </button>
                 <button disabled={isLoading} onClick={handleSubmit}
                   className={`flex-[2] py-3 rounded-xl font-bold text-sm transition-all border-0
-                    ${isLoading ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-violet-600 to-purple-700 text-white cursor-pointer hover:shadow-lg'}`}>
+                    ${isLoading ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-amber-500 to-amber-600 text-white cursor-pointer hover:shadow-lg'}`}>
                   {isLoading ? '⏳ Submitting...' : '🐾 Submit Application'}
                 </button>
               </div>

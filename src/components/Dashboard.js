@@ -2,31 +2,39 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../constants';
 
-function StatCard({ icon, value, label, color, sub }) {
+function StatCard({ icon, value, label, sub, iconBg, valueColor }) {
   return (
-    <div className={`bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow`}>
+    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm font-medium text-gray-500 mb-1">{label}</p>
-          <p className={`text-3xl font-extrabold ${color}`}>{value}</p>
+          <p className={`text-3xl font-extrabold ${valueColor}`}>{value}</p>
           {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
         </div>
-        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${color.replace('text-', 'bg-').replace('-600', '-50').replace('-500', '-50')}`}>
-          {icon}
-        </div>
+        <div className={`w-12 h-12 ${iconBg} rounded-xl flex items-center justify-center text-2xl`}>{icon}</div>
       </div>
     </div>
   );
 }
 
-function Dashboard() {
-  const [stats, setStats] = useState({ total_animals: 0, available: 0, adopted: 0, centers: 0 });
+function Footer() {
+  return (
+    <footer className="bg-gray-900 text-gray-400 py-8 mt-12">
+      <div className="max-w-7xl mx-auto px-6 text-center text-sm">
+        © 2026 RescueMePets · Built with ❤️ for animals everywhere
+      </div>
+    </footer>
+  );
+}
+
+export default function Dashboard() {
+  const [stats, setStats]           = useState({ total_animals: 0, available: 0, adopted: 0, centers: 0 });
   const [recentAnimals, setRecentAnimals] = useState([]);
-  const [applications, setApplications] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
-  const username = localStorage.getItem('username');
-  const userId = localStorage.getItem('user_id');
+  const [applications, setApplications]   = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const navigate  = useNavigate();
+  const username  = localStorage.getItem('username');
+  const userId    = localStorage.getItem('user_id');
 
   useEffect(() => {
     Promise.all([
@@ -37,47 +45,48 @@ function Dashboard() {
       setStats(s);
       setRecentAnimals(animals.filter(a => a.status === 'available').slice(0, 4));
       setApplications(apps.slice(0, 3));
-    }).catch(console.error)
-      .finally(() => setLoading(false));
+    }).catch(console.error).finally(() => setLoading(false));
   }, [userId]);
 
-  const hour = new Date().getHours();
+  const hour     = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const adoptionRate = stats.total_animals > 0 ? Math.round((stats.adopted / stats.total_animals) * 100) : 0;
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 to-purple-50">
+    <div className="min-h-screen flex items-center justify-center bg-amber-50">
       <div className="text-center">
         <div className="text-5xl mb-4 animate-bounce">🐾</div>
-        <p className="text-violet-600 font-semibold text-lg">Loading your dashboard...</p>
+        <p className="text-amber-600 font-semibold text-lg">Loading your dashboard...</p>
       </div>
     </div>
   );
 
-  const adoptionRate = stats.total_animals > 0
-    ? Math.round((stats.adopted / stats.total_animals) * 100) : 0;
+  const statusMap = {
+    pending:  { bg: 'bg-amber-100',   text: 'text-amber-700',   icon: '⏳' },
+    approved: { bg: 'bg-emerald-100', text: 'text-emerald-700', icon: '✅' },
+    rejected: { bg: 'bg-red-100',     text: 'text-red-600',     icon: '❌' },
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-violet-50/30 to-purple-50/20">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {/* Welcome Banner */}
-        <div className="relative bg-gradient-to-r from-violet-600 to-purple-700 rounded-3xl p-8 mb-8 overflow-hidden">
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-4 right-8 text-8xl">🐾</div>
-            <div className="absolute bottom-2 right-32 text-6xl">🐕</div>
-            <div className="absolute top-6 right-48 text-5xl">🐈</div>
+        <div className="relative bg-gradient-to-r from-amber-500 to-amber-600 rounded-3xl p-8 mb-8 overflow-hidden">
+          <div className="absolute inset-0 opacity-10 pointer-events-none">
+            <span className="absolute top-4 right-8 text-8xl">🐾</span>
+            <span className="absolute bottom-2 right-32 text-6xl">🐕</span>
+            <span className="absolute top-6 right-52 text-5xl">🐈</span>
           </div>
           <div className="relative z-10">
-            <p className="text-violet-200 text-sm font-medium mb-1">{greeting},</p>
-            <h1 className="text-3xl font-extrabold text-white mb-2">
-              Welcome back, {username}! 👋
-            </h1>
-            <p className="text-violet-200 text-base mb-6">
+            <p className="text-amber-100 text-sm font-medium mb-1">{greeting},</p>
+            <h1 className="text-3xl font-extrabold text-white mb-2">Welcome back, {username}! 👋</h1>
+            <p className="text-amber-100 text-base mb-6">
               {stats.available} animals are waiting for their forever home today.
             </p>
             <div className="flex flex-wrap gap-3">
               <button onClick={() => navigate('/animals')}
-                className="bg-white text-violet-700 font-bold px-5 py-2.5 rounded-xl hover:shadow-lg transition-all text-sm border-0 cursor-pointer">
+                className="bg-white text-amber-700 font-bold px-5 py-2.5 rounded-xl hover:shadow-lg transition-all text-sm border-0 cursor-pointer">
                 🐾 Browse Animals
               </button>
               <button onClick={() => navigate('/adoption')}
@@ -88,25 +97,23 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Stats Grid */}
+        {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <StatCard icon="🐾" value={stats.total_animals} label="Total Animals" color="text-violet-600" sub="In our network" />
-          <StatCard icon="✅" value={stats.available} label="Available Now" color="text-emerald-600" sub="Ready to adopt" />
-          <StatCard icon="🏠" value={stats.adopted} label="Happy Adoptions" color="text-blue-600" sub={`${adoptionRate}% adoption rate`} />
-          <StatCard icon="🏢" value={stats.centers} label="Rescue Centers" color="text-orange-500" sub="Partner locations" />
+          <StatCard icon="🐾" value={stats.total_animals} label="Total Animals"   sub="In our network"          iconBg="bg-amber-50" valueColor="text-amber-600" />
+          <StatCard icon="✅" value={stats.available}     label="Available Now"   sub="Ready to adopt"          iconBg="bg-amber-50" valueColor="text-amber-600" />
+          <StatCard icon="🏠" value={stats.adopted}       label="Happy Adoptions" sub={`${adoptionRate}% rate`} iconBg="bg-amber-50" valueColor="text-amber-600" />
+          <StatCard icon="🏥" value={stats.centers}       label="Rescue Centers"  sub="Partner locations"       iconBg="bg-amber-50" valueColor="text-amber-600" />
         </div>
 
-        {/* Adoption Rate Bar */}
+        {/* Adoption progress */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-8">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-bold text-gray-800">Overall Adoption Progress</h3>
-            <span className="text-sm font-bold text-violet-600">{adoptionRate}%</span>
+            <span className="text-sm font-bold text-amber-600">{adoptionRate}%</span>
           </div>
           <div className="w-full bg-gray-100 rounded-full h-3">
-            <div
-              className="bg-gradient-to-r from-violet-500 to-purple-600 h-3 rounded-full transition-all duration-1000"
-              style={{ width: `${adoptionRate}%` }}
-            />
+            <div className="bg-gradient-to-r from-amber-400 to-amber-500 h-3 rounded-full transition-all duration-1000"
+              style={{ width: `${adoptionRate}%` }} />
           </div>
           <p className="text-xs text-gray-400 mt-2">{stats.adopted} adopted out of {stats.total_animals} total animals</p>
         </div>
@@ -116,9 +123,9 @@ function Dashboard() {
           {/* Featured Animals */}
           <div className="lg:col-span-2">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-extrabold text-gray-800">🐾 Available Animals</h2>
+              <h2 className="text-xl font-extrabold text-gray-800">🐾 Available Now</h2>
               <button onClick={() => navigate('/animals')}
-                className="text-sm font-semibold text-violet-600 hover:text-purple-700 bg-transparent border-0 cursor-pointer">
+                className="text-sm font-semibold text-amber-600 hover:text-amber-600 bg-transparent border-0 cursor-pointer">
                 View all →
               </button>
             </div>
@@ -131,8 +138,8 @@ function Dashboard() {
                     <img src={animal.image} alt={animal.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       onError={e => e.target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=400&q=80'} />
-                    <div className="absolute top-2 left-2 bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full">
-                      🟢 Available
+                    <div className="absolute top-2 left-2 bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> Available
                     </div>
                     <div className="absolute top-2 right-2 bg-white/90 text-xs font-bold px-2.5 py-1 rounded-full text-gray-600">
                       {animal.species}
@@ -145,7 +152,7 @@ function Dashboard() {
                     {animal.tags?.length > 0 && (
                       <div className="flex gap-1 flex-wrap mt-2">
                         {animal.tags.slice(0, 2).map((tag, i) => (
-                          <span key={i} className="bg-violet-50 text-violet-600 text-xs font-semibold px-2 py-0.5 rounded-full">{tag}</span>
+                          <span key={i} className="bg-amber-50 text-amber-600 text-xs font-semibold px-2 py-0.5 rounded-full">{tag}</span>
                         ))}
                       </div>
                     )}
@@ -155,7 +162,7 @@ function Dashboard() {
             </div>
           </div>
 
-          {/* Right Column */}
+          {/* Right column */}
           <div className="flex flex-col gap-6">
 
             {/* Quick Actions */}
@@ -163,13 +170,13 @@ function Dashboard() {
               <h2 className="text-lg font-extrabold text-gray-800 mb-4">⚡ Quick Actions</h2>
               <div className="flex flex-col gap-2">
                 {[
-                  { icon: '🐾', label: 'Browse Animals', sub: 'Find your match', to: '/animals', color: 'hover:bg-violet-50 hover:border-violet-200' },
-                  { icon: '🏠', label: 'Explore Centers', sub: 'Visit rescue centers', to: '/centers', color: 'hover:bg-blue-50 hover:border-blue-200' },
-                  { icon: '📋', label: 'Apply to Adopt', sub: 'Start an application', to: '/adoption', color: 'hover:bg-emerald-50 hover:border-emerald-200' },
-                  { icon: '❤️', label: 'My Favorites', sub: 'Saved animals', to: '/my-profile', color: 'hover:bg-pink-50 hover:border-pink-200' },
-                ].map(({ icon, label, sub, to, color }) => (
+                  { icon: '🐾', label: 'Browse Animals',  sub: 'Find your match',      to: '/animals',    hover: 'hover:bg-amber-50 hover:border-amber-200' },
+                  { icon: '🏠', label: 'Explore Centers', sub: 'Visit rescue centers', to: '/centers',    hover: 'hover:bg-amber-50 hover:border-amber-200' },
+                  { icon: '📋', label: 'Apply to Adopt',  sub: 'Start an application', to: '/adoption',   hover: 'hover:bg-amber-50 hover:border-amber-200' },
+                  { icon: '❤️', label: 'My Favourites',   sub: 'Saved animals',        to: '/my-profile', hover: 'hover:bg-amber-50 hover:border-amber-200' },
+                ].map(({ icon, label, sub, to, hover }) => (
                   <button key={to} onClick={() => navigate(to)}
-                    className={`flex items-center gap-3 p-3 rounded-xl border border-gray-100 transition-all text-left cursor-pointer bg-transparent w-full ${color}`}>
+                    className={`flex items-center gap-3 p-3 rounded-xl border border-gray-100 transition-all text-left cursor-pointer bg-transparent w-full ${hover}`}>
                     <span className="text-xl w-8 text-center">{icon}</span>
                     <div>
                       <p className="text-sm font-semibold text-gray-700">{label}</p>
@@ -185,7 +192,7 @@ function Dashboard() {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-extrabold text-gray-800">📋 My Applications</h2>
                 <button onClick={() => navigate('/my-profile')}
-                  className="text-xs font-semibold text-violet-600 bg-transparent border-0 cursor-pointer">
+                  className="text-xs font-semibold text-amber-600 bg-transparent border-0 cursor-pointer">
                   View all →
                 </button>
               </div>
@@ -194,18 +201,13 @@ function Dashboard() {
                   <div className="text-4xl mb-2">📭</div>
                   <p className="text-gray-400 text-sm">No applications yet</p>
                   <button onClick={() => navigate('/animals')}
-                    className="mt-3 text-xs font-semibold text-violet-600 bg-transparent border-0 cursor-pointer">
+                    className="mt-3 text-xs font-semibold text-amber-600 bg-transparent border-0 cursor-pointer">
                     Browse animals →
                   </button>
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
                   {applications.map(app => {
-                    const statusMap = {
-                      pending:  { color: 'bg-amber-100 text-amber-700', icon: '⏳' },
-                      approved: { color: 'bg-emerald-100 text-emerald-700', icon: '✅' },
-                      rejected: { color: 'bg-red-100 text-red-600', icon: '❌' },
-                    };
                     const s = statusMap[app.status] || statusMap.pending;
                     return (
                       <div key={app.id} className="flex items-center gap-3">
@@ -216,9 +218,7 @@ function Dashboard() {
                           <p className="text-sm font-semibold text-gray-700 truncate">{app.animal_name}</p>
                           <p className="text-xs text-gray-400">{new Date(app.created_at).toLocaleDateString()}</p>
                         </div>
-                        <span className={`text-xs font-bold px-2 py-1 rounded-full ${s.color}`}>
-                          {s.icon}
-                        </span>
+                        <span className={`text-xs font-bold px-2 py-1 rounded-full ${s.bg} ${s.text}`}>{s.icon}</span>
                       </div>
                     );
                   })}
@@ -226,26 +226,22 @@ function Dashboard() {
               )}
             </div>
 
-          </div>
-        </div>
-
-        {/* Tips Banner */}
-        <div className="mt-8 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 rounded-2xl p-6">
-          <div className="flex items-start gap-4">
-            <span className="text-3xl">💡</span>
-            <div>
-              <h3 className="font-bold text-emerald-800 mb-1">Adoption Tips</h3>
-              <p className="text-emerald-700 text-sm leading-relaxed">
-                When adopting, consider the animal's energy level, size, and temperament relative to your lifestyle.
-                Visit the center to meet the animal before applying — it makes a big difference! 🐾
-              </p>
+            {/* Tip */}
+            <div className="bg-amber-50 border border-amber-100 rounded-2xl p-5">
+              <div className="flex gap-3">
+                <span className="text-2xl">💡</span>
+                <div>
+                  <h3 className="font-bold text-amber-800 text-sm mb-1">Adoption Tip</h3>
+                  <p className="text-amber-700 text-xs leading-relaxed">
+                    Visit the center to meet the animal before applying — it makes a huge difference for both of you! 🐾
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-
       </div>
+      <Footer />
     </div>
   );
 }
-
-export default Dashboard;

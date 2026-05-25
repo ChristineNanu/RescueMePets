@@ -2,7 +2,26 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../constants';
 
-function LandingPage() {
+const PREVIEW_ANIMALS = [
+  { name: 'Buddy',    breed: 'Golden Retriever', img: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=400&q=80',    tag: 'Dog' },
+  { name: 'Whiskers', breed: 'Siamese Cat',       img: 'https://images.unsplash.com/photo-1555685812-4b943f1cb0eb?w=400&q=80',    tag: 'Cat' },
+  { name: 'Luna',     breed: 'Siberian Husky',    img: 'https://images.unsplash.com/photo-1605568427561-40dd23c2acea?w=400&q=80', tag: 'Dog' },
+];
+
+const HOW_IT_WORKS = [
+  { step: '01', icon: '🔍', title: 'Browse Animals',  desc: 'Search and filter through available pets by species, breed, and personality.' },
+  { step: '02', icon: '❤️', title: 'Save Favourites', desc: 'Heart the animals you love and build your shortlist of potential companions.' },
+  { step: '03', icon: '📋', title: 'Apply to Adopt',  desc: 'Submit your adoption application with a personal message to the rescue center.' },
+  { step: '04', icon: '🏠', title: 'Welcome Home',    desc: 'Get approved and bring your new best friend home to their forever family.' },
+];
+
+const TESTIMONIALS = [
+  { name: 'Sarah M.',  text: 'Found my perfect dog Biscuit through RescueMePets. The process was so smooth and the team was incredibly helpful!', avatar: '👩' },
+  { name: 'James K.',  text: 'Adopted two cats last year. They\'ve completely changed our home for the better. Couldn\'t be happier!', avatar: '👨' },
+  { name: 'Priya L.',  text: 'The adoption form was simple and the center responded within a day. My rabbit Coco is the best thing ever.', avatar: '👩‍🦱' },
+];
+
+export default function LandingPage() {
   const navigate = useNavigate();
   const [stats, setStats] = useState({ total_animals: 21, available: 19, adopted: 1, centers: 4 });
 
@@ -11,141 +30,203 @@ function LandingPage() {
   }, []);
 
   return (
-    <div style={{ fontFamily: "'Inter', sans-serif", background: '#fff' }}>
+    <div className="font-sans bg-white text-gray-800">
 
-      {/* Navbar */}
-      <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.2rem 3rem', background: 'white', boxShadow: '0 2px 20px rgba(0,0,0,0.08)', position: 'sticky', top: 0, zIndex: 100 }}>
-        <div style={{ fontSize: '1.6rem', fontWeight: 800, background: 'linear-gradient(135deg, #667eea, #764ba2)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-          🐾 RescueMePets
-        </div>
-        <div style={{ display: 'flex', gap: '1rem' }}>
-          <button onClick={() => navigate('/login')} style={{ padding: '0.6rem 1.5rem', border: '2px solid #667eea', borderRadius: '8px', background: 'transparent', color: '#667eea', fontWeight: 600, cursor: 'pointer', fontSize: '1rem' }}>
-            Login
-          </button>
-          <button onClick={() => navigate('/register')} style={{ padding: '0.6rem 1.5rem', border: 'none', borderRadius: '8px', background: 'linear-gradient(135deg, #667eea, #764ba2)', color: 'white', fontWeight: 600, cursor: 'pointer', fontSize: '1rem' }}>
-            Get Started
-          </button>
+      {/* ── Navbar ── */}
+      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-amber-100 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 h-16 flex items-center justify-between">
+          <span className="text-xl font-extrabold bg-gradient-to-r from-amber-500 to-amber-600 bg-clip-text text-transparent">
+            🐾 RescueMePets
+          </span>
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate('/login')}
+              className="px-5 py-2 rounded-full text-sm font-semibold text-amber-700 border-2 border-amber-200 hover:border-amber-400 hover:bg-amber-50 transition-all bg-transparent cursor-pointer">
+              Login
+            </button>
+            <button onClick={() => navigate('/register')}
+              className="px-5 py-2 rounded-full text-sm font-semibold text-white bg-gradient-to-r from-amber-500 to-amber-600 hover:shadow-lg hover:shadow-amber-200 hover:-translate-y-0.5 transition-all border-0 cursor-pointer">
+              Get Started
+            </button>
+          </div>
         </div>
       </nav>
 
-      {/* Hero */}
-      <div style={{ position: 'relative', minHeight: '92vh', display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
-        <img src="https://images.unsplash.com/photo-1450778869180-41d0601e046e?w=1600&q=80" alt="hero"
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(102,126,234,0.85) 0%, rgba(118,75,162,0.75) 100%)' }} />
-        <div style={{ position: 'relative', zIndex: 1, maxWidth: '700px', padding: '0 3rem', color: 'white' }}>
-          <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.2)', padding: '0.4rem 1rem', borderRadius: '20px', fontSize: '0.9rem', fontWeight: 600, marginBottom: '1.5rem', backdropFilter: 'blur(10px)' }}>
-            🐾 Find your perfect companion
-          </div>
-          <h1 style={{ fontSize: '4rem', fontWeight: 900, lineHeight: 1.1, marginBottom: '1.5rem', textShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
-            Give a Pet a<br />Forever Home 🏠
-          </h1>
-          <p style={{ fontSize: '1.25rem', opacity: 0.9, marginBottom: '2.5rem', lineHeight: 1.7 }}>
-            Browse hundreds of loving animals waiting for their perfect family. Adopt, don't shop — every pet deserves a second chance.
-          </p>
-          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-            <button onClick={() => navigate('/register')} style={{ padding: '1rem 2.5rem', fontSize: '1.1rem', fontWeight: 700, background: 'white', color: '#667eea', border: 'none', borderRadius: '12px', cursor: 'pointer', boxShadow: '0 8px 30px rgba(0,0,0,0.2)', transition: 'all 0.3s' }}
-              onMouseEnter={e => e.target.style.transform = 'translateY(-3px)'}
-              onMouseLeave={e => e.target.style.transform = 'translateY(0)'}>
-              🐾 Start Adopting
-            </button>
-            <button onClick={() => navigate('/login')} style={{ padding: '1rem 2.5rem', fontSize: '1.1rem', fontWeight: 700, background: 'rgba(255,255,255,0.15)', color: 'white', border: '2px solid rgba(255,255,255,0.5)', borderRadius: '12px', cursor: 'pointer', backdropFilter: 'blur(10px)', transition: 'all 0.3s' }}
-              onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.25)'}
-              onMouseLeave={e => e.target.style.background = 'rgba(255,255,255,0.15)'}>
-              Sign In
-            </button>
+      {/* ── Hero ── */}
+      <section className="relative min-h-[92vh] flex items-center overflow-hidden">
+        <img src="https://images.unsplash.com/photo-1450778869180-41d0601e046e?w=1600&q=80"
+          alt="hero" className="absolute inset-0 w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-br from-amber-900/80 via-amber-800/60 to-stone-900/50" />
+        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 py-20">
+          <div className="max-w-2xl">
+            <span className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm border border-white/25 text-white text-sm font-semibold px-4 py-2 rounded-full mb-6">
+              🐾 Find your perfect companion
+            </span>
+            <h1 className="text-5xl sm:text-6xl font-black text-white leading-tight mb-6 drop-shadow-lg">
+              Give a Pet a<br />
+              <span className="bg-gradient-to-r from-orange-300 to-pink-300 bg-clip-text text-transparent">
+                Forever Home
+              </span> 🏠
+            </h1>
+            <p className="text-lg text-white/85 mb-8 leading-relaxed max-w-xl">
+              Browse hundreds of loving animals waiting for their perfect family. Adopt, don't shop — every pet deserves a second chance.
+            </p>
+            <div className="flex flex-wrap gap-4">
+              <button onClick={() => navigate('/register')}
+                className="px-8 py-4 rounded-2xl font-bold text-base bg-white text-amber-700 hover:shadow-2xl hover:-translate-y-1 transition-all border-0 cursor-pointer">
+                🐾 Start Adopting
+              </button>
+              <button onClick={() => navigate('/login')}
+                className="px-8 py-4 rounded-2xl font-bold text-base bg-white/15 backdrop-blur-sm text-white border-2 border-white/30 hover:bg-white/25 transition-all cursor-pointer">
+                Sign In
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+        {/* Scroll hint */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/60 text-xs flex flex-col items-center gap-1 animate-bounce">
+          <span>Scroll down</span>
+          <span>↓</span>
+        </div>
+      </section>
 
-      {/* Stats Bar */}
-      <div style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)', padding: '2.5rem 3rem' }}>
-        <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '2rem', textAlign: 'center' }}>
+      {/* ── Stats Bar ── */}
+      <section className="bg-gradient-to-r from-amber-500 to-amber-600 py-10">
+        <div className="max-w-4xl mx-auto px-6 grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
           {[
-            { value: `${stats.total_animals}+`, label: 'Animals Listed' },
-            { value: `${stats.available}`, label: 'Available Now' },
-            { value: `${stats.adopted}+`, label: 'Happy Adoptions' },
-            { value: `${stats.centers}`, label: 'Rescue Centers' },
+            { value: `${stats.total_animals}+`, label: 'Animals Listed',   icon: '🐾' },
+            { value: `${stats.available}`,      label: 'Available Now',    icon: '✅' },
+            { value: `${stats.adopted}+`,       label: 'Happy Adoptions',  icon: '🏠' },
+            { value: `${stats.centers}`,        label: 'Rescue Centers',   icon: '🏥' },
           ].map((s, i) => (
             <div key={i}>
-              <div style={{ fontSize: '2.5rem', fontWeight: 900, color: 'white' }}>{s.value}</div>
-              <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '1rem', marginTop: '0.25rem' }}>{s.label}</div>
+              <div className="text-3xl mb-1">{s.icon}</div>
+              <div className="text-3xl font-black text-white">{s.value}</div>
+              <div className="text-amber-100 text-sm mt-1 font-medium">{s.label}</div>
             </div>
           ))}
         </div>
-      </div>
+      </section>
 
-      {/* How It Works */}
-      <div style={{ padding: '5rem 3rem', background: '#f8f9ff' }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-          <h2 style={{ textAlign: 'center', fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.5rem', color: '#2d3748' }}>How It Works</h2>
-          <p style={{ textAlign: 'center', color: '#718096', marginBottom: '3rem', fontSize: '1.1rem' }}>Adopting a pet has never been easier</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '2rem' }}>
-            {[
-              { step: '01', icon: '🔍', title: 'Browse Animals', desc: 'Search and filter through our available pets by species, breed, and personality.' },
-              { step: '02', icon: '❤️', title: 'Save Favorites', desc: 'Heart the animals you love and build your shortlist of potential companions.' },
-              { step: '03', icon: '📋', title: 'Apply to Adopt', desc: 'Submit your adoption application with a personal message to the rescue center.' },
-              { step: '04', icon: '🏠', title: 'Welcome Home', desc: 'Get approved and bring your new best friend home to their forever family.' },
-            ].map((item, i) => (
-              <div key={i} style={{ background: 'white', borderRadius: '20px', padding: '2rem', boxShadow: '0 4px 20px rgba(0,0,0,0.06)', textAlign: 'center', transition: 'all 0.3s' }}
-                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-8px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(102,126,234,0.2)'; }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.06)'; }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#667eea', letterSpacing: '2px', marginBottom: '0.5rem' }}>STEP {item.step}</div>
-                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>{item.icon}</div>
-                <h3 style={{ fontWeight: 700, color: '#2d3748', marginBottom: '0.5rem' }}>{item.title}</h3>
-                <p style={{ color: '#718096', fontSize: '0.95rem', lineHeight: 1.6 }}>{item.desc}</p>
+      {/* ── How It Works ── */}
+      <section className="py-20 bg-amber-50">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-12">
+            <span className="text-amber-600 font-bold text-sm uppercase tracking-widest">Simple Process</span>
+            <h2 className="text-4xl font-black text-gray-800 mt-2 mb-3">How It Works</h2>
+            <p className="text-gray-500 text-lg">Adopting a pet has never been easier</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {HOW_IT_WORKS.map((item, i) => (
+              <div key={i}
+                className="bg-white rounded-3xl p-6 text-center shadow-sm border border-amber-100 hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group">
+                <div className="text-xs font-black text-amber-400 tracking-widest mb-3 uppercase">Step {item.step}</div>
+                <div className="w-16 h-16 bg-gradient-to-br from-orange-100 to-pink-100 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 group-hover:scale-110 transition-transform">
+                  {item.icon}
+                </div>
+                <h3 className="font-bold text-gray-800 text-base mb-2">{item.title}</h3>
+                <p className="text-gray-500 text-sm leading-relaxed">{item.desc}</p>
               </div>
             ))}
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Animal Preview */}
-      <div style={{ padding: '5rem 3rem', background: 'white' }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-          <h2 style={{ textAlign: 'center', fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.5rem', color: '#2d3748' }}>Meet Some of Our Animals</h2>
-          <p style={{ textAlign: 'center', color: '#718096', marginBottom: '3rem', fontSize: '1.1rem' }}>Every one of them is waiting for you</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
-            {[
-              { name: 'Buddy', breed: 'Golden Retriever', img: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=400&q=80' },
-              { name: 'Whiskers', breed: 'Siamese Cat', img: 'https://images.unsplash.com/photo-1555685812-4b943f1cb0eb?w=400&q=80' },
-              { name: 'Luna', breed: 'Siberian Husky', img: 'https://images.unsplash.com/photo-1605568427561-40dd23c2acea?w=400&q=80' },
-            ].map((a, i) => (
-              <div key={i} style={{ borderRadius: '16px', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', cursor: 'pointer', transition: 'all 0.3s' }}
-                onClick={() => navigate('/register')}
-                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-6px)'}
-                onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
-                <img src={a.img} alt={a.name} style={{ width: '100%', height: '220px', objectFit: 'cover' }} />
-                <div style={{ padding: '1rem 1.2rem', background: 'white' }}>
-                  <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#2d3748' }}>{a.name}</div>
-                  <div style={{ color: '#718096', fontSize: '0.9rem' }}>{a.breed}</div>
+      {/* ── Animal Preview ── */}
+      <section className="py-20 bg-white">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-12">
+            <span className="text-amber-600 font-bold text-sm uppercase tracking-widest">Meet Our Animals</span>
+            <h2 className="text-4xl font-black text-gray-800 mt-2 mb-3">Waiting for You</h2>
+            <p className="text-gray-500 text-lg">Every one of them deserves a loving home</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
+            {PREVIEW_ANIMALS.map((a, i) => (
+              <div key={i}
+                className="rounded-3xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group"
+                onClick={() => navigate('/register')}>
+                <div className="relative h-56 overflow-hidden">
+                  <img src={a.img} alt={a.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                  <span className="absolute top-3 left-3 bg-white/90 text-amber-700 text-xs font-bold px-3 py-1 rounded-full">
+                    {a.tag}
+                  </span>
+                  <div className="absolute bottom-3 left-4 right-4">
+                    <p className="font-bold text-white text-lg">{a.name}</p>
+                    <p className="text-white/75 text-sm">{a.breed}</p>
+                  </div>
+                </div>
+                <div className="p-4 bg-white flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-emerald-600 text-xs font-bold">
+                    <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" /> Available
+                  </span>
+                  <span className="text-amber-600 text-sm font-bold">Adopt Me →</span>
                 </div>
               </div>
             ))}
           </div>
-          <div style={{ textAlign: 'center', marginTop: '2.5rem' }}>
-            <button onClick={() => navigate('/register')} style={{ padding: '1rem 3rem', fontSize: '1.1rem', fontWeight: 700, background: 'linear-gradient(135deg, #667eea, #764ba2)', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer', boxShadow: '0 8px 25px rgba(102,126,234,0.4)' }}>
+          <div className="text-center">
+            <button onClick={() => navigate('/register')}
+              className="px-10 py-4 rounded-2xl font-bold text-base bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:shadow-xl hover:shadow-amber-200 hover:-translate-y-1 transition-all border-0 cursor-pointer">
               View All Animals →
             </button>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* CTA */}
-      <div style={{ padding: '5rem 3rem', background: 'linear-gradient(135deg, #667eea, #764ba2)', textAlign: 'center', color: 'white' }}>
-        <h2 style={{ fontSize: '3rem', fontWeight: 900, marginBottom: '1rem' }}>Ready to Find Your Best Friend?</h2>
-        <p style={{ fontSize: '1.2rem', opacity: 0.9, marginBottom: '2rem' }}>Join thousands of happy adopters who found their perfect companion</p>
-        <button onClick={() => navigate('/register')} style={{ padding: '1.2rem 3rem', fontSize: '1.2rem', fontWeight: 700, background: 'white', color: '#667eea', border: 'none', borderRadius: '12px', cursor: 'pointer', boxShadow: '0 8px 30px rgba(0,0,0,0.2)' }}>
-          🐾 Adopt Today — It's Free
-        </button>
-      </div>
+      {/* ── Testimonials ── */}
+      <section className="py-20 bg-gradient-to-br from-amber-50 to-stone-50">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-12">
+            <span className="text-amber-600 font-bold text-sm uppercase tracking-widest">Happy Adopters</span>
+            <h2 className="text-4xl font-black text-gray-800 mt-2 mb-3">Stories of Love</h2>
+            <p className="text-gray-500 text-lg">Real people, real connections</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            {TESTIMONIALS.map((t, i) => (
+              <div key={i} className="bg-white rounded-3xl p-6 shadow-sm border border-amber-100 hover:shadow-md transition-shadow">
+                <div className="text-3xl mb-4">{t.avatar}</div>
+                <p className="text-gray-600 text-sm leading-relaxed mb-4 italic">"{t.text}"</p>
+                <p className="font-bold text-gray-800 text-sm">{t.name}</p>
+                <div className="flex gap-0.5 mt-1">
+                  {[...Array(5)].map((_, j) => <span key={j} className="text-amber-400 text-xs">★</span>)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-      {/* Footer */}
-      <div style={{ background: '#1a202c', color: '#a0aec0', padding: '2rem 3rem', textAlign: 'center', fontSize: '0.95rem' }}>
-        © 2026 RescueMePets · Built with ❤️ for animals everywhere
-      </div>
+      {/* ── CTA ── */}
+      <section className="py-20 bg-gradient-to-r from-amber-500 to-amber-600 text-center relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10 pointer-events-none text-8xl flex items-center justify-around">
+          <span>🐕</span><span>🐈</span><span>🐇</span><span>🦜</span>
+        </div>
+        <div className="relative z-10 max-w-2xl mx-auto px-6">
+          <h2 className="text-4xl sm:text-5xl font-black text-white mb-4">Ready to Find Your Best Friend?</h2>
+          <p className="text-amber-100 text-lg mb-8">Join thousands of happy adopters who found their perfect companion</p>
+          <button onClick={() => navigate('/register')}
+            className="px-10 py-4 rounded-2xl font-bold text-base bg-white text-amber-700 hover:shadow-2xl hover:-translate-y-1 transition-all border-0 cursor-pointer">
+            🐾 Adopt Today — It's Free
+          </button>
+        </div>
+      </section>
+
+      {/* ── Footer ── */}
+      <footer className="bg-gray-900 text-gray-400 py-10">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <span className="text-lg font-extrabold bg-gradient-to-r from-orange-400 to-pink-400 bg-clip-text text-transparent">
+              🐾 RescueMePets
+            </span>
+            <p className="text-sm">© 2026 RescueMePets · Built with ❤️ for animals everywhere</p>
+            <div className="flex gap-4 text-sm">
+              <button onClick={() => navigate('/login')} className="hover:text-white transition-colors bg-transparent border-0 cursor-pointer text-gray-400">Login</button>
+              <button onClick={() => navigate('/register')} className="hover:text-white transition-colors bg-transparent border-0 cursor-pointer text-gray-400">Register</button>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
-
-export default LandingPage;

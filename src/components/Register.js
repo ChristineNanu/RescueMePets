@@ -41,13 +41,13 @@ export const Register = () => {
           alt="pets"
           className="absolute inset-0 w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-600/85 to-purple-800/80" />
+        <div className="absolute inset-0 bg-gradient-to-br from-amber-500/85 to-purple-800/80" />
         <div className="relative z-10 flex flex-col justify-center px-12 text-white">
           <div className="text-5xl mb-6">🏠</div>
           <h2 className="text-4xl font-extrabold leading-tight mb-4">
             Give a pet a<br />forever home
           </h2>
-          <p className="text-violet-200 text-lg leading-relaxed">
+          <p className="text-amber-100 text-lg leading-relaxed">
             Join our community of animal lovers and help rescue pets find the loving families they deserve.
           </p>
           <div className="mt-8 flex flex-col gap-3">
@@ -68,7 +68,7 @@ export const Register = () => {
           {/* Logo */}
           <div className="text-center mb-8">
             <button onClick={() => navigate('/')}
-              className="text-2xl font-extrabold bg-gradient-to-r from-violet-600 to-purple-700 bg-clip-text text-transparent bg-transparent border-0 cursor-pointer mb-2 block w-full">
+              className="text-2xl font-extrabold bg-gradient-to-r from-amber-500 to-amber-600 bg-clip-text text-transparent bg-transparent border-0 cursor-pointer mb-2 block w-full">
               🐾 RescueMePets
             </button>
             <h1 className="text-2xl font-extrabold text-gray-800 mb-1">Create your account</h1>
@@ -94,7 +94,7 @@ export const Register = () => {
                     onChange={e => setUsername(e.target.value)}
                     placeholder="Choose a username"
                     required
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-violet-500 focus:outline-none text-gray-700 text-sm bg-gray-50 focus:bg-white transition-colors"
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-amber-500 focus:outline-none text-gray-700 text-sm bg-gray-50 focus:bg-white transition-colors"
                   />
                 </div>
 
@@ -106,7 +106,7 @@ export const Register = () => {
                     onChange={e => setEmail(e.target.value)}
                     placeholder="your@email.com"
                     required
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-violet-500 focus:outline-none text-gray-700 text-sm bg-gray-50 focus:bg-white transition-colors"
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-amber-500 focus:outline-none text-gray-700 text-sm bg-gray-50 focus:bg-white transition-colors"
                   />
                 </div>
 
@@ -118,7 +118,7 @@ export const Register = () => {
                     onChange={e => setPass(e.target.value)}
                     placeholder="Min. 6 characters"
                     required
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-violet-500 focus:outline-none text-gray-700 text-sm bg-gray-50 focus:bg-white transition-colors"
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-amber-500 focus:outline-none text-gray-700 text-sm bg-gray-50 focus:bg-white transition-colors"
                   />
                 </div>
 
@@ -130,7 +130,7 @@ export const Register = () => {
                     onChange={e => setConfirmPass(e.target.value)}
                     placeholder="Repeat your password"
                     required
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-violet-500 focus:outline-none text-gray-700 text-sm bg-gray-50 focus:bg-white transition-colors"
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-amber-500 focus:outline-none text-gray-700 text-sm bg-gray-50 focus:bg-white transition-colors"
                   />
                 </div>
 
@@ -146,7 +146,7 @@ export const Register = () => {
                   className={`w-full py-3.5 rounded-xl font-bold text-base transition-all border-0 mt-1
                     ${isLoading
                       ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-violet-600 to-purple-700 text-white cursor-pointer hover:shadow-lg hover:shadow-violet-200 hover:-translate-y-0.5'}`}>
+                      : 'bg-gradient-to-r from-amber-500 to-amber-600 text-white cursor-pointer hover:shadow-lg hover:shadow-amber-200 hover:-translate-y-0.5'}`}>
                   {isLoading ? '⏳ Creating account...' : '🐾 Create Account'}
                 </button>
               </form>
@@ -156,7 +156,7 @@ export const Register = () => {
               <div className="text-center mt-6 text-sm text-gray-400">
                 Already have an account?{' '}
                 <button onClick={() => navigate('/login')}
-                  className="text-violet-600 font-bold bg-transparent border-0 cursor-pointer hover:text-purple-700">
+                  className="text-amber-600 font-bold bg-transparent border-0 cursor-pointer hover:text-amber-700">
                   Sign in
                 </button>
               </div>

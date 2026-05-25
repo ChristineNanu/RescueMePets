@@ -17,6 +17,13 @@ function MyApplications() {
   const userId = localStorage.getItem('user_id');
   const username = localStorage.getItem('username');
 
+  const handleLogout = () => {
+    localStorage.removeItem('user_id');
+    localStorage.removeItem('username');
+    navigate('/');
+    window.location.reload();
+  };
+
   useEffect(() => {
     if (!userId) { navigate('/login'); return; }
     Promise.all([
@@ -30,10 +37,10 @@ function MyApplications() {
   }, [userId, navigate]);
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 to-purple-50">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-stone-50">
       <div className="text-center">
         <div className="text-5xl mb-4 animate-bounce">⏳</div>
-        <p className="text-violet-600 font-semibold text-lg">Loading your profile...</p>
+        <p className="text-amber-600 font-semibold text-lg">Loading your profile...</p>
       </div>
     </div>
   );
@@ -41,10 +48,10 @@ function MyApplications() {
   const pending = applications.filter(a => a.status === 'pending').length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-violet-50/30 to-purple-50/20">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-amber-50/20">
 
       {/* Profile Header */}
-      <div className="bg-gradient-to-r from-violet-600 to-purple-700 px-6 py-12 text-center relative overflow-hidden">
+      <div className="bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-12 text-center relative overflow-hidden">
         <div className="absolute inset-0 opacity-10 text-8xl flex items-center justify-around pointer-events-none">
           <span>🐾</span><span>❤️</span><span>🏠</span>
         </div>
@@ -53,7 +60,7 @@ function MyApplications() {
             {username?.[0]?.toUpperCase() || 'U'}
           </div>
           <h1 className="text-3xl font-extrabold text-white mb-1">{username}</h1>
-          <p className="text-violet-200 text-base">Pet Adoption Profile</p>
+          <p className="text-amber-100 text-base">Pet Adoption Profile</p>
         </div>
       </div>
 
@@ -61,9 +68,9 @@ function MyApplications() {
       <div className="max-w-3xl mx-auto px-4 -mt-6 mb-6 relative z-10">
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: 'Applications', value: applications.length, icon: '📋', color: 'text-violet-600' },
+            { label: 'Applications', value: applications.length, icon: '📋', color: 'text-amber-600' },
             { label: 'Pending', value: pending, icon: '⏳', color: 'text-amber-600' },
-            { label: 'Saved', value: favorites.length, icon: '❤️', color: 'text-pink-500' },
+            { label: 'Saved', value: favorites.length, icon: '❤️', color: 'text-amber-600' },
           ].map((s, i) => (
             <div key={i} className="bg-white rounded-2xl p-4 text-center shadow-md border border-gray-100">
               <div className="text-2xl mb-1">{s.icon}</div>
@@ -84,8 +91,8 @@ function MyApplications() {
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all border-0 cursor-pointer
                 ${tab === t.key
-                  ? 'bg-gradient-to-r from-violet-600 to-purple-700 text-white shadow-md'
-                  : 'text-gray-500 hover:text-violet-600 bg-transparent'}`}>
+                  ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md'
+                  : 'text-gray-500 hover:text-amber-600 bg-transparent'}`}>
               {t.icon} {t.label}
             </button>
           ))}
@@ -100,7 +107,7 @@ function MyApplications() {
                 <h3 className="font-bold text-gray-700 mb-1">No applications yet</h3>
                 <p className="text-gray-400 text-sm mb-4">Browse animals and submit your first adoption request</p>
                 <button onClick={() => navigate('/animals')}
-                  className="bg-gradient-to-r from-violet-600 to-purple-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm border-0 cursor-pointer hover:shadow-lg transition-all">
+                  className="bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold px-6 py-2.5 rounded-xl text-sm border-0 cursor-pointer hover:shadow-lg transition-all">
                   Browse Animals
                 </button>
               </div>
@@ -142,7 +149,7 @@ function MyApplications() {
                 <h3 className="font-bold text-gray-700 mb-1">No saved animals yet</h3>
                 <p className="text-gray-400 text-sm mb-4">Tap the heart on any animal to save them here</p>
                 <button onClick={() => navigate('/animals')}
-                  className="bg-gradient-to-r from-violet-600 to-purple-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm border-0 cursor-pointer hover:shadow-lg transition-all">
+                  className="bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold px-6 py-2.5 rounded-xl text-sm border-0 cursor-pointer hover:shadow-lg transition-all">
                   Browse Animals
                 </button>
               </div>
@@ -161,7 +168,7 @@ function MyApplications() {
                       <h3 className="font-bold text-gray-800 mb-0.5">{animal.name}</h3>
                       <p className="text-gray-400 text-xs mb-3">{animal.breed} · {animal.age} yrs</p>
                       <button onClick={() => navigate(`/adoption?animalId=${animal.id}`)}
-                        className="w-full py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-violet-600 to-purple-700 text-white border-0 cursor-pointer hover:shadow-md transition-all">
+                        className="w-full py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-amber-500 to-amber-600 text-white border-0 cursor-pointer hover:shadow-md transition-all">
                         🐾 Adopt Me!
                       </button>
                     </div>
@@ -171,6 +178,14 @@ function MyApplications() {
             )}
           </div>
         )}
+      </div>
+
+      {/* Logout */}
+      <div className="max-w-3xl mx-auto px-4 pb-10">
+        <button onClick={handleLogout}
+          className="w-full py-3 rounded-2xl text-sm font-semibold text-red-500 bg-white border border-red-100 hover:bg-red-50 transition-all cursor-pointer flex items-center justify-center gap-2">
+          🚪 Sign Out
+        </button>
       </div>
     </div>
   );
