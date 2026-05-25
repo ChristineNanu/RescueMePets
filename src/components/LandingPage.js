@@ -55,37 +55,37 @@ export default function LandingPage() {
       <section className="relative min-h-[92vh] flex items-center overflow-hidden">
         <img src="https://images.unsplash.com/photo-1450778869180-41d0601e046e?w=1600&q=80"
           alt="hero" className="absolute inset-0 w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-br from-amber-900/80 via-amber-800/60 to-stone-900/50" />
+        <div className="absolute inset-0 bg-gradient-to-br from-amber-900/85 via-amber-800/65 to-stone-900/60" />
         <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 py-20">
           <div className="max-w-2xl">
-            <span className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm border border-white/25 text-white text-sm font-semibold px-4 py-2 rounded-full mb-6">
+            <span className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-xl border border-white/40 text-white text-sm font-bold px-5 py-3 rounded-full mb-8 shadow-lg hover:bg-white/30 transition-all hover:scale-105">
               🐾 Find your perfect companion
             </span>
-            <h1 className="text-5xl sm:text-6xl font-black text-white leading-tight mb-6 drop-shadow-lg">
+            <h1 className="text-6xl sm:text-7xl font-black text-white leading-tight mb-8 drop-shadow-2xl">
               Give a Pet a<br />
-              <span className="bg-gradient-to-r from-orange-300 to-pink-300 bg-clip-text text-transparent">
-                Forever Home
-              </span> 🏠
+              <span className="bg-gradient-to-r from-orange-300 via-pink-300 to-rose-300 bg-clip-text text-transparent">
+                Forever Home 🏠
+              </span>
             </h1>
-            <p className="text-lg text-white/85 mb-8 leading-relaxed max-w-xl">
+            <p className="text-xl text-white/90 mb-10 leading-relaxed max-w-xl font-medium">
               Browse hundreds of loving animals waiting for their perfect family. Adopt, don't shop — every pet deserves a second chance.
             </p>
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap gap-5">
               <button onClick={() => navigate('/register')}
-                className="px-8 py-4 rounded-2xl font-bold text-base bg-white text-amber-700 hover:shadow-2xl hover:-translate-y-1 transition-all border-0 cursor-pointer">
+                className="px-10 py-4 rounded-2xl font-bold text-lg bg-white text-amber-700 hover:shadow-2xl hover:shadow-white/50 hover:-translate-y-1.5 transition-all border-0 cursor-pointer active:scale-95">
                 🐾 Start Adopting
               </button>
               <button onClick={() => navigate('/login')}
-                className="px-8 py-4 rounded-2xl font-bold text-base bg-white/15 backdrop-blur-sm text-white border-2 border-white/30 hover:bg-white/25 transition-all cursor-pointer">
+                className="px-10 py-4 rounded-2xl font-bold text-lg bg-white/20 backdrop-blur-md text-white border-2 border-white/50 hover:bg-white/30 hover:border-white/60 transition-all cursor-pointer hover:scale-105">
                 Sign In
               </button>
             </div>
           </div>
         </div>
         {/* Scroll hint */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/60 text-xs flex flex-col items-center gap-1 animate-bounce">
-          <span>Scroll down</span>
-          <span>↓</span>
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 text-white/70 text-xs flex flex-col items-center gap-2 animate-bounce">
+          <span className="font-semibold">Scroll down</span>
+          <span className="text-xl">↓</span>
         </div>
       </section>
 
@@ -118,13 +118,13 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {HOW_IT_WORKS.map((item, i) => (
               <div key={i}
-                className="bg-white rounded-3xl p-6 text-center shadow-sm border border-amber-100 hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group">
-                <div className="text-xs font-black text-amber-400 tracking-widest mb-3 uppercase">Step {item.step}</div>
-                <div className="w-16 h-16 bg-gradient-to-br from-orange-100 to-pink-100 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 group-hover:scale-110 transition-transform">
+                className="bg-white rounded-3xl p-8 text-center shadow-md border border-amber-100 hover:shadow-2xl hover:-translate-y-3 transition-all duration-300 group">
+                <div className="text-xs font-black text-amber-500 tracking-widest mb-4 uppercase">Step {item.step}</div>
+                <div className="w-20 h-20 bg-gradient-to-br from-orange-100 to-pink-100 rounded-3xl flex items-center justify-center text-5xl mx-auto mb-6 group-hover:scale-125 transition-transform group-hover:shadow-xl group-hover:shadow-orange-200/50">
                   {item.icon}
                 </div>
-                <h3 className="font-bold text-gray-800 text-base mb-2">{item.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{item.desc}</p>
+                <h3 className="font-black text-gray-800 text-lg mb-3">{item.title}</h3>
+                <p className="text-gray-500 text-base leading-relaxed font-medium">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -139,35 +139,35 @@ export default function LandingPage() {
             <h2 className="text-4xl font-black text-gray-800 mt-2 mb-3">Waiting for You</h2>
             <p className="text-gray-500 text-lg">Every one of them deserves a loving home</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-12">
             {PREVIEW_ANIMALS.map((a, i) => (
               <div key={i}
-                className="rounded-3xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group"
+                className="rounded-3xl overflow-hidden shadow-lg border border-gray-200 cursor-pointer hover:shadow-2xl hover:-translate-y-3 transition-all duration-300 group"
                 onClick={() => navigate('/register')}>
-                <div className="relative h-56 overflow-hidden">
+                <div className="relative h-60 overflow-hidden bg-gradient-to-br from-amber-100 to-orange-100">
                   <img src={a.img} alt={a.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                  <span className="absolute top-3 left-3 bg-white/90 text-amber-700 text-xs font-bold px-3 py-1 rounded-full">
+                  <span className="absolute top-4 left-4 bg-white/90 backdrop-blur-md text-amber-700 text-xs font-bold px-4 py-2 rounded-full shadow-lg">
                     {a.tag}
                   </span>
-                  <div className="absolute bottom-3 left-4 right-4">
-                    <p className="font-bold text-white text-lg">{a.name}</p>
-                    <p className="text-white/75 text-sm">{a.breed}</p>
+                  <div className="absolute bottom-4 left-4 right-4">
+                    <p className="font-black text-white text-xl">{a.name}</p>
+                    <p className="text-white/85 text-sm font-medium">{a.breed}</p>
                   </div>
                 </div>
-                <div className="p-4 bg-white flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-emerald-600 text-xs font-bold">
-                    <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" /> Available
+                <div className="p-5 bg-white flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-emerald-600 text-xs font-bold">
+                    <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse" /> Available
                   </span>
-                  <span className="text-amber-600 text-sm font-bold">Adopt Me →</span>
+                  <span className="text-amber-600 text-sm font-black">Adopt Me →</span>
                 </div>
               </div>
             ))}
           </div>
           <div className="text-center">
             <button onClick={() => navigate('/register')}
-              className="px-10 py-4 rounded-2xl font-bold text-base bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:shadow-xl hover:shadow-amber-200 hover:-translate-y-1 transition-all border-0 cursor-pointer">
+              className="px-12 py-5 rounded-2xl font-bold text-lg bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-white hover:shadow-2xl hover:shadow-amber-300/50 hover:-translate-y-1.5 transition-all border-0 cursor-pointer active:scale-95">
               View All Animals →
             </button>
           </div>
@@ -182,14 +182,16 @@ export default function LandingPage() {
             <h2 className="text-4xl font-black text-gray-800 mt-2 mb-3">Stories of Love</h2>
             <p className="text-gray-500 text-lg">Real people, real connections</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-7">
             {TESTIMONIALS.map((t, i) => (
-              <div key={i} className="bg-white rounded-3xl p-6 shadow-sm border border-amber-100 hover:shadow-md transition-shadow">
-                <div className="text-3xl mb-4">{t.avatar}</div>
-                <p className="text-gray-600 text-sm leading-relaxed mb-4 italic">"{t.text}"</p>
-                <p className="font-bold text-gray-800 text-sm">{t.name}</p>
-                <div className="flex gap-0.5 mt-1">
-                  {[...Array(5)].map((_, j) => <span key={j} className="text-amber-400 text-xs">★</span>)}
+              <div key={i} className="bg-white rounded-3xl p-7 shadow-md border border-amber-100 hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group">
+                <div className="text-4xl mb-5">{t.avatar}</div>
+                <p className="text-gray-600 text-base leading-relaxed mb-5 italic font-medium">"{t.text}"</p>
+                <div className="flex items-center justify-between">
+                  <p className="font-black text-gray-800">{t.name}</p>
+                  <div className="flex gap-1">
+                    {[...Array(5)].map((_, j) => <span key={j} className="text-amber-400 text-base">★</span>)}
+                  </div>
                 </div>
               </div>
             ))}
@@ -198,15 +200,18 @@ export default function LandingPage() {
       </section>
 
       {/* ── CTA ── */}
-      <section className="py-20 bg-gradient-to-r from-amber-500 to-amber-600 text-center relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10 pointer-events-none text-8xl flex items-center justify-around">
-          <span>🐕</span><span>🐈</span><span>🐇</span><span>🦜</span>
+      <section className="py-24 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-center relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10 pointer-events-none text-9xl flex items-center justify-around gap-8">
+          <span className="animate-bounce" style={{animationDelay: '0s'}}>🐕</span>
+          <span className="animate-bounce" style={{animationDelay: '0.2s'}}>🐈</span>
+          <span className="animate-bounce" style={{animationDelay: '0.4s'}}>🐇</span>
+          <span className="animate-bounce" style={{animationDelay: '0.6s'}}>🦜</span>
         </div>
         <div className="relative z-10 max-w-2xl mx-auto px-6">
-          <h2 className="text-4xl sm:text-5xl font-black text-white mb-4">Ready to Find Your Best Friend?</h2>
-          <p className="text-amber-100 text-lg mb-8">Join thousands of happy adopters who found their perfect companion</p>
+          <h2 className="text-5xl sm:text-6xl font-black text-white mb-6">Ready to Find Your Best Friend?</h2>
+          <p className="text-amber-50 text-xl mb-10 font-medium">Join thousands of happy adopters who found their perfect companion</p>
           <button onClick={() => navigate('/register')}
-            className="px-10 py-4 rounded-2xl font-bold text-base bg-white text-amber-700 hover:shadow-2xl hover:-translate-y-1 transition-all border-0 cursor-pointer">
+            className="px-12 py-5 rounded-2xl font-bold text-lg bg-white text-amber-700 hover:shadow-2xl hover:shadow-white/50 hover:-translate-y-1.5 transition-all border-0 cursor-pointer active:scale-95">
             🐾 Adopt Today — It's Free
           </button>
         </div>

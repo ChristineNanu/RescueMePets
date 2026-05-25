@@ -4,14 +4,14 @@ import { API_BASE_URL } from '../constants';
 
 function StatCard({ icon, value, label, sub, iconBg, valueColor }) {
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm font-medium text-gray-500 mb-1">{label}</p>
-          <p className={`text-3xl font-extrabold ${valueColor}`}>{value}</p>
-          {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+          <p className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">{label}</p>
+          <p className={`text-4xl font-black ${valueColor}`}>{value}</p>
+          {sub && <p className="text-xs text-gray-400 mt-2 font-medium">{sub}</p>}
         </div>
-        <div className={`w-12 h-12 ${iconBg} rounded-xl flex items-center justify-center text-2xl`}>{icon}</div>
+        <div className={`w-14 h-14 ${iconBg} rounded-2xl flex items-center justify-center text-3xl group-hover:scale-110 transition-transform`}>{icon}</div>
       </div>
     </div>
   );
@@ -19,9 +19,22 @@ function StatCard({ icon, value, label, sub, iconBg, valueColor }) {
 
 function Footer() {
   return (
-    <footer className="bg-gray-900 text-gray-400 py-8 mt-12">
-      <div className="max-w-7xl mx-auto px-6 text-center text-sm">
-        © 2026 RescueMePets · Built with ❤️ for animals everywhere
+    <footer className="bg-gradient-to-r from-amber-600 via-orange-600 to-amber-600 text-white py-12 mt-16 border-t border-amber-500/30 shadow-2xl shadow-amber-600/20">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div>
+            <p className="text-lg font-black mb-1">🐾 RescueMePets</p>
+            <p className="text-amber-100 text-sm font-medium">Giving pets a second chance, one adoption at a time</p>
+          </div>
+          <div className="text-center text-sm text-amber-50">
+            © 2026 RescueMePets · Built with <span className="text-red-300 animate-pulse">❤️</span> for animals everywhere
+          </div>
+          <div className="flex gap-5 text-sm">
+            <button onClick={() => {}} className="text-amber-100 hover:text-white transition-colors bg-transparent border-0 cursor-pointer font-medium">About</button>
+            <button onClick={() => {}} className="text-amber-100 hover:text-white transition-colors bg-transparent border-0 cursor-pointer font-medium">Privacy</button>
+            <button onClick={() => {}} className="text-amber-100 hover:text-white transition-colors bg-transparent border-0 cursor-pointer font-medium">Contact</button>
+          </div>
+        </div>
       </div>
     </footer>
   );
@@ -68,33 +81,33 @@ export default function Dashboard({ onOpenQuiz }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-amber-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {/* Welcome Banner */}
-        <div className="relative bg-gradient-to-r from-amber-500 to-amber-600 rounded-3xl p-8 mb-8 overflow-hidden">
-          <div className="absolute inset-0 opacity-10 pointer-events-none">
-            <span className="absolute top-4 right-8 text-8xl">🐾</span>
-            <span className="absolute bottom-2 right-32 text-6xl">🐕</span>
+        <div className="relative bg-gradient-to-br from-amber-500 via-amber-400 to-orange-500 rounded-3xl p-8 mb-8 overflow-hidden shadow-2xl shadow-amber-200/50">
+          <div className="absolute inset-0 opacity-15 pointer-events-none">
+            <span className="absolute top-4 right-8 text-8xl animate-bounce">🐾</span>
+            <span className="absolute bottom-2 right-32 text-6xl animate-pulse">🐕</span>
             <span className="absolute top-6 right-52 text-5xl">🐈</span>
           </div>
           <div className="relative z-10">
-            <p className="text-amber-100 text-sm font-medium mb-1">{greeting},</p>
-            <h1 className="text-3xl font-extrabold text-white mb-2">Welcome back, {username}! 👋</h1>
-            <p className="text-amber-100 text-base mb-6">
-              {stats.available} animals are waiting for their forever home today.
+            <p className="text-amber-100 text-sm font-semibold mb-1 tracking-wide uppercase">{greeting},</p>
+            <h1 className="text-4xl sm:text-5xl font-black text-white mb-3">Welcome back, {username}! 👋</h1>
+            <p className="text-amber-50 text-base mb-6 font-medium">
+              🎉 {stats.available} adorable friends are waiting for their forever home today!
             </p>
             <div className="flex flex-wrap gap-3">
               <button onClick={() => navigate('/animals')}
-                className="bg-white text-amber-700 font-bold px-5 py-2.5 rounded-xl hover:shadow-lg transition-all text-sm border-0 cursor-pointer">
+                className="bg-white text-amber-700 font-bold px-6 py-3 rounded-xl hover:shadow-xl hover:-translate-y-1 transition-all text-sm border-0 cursor-pointer hover:scale-105 duration-300">
                 🐾 Browse Animals
               </button>
               <button onClick={() => navigate('/adoption')}
-                className="bg-white/20 text-white font-bold px-5 py-2.5 rounded-xl hover:bg-white/30 transition-all text-sm border border-white/30 cursor-pointer">
+                className="bg-white/25 backdrop-blur-md text-white font-bold px-6 py-3 rounded-xl hover:bg-white/40 transition-all text-sm border border-white/40 cursor-pointer hover:scale-105 duration-300">
                 📋 Apply to Adopt
               </button>
               <button onClick={onOpenQuiz}
-                className="bg-white/20 text-white font-bold px-5 py-2.5 rounded-xl hover:bg-white/30 transition-all text-sm border border-white/30 cursor-pointer">
+                className="bg-white/25 backdrop-blur-md text-white font-bold px-6 py-3 rounded-xl hover:bg-white/40 transition-all text-sm border border-white/40 cursor-pointer hover:scale-105 duration-300">
                 ✨ Find My Match
               </button>
             </div>
@@ -102,24 +115,27 @@ export default function Dashboard({ onOpenQuiz }) {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <StatCard icon="🐾" value={stats.total_animals} label="Total Animals"   sub="In our network"          iconBg="bg-amber-50" valueColor="text-amber-600" />
-          <StatCard icon="✅" value={stats.available}     label="Available Now"   sub="Ready to adopt"          iconBg="bg-amber-50" valueColor="text-amber-600" />
-          <StatCard icon="🏠" value={stats.adopted}       label="Happy Adoptions" sub={`${adoptionRate}% rate`} iconBg="bg-amber-50" valueColor="text-amber-600" />
-          <StatCard icon="🏥" value={stats.centers}       label="Rescue Centers"  sub="Partner locations"       iconBg="bg-amber-50" valueColor="text-amber-600" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+          <StatCard icon="🐾" value={stats.total_animals} label="Total Animals"   sub="In our network"          iconBg="bg-gradient-to-br from-amber-100 to-orange-100" valueColor="text-orange-600" />
+          <StatCard icon="✅" value={stats.available}     label="Available Now"   sub="Ready to adopt"          iconBg="bg-gradient-to-br from-emerald-100 to-green-100" valueColor="text-emerald-600" />
+          <StatCard icon="🏠" value={stats.adopted}       label="Happy Adoptions" sub={`${adoptionRate}% rate`} iconBg="bg-gradient-to-br from-rose-100 to-pink-100" valueColor="text-rose-600" />
+          <StatCard icon="🏥" value={stats.centers}       label="Rescue Centers"  sub="Partner locations"       iconBg="bg-gradient-to-br from-purple-100 to-indigo-100" valueColor="text-purple-600" />
         </div>
 
         {/* Adoption progress */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-8">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold text-gray-800">Overall Adoption Progress</h3>
-            <span className="text-sm font-bold text-amber-600">{adoptionRate}%</span>
+        <div className="bg-white rounded-2xl p-7 shadow-md border border-gray-100 mb-10">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-bold text-gray-800 text-lg mb-1">📊 Adoption Success Rate</h3>
+              <p className="text-xs text-gray-400">Based on total animals in our network</p>
+            </div>
+            <span className="text-3xl font-black text-amber-600">{adoptionRate}%</span>
           </div>
-          <div className="w-full bg-gray-100 rounded-full h-3">
-            <div className="bg-gradient-to-r from-amber-400 to-amber-500 h-3 rounded-full transition-all duration-1000"
+          <div className="w-full bg-gradient-to-r from-gray-100 to-gray-50 rounded-full h-4 overflow-hidden shadow-inner">
+            <div className="bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 h-4 rounded-full transition-all duration-1000 shadow-lg shadow-amber-300/50"
               style={{ width: `${adoptionRate}%` }} />
           </div>
-          <p className="text-xs text-gray-400 mt-2">{stats.adopted} adopted out of {stats.total_animals} total animals</p>
+          <p className="text-xs text-gray-400 mt-3">🎉 {stats.adopted} adopted out of {stats.total_animals} total animals</p>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
