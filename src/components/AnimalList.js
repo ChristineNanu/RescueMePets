@@ -118,7 +118,7 @@ function AnimalModal({ animal, onClose, onAdopt }) {
   );
 }
 
-function AnimalList() {
+function AnimalList({ onOpenQuiz }) {
   const [animals, setAnimals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -174,9 +174,13 @@ function AnimalList() {
           <span>🐕</span><span>🐈</span><span>🐇</span><span>🦜</span>
         </div>
         <h1 className="text-4xl font-extrabold text-white mb-2 relative z-10">Find Your Perfect Companion</h1>
-        <p className="text-amber-100 text-lg relative z-10">
+        <p className="text-amber-100 text-lg relative z-10 mb-4">
           {animals.length} amazing animals waiting for their forever homes
         </p>
+        <button onClick={onOpenQuiz}
+          className="relative z-10 bg-white text-amber-600 font-bold px-6 py-2.5 rounded-full text-sm hover:shadow-lg hover:scale-105 transition-all border-0 cursor-pointer">
+          ✨ Not sure? Take the quiz!
+        </button>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

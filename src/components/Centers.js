@@ -146,8 +146,77 @@ function Centers() {
           </div>
         </div>
 
+        {/* Center Profile Info */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+
+            {/* About + contact */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+              <h3 className="font-extrabold text-gray-800 text-lg mb-3">About this Center</h3>
+              {selectedCenter.description && (
+                <p className="text-gray-500 text-sm leading-relaxed mb-4">{selectedCenter.description}</p>
+              )}
+              <div className="flex flex-col gap-2.5">
+                {selectedCenter.opening_hours && (
+                  <div className="flex items-start gap-3">
+                    <span className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center text-base flex-shrink-0">⏰</span>
+                    <div>
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">Opening Hours</p>
+                      <p className="text-sm text-gray-700 font-medium">{selectedCenter.opening_hours}</p>
+                    </div>
+                  </div>
+                )}
+                {selectedCenter.phone && (
+                  <div className="flex items-center gap-3">
+                    <span className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center text-base flex-shrink-0">📞</span>
+                    <div>
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">Phone</p>
+                      <a href={`tel:${selectedCenter.phone}`} className="text-sm text-amber-600 font-semibold no-underline hover:underline">{selectedCenter.phone}</a>
+                    </div>
+                  </div>
+                )}
+                {selectedCenter.contact && (
+                  <div className="flex items-center gap-3">
+                    <span className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center text-base flex-shrink-0">📧</span>
+                    <div>
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">Email</p>
+                      <a href={`mailto:${selectedCenter.contact}`} className="text-sm text-amber-600 font-semibold no-underline hover:underline">{selectedCenter.contact}</a>
+                    </div>
+                  </div>
+                )}
+                {selectedCenter.website && (
+                  <div className="flex items-center gap-3">
+                    <span className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center text-base flex-shrink-0">🌐</span>
+                    <div>
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">Website</p>
+                      <a href={selectedCenter.website} target="_blank" rel="noreferrer" className="text-sm text-amber-600 font-semibold no-underline hover:underline">{selectedCenter.website.replace('https://', '')}</a>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Map */}
+            <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
+              <div className="px-5 pt-5 pb-3">
+                <h3 className="font-extrabold text-gray-800 text-lg mb-1">Find Us</h3>
+                <p className="text-gray-400 text-sm">📍 {selectedCenter.location}</p>
+              </div>
+              <iframe
+                title="map"
+                width="100%"
+                height="220"
+                style={{ border: 0 }}
+                loading="lazy"
+                allowFullScreen
+                src={`https://maps.google.com/maps?q=${encodeURIComponent(selectedCenter.map_query || selectedCenter.location)}&output=embed`}
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Animals section */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-2xl font-extrabold text-gray-800">Animals at this center</h2>
@@ -306,6 +375,14 @@ function Centers() {
                       </div>
                       <span className="text-gray-600 text-sm">{center.contact}</span>
                     </div>
+                    {center.opening_hours && (
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-7 h-7 ${accent.light} ${accent.text} rounded-lg flex items-center justify-center text-sm flex-shrink-0`}>
+                          ⏰
+                        </div>
+                        <span className="text-gray-500 text-xs">{center.opening_hours.split('|')[0].trim()}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Mini stat bar */}

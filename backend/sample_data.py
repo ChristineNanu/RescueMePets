@@ -5,10 +5,38 @@ def create_sample_data(db: Session):
     if db.query(models.Center).count() > 0:
         return
 
-    center1 = models.Center(name="Happy Tails Shelter", location="New York, NY", contact="contact@happytails.com")
-    center2 = models.Center(name="Paws Rescue", location="Los Angeles, CA", contact="info@pawsrescue.com")
-    center3 = models.Center(name="Second Chance Animal Shelter", location="Chicago, IL", contact="hello@secondchance.com")
-    center4 = models.Center(name="Forever Home Rescue", location="Austin, TX", contact="adopt@foreverhome.com")
+    center1 = models.Center(
+        name="Happy Tails Shelter", location="New York, NY",
+        contact="contact@happytails.com", phone="+1 (212) 555-0101",
+        website="https://happytails.example.com",
+        opening_hours="Mon–Fri: 9am–6pm | Sat–Sun: 10am–4pm",
+        map_query="Happy+Tails+Shelter+New+York+NY",
+        description="Happy Tails Shelter has been rescuing animals in New York City since 2005. We are a no-kill shelter dedicated to finding loving homes for dogs, cats, and small animals. Our team of 30+ volunteers works tirelessly to rehabilitate and rehome animals in need."
+    )
+    center2 = models.Center(
+        name="Paws Rescue", location="Los Angeles, CA",
+        contact="info@pawsrescue.com", phone="+1 (310) 555-0202",
+        website="https://pawsrescue.example.com",
+        opening_hours="Mon–Sun: 10am–5pm",
+        map_query="Paws+Rescue+Los+Angeles+CA",
+        description="Paws Rescue is LA's premier animal rescue organization. Founded in 2010, we specialize in rescuing animals from high-kill shelters and providing them with medical care, socialization, and forever homes. We've successfully rehomed over 5,000 animals."
+    )
+    center3 = models.Center(
+        name="Second Chance Animal Shelter", location="Chicago, IL",
+        contact="hello@secondchance.com", phone="+1 (312) 555-0303",
+        website="https://secondchance.example.com",
+        opening_hours="Tue–Fri: 11am–7pm | Sat–Sun: 10am–5pm | Mon: Closed",
+        map_query="Second+Chance+Animal+Shelter+Chicago+IL",
+        description="Second Chance believes every animal deserves exactly that — a second chance. Based in Chicago, we rescue animals from difficult situations and provide comprehensive care including veterinary treatment, behavioral training, and loving foster homes before adoption."
+    )
+    center4 = models.Center(
+        name="Forever Home Rescue", location="Austin, TX",
+        contact="adopt@foreverhome.com", phone="+1 (512) 555-0404",
+        website="https://foreverhome.example.com",
+        opening_hours="Mon–Sat: 9am–7pm | Sun: 11am–4pm",
+        map_query="Forever+Home+Rescue+Austin+TX",
+        description="Forever Home Rescue is Austin's most trusted animal rescue. We operate a network of foster homes across the city, ensuring every animal receives personalized care in a home environment. Our adoption counselors work closely with families to find the perfect match."
+    )
     db.add_all([center1, center2, center3, center4])
     db.commit()
 
@@ -119,6 +147,5 @@ def create_sample_data(db: Session):
             description="Mango is a friendly cockatiel who loves whistling tunes and sitting on shoulders. He's hand-tamed and great for first-time bird owners.",
             image="https://images.unsplash.com/photo-1544923246-77307dd654cb?w=600&q=80", center_id=center4.id),
     ]
-
     db.add_all(animals)
     db.commit()

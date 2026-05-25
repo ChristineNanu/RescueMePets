@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../constants';
 
 const NAV_LINKS = [
   { to: '/animals',  icon: '🐾', label: 'Animals' },
@@ -11,9 +12,33 @@ function Navbar({ isLoggedIn, onLogout }) {
   const location = useLocation();
   const navigate  = useNavigate();
   const username  = localStorage.getItem('username');
+  const userId    = localStorage.getItem('user_id');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [unread, setUnread] = useState(0);
 
-  const handleLogout = () => { onLogout(); navigate('/'); };
+  // Poll for unread notifications every 30s
+  useEffect(() => {
+    if (!userId) return;
+    const fetch_count = () => {
+      fetch(`${API_BASE_URL}/notifications/unread-count?user_id=${userId}`)
+        .then(r => r.json())
+        .then(d => setUnread(d.count || 0))
+        .catch(() => {});
+    };
+    fetch_count();
+    const interval = setInterval(fetch_count, 30000);
+    return () => clearInterval(interval);
+  }, [userId]);
+
+  // Mark read when visiting profile
+  useEffect(() => {
+    if (location.pathname === '/my-profile' && userId && unread > 0) {
+      fetch(`${API_BASE_URL}/notifications/mark-read?user_id=${userId}`, { method: 'POST' })
+        .then(() => setUnread(0)).catch(() => {});
+    }
+  }, [location.pathname, userId, unread]);
+
+  const handleLogout = () => { onLogout(); navigate('/'); }; // eslint-disable-line
 
   const activeCls = 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md shadow-amber-200';
   const idleCls   = 'text-gray-500 hover:text-amber-600 hover:bg-amber-50';
@@ -34,7 +59,6 @@ function Navbar({ isLoggedIn, onLogout }) {
           {/* Desktop Nav */}
           {isLoggedIn && (
             <div className="hidden md:flex items-center gap-1">
-              {/* Home icon */}
               <Link to="/dashboard" title="Home"
                 className={`w-9 h-9 flex items-center justify-center rounded-full transition-all duration-200 no-underline mr-1
                   ${location.pathname === '/dashboard' ? activeCls : idleCls}`}>
@@ -56,10 +80,15 @@ function Navbar({ isLoggedIn, onLogout }) {
           <div className="flex items-center gap-3">
             {isLoggedIn ? (
               <>
-                {/* Avatar → Profile */}
+                {/* Avatar → Profile with notification badge */}
                 <div onClick={() => navigate('/my-profile')} title={username}
-                  className="hidden md:flex w-9 h-9 rounded-full bg-gradient-to-br from-amber-400 to-amber-500 items-center justify-center text-white text-sm font-bold cursor-pointer hover:shadow-md hover:scale-105 transition-all">
+                  className="hidden md:flex relative w-9 h-9 rounded-full bg-gradient-to-br from-amber-400 to-amber-500 items-center justify-center text-white text-sm font-bold cursor-pointer hover:shadow-md hover:scale-105 transition-all">
                   {username?.[0]?.toUpperCase() || 'U'}
+                  {unread > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-black border-2 border-white">
+                      {unread > 9 ? '9+' : unread}
+                    </span>
+                  )}
                 </div>
                 {/* Mobile hamburger */}
                 <button onClick={() => setMenuOpen(!menuOpen)}
@@ -99,11 +128,11 @@ function Navbar({ isLoggedIn, onLogout }) {
             </Link>
           ))}
           <Link to="/my-profile" onClick={() => setMenuOpen(false)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold no-underline transition-all
+            className={`flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-semibold no-underline transition-all
               ${location.pathname === '/my-profile' ? 'bg-amber-500 text-white' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-600'}`}>
-            👤 Profile
+            <span>👤 Profile</span>
+            {unread > 0 && <span className="bg-red-500 text-white text-xs font-black px-1.5 py-0.5 rounded-full">{unread}</span>}
           </Link>
-
         </div>
       )}
     </nav>

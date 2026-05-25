@@ -8,6 +8,7 @@ import AdoptionForm from './components/AdoptionForm';
 import Centers from './components/Centers';
 import MyApplications from './components/MyApplications';
 import Chatbot from './components/Chatbot';
+import Quiz from './components/Quiz';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
 import './App.css';
@@ -17,6 +18,7 @@ const HIDDEN_NAV = ['/', '/login', '/register'];
 function AppContent({ isLoggedIn, handleLogin, handleLogout }) {
   const location = useLocation();
   const showNav = isLoggedIn && !HIDDEN_NAV.includes(location.pathname);
+  const [showQuiz, setShowQuiz] = useState(false);
 
   return (
     <div className="App">
@@ -28,8 +30,8 @@ function AppContent({ isLoggedIn, handleLogin, handleLogout }) {
         <Route path="/register" element={isLoggedIn ? <Navigate to="/dashboard" replace /> : <Register />} />
 
         {/* Protected */}
-        <Route path="/dashboard" element={isLoggedIn ? <Dashboard /> : <Navigate to="/" replace />} />
-        <Route path="/animals"   element={isLoggedIn ? <AnimalList /> : <Navigate to="/" replace />} />
+        <Route path="/dashboard" element={isLoggedIn ? <Dashboard onOpenQuiz={() => setShowQuiz(true)} /> : <Navigate to="/" replace />} />
+        <Route path="/animals"   element={isLoggedIn ? <AnimalList onOpenQuiz={() => setShowQuiz(true)} /> : <Navigate to="/" replace />} />
         <Route path="/centers"   element={isLoggedIn ? <Centers /> : <Navigate to="/" replace />} />
         <Route path="/adoption"  element={isLoggedIn ? <AdoptionForm /> : <Navigate to="/" replace />} />
         <Route path="/my-profile" element={isLoggedIn ? <MyApplications /> : <Navigate to="/" replace />} />
@@ -38,6 +40,7 @@ function AppContent({ isLoggedIn, handleLogin, handleLogout }) {
         <Route path="*" element={<Navigate to={isLoggedIn ? '/dashboard' : '/'} replace />} />
       </Routes>
       {isLoggedIn && <Chatbot />}
+      {isLoggedIn && showQuiz && <Quiz onClose={() => setShowQuiz(false)} />}
     </div>
   );
 }

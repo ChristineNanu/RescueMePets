@@ -64,3 +64,12 @@ class AdoptionOut(BaseModel):
 class FavoriteRequest(BaseModel):
     user_id: int
     animal_id: int
+
+class QuizAnswers(BaseModel):
+    activity: str        # active, moderate, relaxed
+    home: str            # house, apartment, farm
+    has_kids: bool
+    has_pets: bool
+    experience: str      # first, some, experienced
+    time_home: str       # always, sometimes, rarely
+    species_pref: str    # any, Dog, Cat, Rabbit, Bird

@@ -120,6 +120,11 @@ def get_centers(db: Session = Depends(get_db)):
         result.append({
             "id": c.id, "name": c.name,
             "location": c.location, "contact": c.contact,
+            "phone": c.phone or "",
+            "website": c.website or "",
+            "description": c.description or "",
+            "opening_hours": c.opening_hours or "",
+            "map_query": c.map_query or "",
             "animal_count": animal_count
         })
     return result
@@ -138,7 +143,12 @@ def adopt(adoption: schemas.AdoptionCreate, db: Session = Depends(get_db)):
     ).first()
     if existing:
         raise HTTPException(status_code=400, detail="You already have a pending application for this animal")
-    db_adoption = models.Adoption(user_id=adoption.user_id, animal_id=adoption.animal_id, message=adoption.message)
+    db_adoption = models.Adoption(
+        user_id=adoption.user_id,
+        animal_id=adoption.animal_id,
+        message=adoption.message,
+        read=True  # own submission is always read
+    )
     db.add(db_adoption)
     animal.status = "pending"
     db.commit()
@@ -146,7 +156,9 @@ def adopt(adoption: schemas.AdoptionCreate, db: Session = Depends(get_db)):
 
 @app.get("/my-applications")
 def get_my_applications(user_id: int, db: Session = Depends(get_db)):
-    adoptions = db.query(models.Adoption).filter(models.Adoption.user_id == user_id).order_by(models.Adoption.created_at.desc()).all()
+    adoptions = db.query(models.Adoption).filter(
+        models.Adoption.user_id == user_id
+    ).order_by(models.Adoption.created_at.desc()).all()
     return [{
         "id": a.id,
         "animal_id": a.animal_id,
@@ -155,8 +167,26 @@ def get_my_applications(user_id: int, db: Session = Depends(get_db)):
         "animal_species": a.animal.species,
         "message": a.message,
         "status": a.status,
+        "read": a.read if a.read is not None else True,
         "created_at": a.created_at.isoformat()
     } for a in adoptions]
+
+@app.get("/notifications/unread-count")
+def get_unread_count(user_id: int, db: Session = Depends(get_db)):
+    count = db.query(models.Adoption).filter(
+        models.Adoption.user_id == user_id,
+        models.Adoption.read == False
+    ).count()
+    return {"count": count}
+
+@app.post("/notifications/mark-read")
+def mark_notifications_read(user_id: int, db: Session = Depends(get_db)):
+    db.query(models.Adoption).filter(
+        models.Adoption.user_id == user_id,
+        models.Adoption.read == False
+    ).update({"read": True})
+    db.commit()
+    return {"message": "Marked as read"}
 
 @app.post("/favorites")
 def toggle_favorite(req: schemas.FavoriteRequest, db: Session = Depends(get_db)):
@@ -188,3 +218,45 @@ def get_stats(db: Session = Depends(get_db)):
         "adopted": db.query(models.Animal).filter(models.Animal.status == "adopted").count(),
         "centers": db.query(models.Center).count(),
     }
+
+@app.post("/quiz/match")
+def quiz_match(answers: schemas.QuizAnswers, db: Session = Depends(get_db)):
+    """Score all available animals against quiz answers and return top matches."""
+    animals = db.query(models.Animal).filter(models.Animal.status == "available").all()
+    scored = []
+    for a in animals:
+        score = 0
+        # Activity level
+        if answers.activity == "active" and a.energy_level == "high": score += 3
+        elif answers.activity == "moderate" and a.energy_level == "medium": score += 3
+        elif answers.activity == "relaxed" and a.energy_level == "low": score += 3
+        elif answers.activity == "active" and a.energy_level == "medium": score += 1
+        elif answers.activity == "relaxed" and a.energy_level == "medium": score += 1
+        # Home type
+        if answers.home == "house" and a.energy_level in ["high", "medium"]: score += 2
+        if answers.home == "apartment" and a.energy_level == "low": score += 2
+        if answers.home == "apartment" and a.species in ["Cat", "Rabbit", "Bird"]: score += 2
+        if answers.home == "farm": score += 1
+        # Kids
+        if answers.has_kids and a.good_with_kids: score += 3
+        if not answers.has_kids: score += 1  # neutral
+        # Other pets
+        if answers.has_pets and a.good_with_pets: score += 3
+        if not answers.has_pets: score += 1
+        # Experience
+        if answers.experience == "first" and a.energy_level == "low": score += 2
+        if answers.experience == "first" and a.species in ["Cat", "Rabbit", "Bird"]: score += 1
+        if answers.experience == "experienced" and a.energy_level == "high": score += 2
+        # Time at home
+        if answers.time_home == "always" and a.energy_level == "high": score += 2
+        if answers.time_home == "sometimes" and a.energy_level == "medium": score += 2
+        if answers.time_home == "rarely" and a.energy_level == "low": score += 2
+        if answers.time_home == "rarely" and a.species == "Cat": score += 2
+        # Species preference
+        if answers.species_pref != "any" and a.species == answers.species_pref: score += 4
+
+        scored.append((score, a))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+    top = scored[:6]
+    return [animal_to_dict(a) for _, a in top]

@@ -27,7 +27,7 @@ function Footer() {
   );
 }
 
-export default function Dashboard() {
+export default function Dashboard({ onOpenQuiz }) {
   const [stats, setStats]           = useState({ total_animals: 0, available: 0, adopted: 0, centers: 0 });
   const [recentAnimals, setRecentAnimals] = useState([]);
   const [applications, setApplications]   = useState([]);
@@ -92,6 +92,10 @@ export default function Dashboard() {
               <button onClick={() => navigate('/adoption')}
                 className="bg-white/20 text-white font-bold px-5 py-2.5 rounded-xl hover:bg-white/30 transition-all text-sm border border-white/30 cursor-pointer">
                 📋 Apply to Adopt
+              </button>
+              <button onClick={onOpenQuiz}
+                className="bg-white/20 text-white font-bold px-5 py-2.5 rounded-xl hover:bg-white/30 transition-all text-sm border border-white/30 cursor-pointer">
+                ✨ Find My Match
               </button>
             </div>
           </div>

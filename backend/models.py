@@ -20,17 +20,16 @@ class Animal(Base):
     age = Column(Integer)
     description = Column(Text)
     image = Column(String)
-    status = Column(String, default="available")  # available, pending, adopted
-    tags = Column(String, default="")  # comma-separated
+    status = Column(String, default="available")
+    tags = Column(String, default="")
     center_id = Column(Integer, ForeignKey("centers.id"))
     center = relationship("Center")
-    # Health & care info
     vaccinated = Column(Boolean, default=False)
     neutered = Column(Boolean, default=False)
     microchipped = Column(Boolean, default=False)
     good_with_kids = Column(Boolean, default=False)
     good_with_pets = Column(Boolean, default=False)
-    energy_level = Column(String, default="medium")  # low, medium, high
+    energy_level = Column(String, default="medium")
 
 class Center(Base):
     __tablename__ = "centers"
@@ -38,6 +37,11 @@ class Center(Base):
     name = Column(String, index=True)
     location = Column(String)
     contact = Column(String)
+    phone = Column(String, default="")
+    website = Column(String, default="")
+    description = Column(Text, default="")
+    opening_hours = Column(String, default="")
+    map_query = Column(String, default="")  # used for Google Maps embed
 
 class Adoption(Base):
     __tablename__ = "adoptions"
@@ -45,8 +49,9 @@ class Adoption(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     animal_id = Column(Integer, ForeignKey("animals.id"))
     message = Column(Text)
-    status = Column(String, default="pending")  # pending, approved, rejected
+    status = Column(String, default="pending")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    read = Column(Boolean, default=True)   # False = unread notification
     user = relationship("User")
     animal = relationship("Animal")
 
