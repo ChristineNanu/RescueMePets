@@ -40,9 +40,9 @@ function MyApplications() {
       fetch(`${API_BASE_URL}/my-sponsorships?user_id=${userId}`).then(r => r.json()),
       fetch(`${API_BASE_URL}/profile?user_id=${userId}`).then(r => r.json()),
     ]).then(([apps, favs, sponsors, prof]) => {
-      setApplications(apps);
-      setFavorites(favs);
-      setSponsorships(sponsors);
+      setApplications(Array.isArray(apps) ? apps : []);
+      setFavorites(Array.isArray(favs) ? favs : []);
+      setSponsorships(Array.isArray(sponsors) ? sponsors : []);
       setProfile(prof);
       setEditForm({ username: prof.username, email: prof.email, avatar: prof.avatar });
     }).catch(console.error)
