@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import database
@@ -6,7 +6,6 @@ Base = database.Base
 
 class User(Base):
     __tablename__ = "users"
-
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     email = Column(String, unique=True, index=True)
@@ -14,7 +13,6 @@ class User(Base):
 
 class Animal(Base):
     __tablename__ = "animals"
-
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     species = Column(String)
@@ -22,13 +20,13 @@ class Animal(Base):
     age = Column(Integer)
     description = Column(Text)
     image = Column(String)
+    status = Column(String, default="available")  # available, pending, adopted
+    tags = Column(String, default="")  # comma-separated: friendly,playful,calm
     center_id = Column(Integer, ForeignKey("centers.id"))
-
     center = relationship("Center")
 
 class Center(Base):
     __tablename__ = "centers"
-
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     location = Column(String)
@@ -36,12 +34,18 @@ class Center(Base):
 
 class Adoption(Base):
     __tablename__ = "adoptions"
-
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     animal_id = Column(Integer, ForeignKey("animals.id"))
     message = Column(Text)
+    status = Column(String, default="pending")  # pending, approved, rejected
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-
     user = relationship("User")
+    animal = relationship("Animal")
+
+class Favorite(Base):
+    __tablename__ = "favorites"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    animal_id = Column(Integer, ForeignKey("animals.id"))
     animal = relationship("Animal")

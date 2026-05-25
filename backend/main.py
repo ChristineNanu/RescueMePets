@@ -4,11 +4,9 @@ from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
 import models, schemas, sample_data
 from database import SessionLocal, engine, get_db
-import hashlib
-import traceback
+import hashlib, traceback
 
 models.Base.metadata.create_all(bind=engine)
-
 db = SessionLocal()
 sample_data.create_sample_data(db)
 db.close()
@@ -34,13 +32,34 @@ def get_password_hash(password: str) -> str:
 def verify_password(plain: str, hashed: str) -> bool:
     return get_password_hash(plain) == hashed
 
+def animal_to_dict(animal, favorites=None):
+    return {
+        "id": animal.id,
+        "name": animal.name,
+        "species": animal.species,
+        "breed": animal.breed,
+        "age": animal.age,
+        "description": animal.description,
+        "image": animal.image,
+        "status": animal.status,
+        "tags": animal.tags.split(",") if animal.tags else [],
+        "center_id": animal.center_id,
+        "center": {
+            "id": animal.center.id,
+            "name": animal.center.name,
+            "location": animal.center.location,
+            "contact": animal.center.contact
+        } if animal.center else None,
+        "is_favorited": animal.id in (favorites or [])
+    }
+
 @app.post("/register")
 def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    db_user = db.query(models.User).filter(models.User.username == user.username).first()
-    if db_user:
+    if db.query(models.User).filter(models.User.username == user.username).first():
         raise HTTPException(status_code=400, detail="Username already registered")
-    hashed_password = get_password_hash(user.password)
-    db_user = models.User(username=user.username, email=user.email, password=hashed_password)
+    if db.query(models.User).filter(models.User.email == user.email).first():
+        raise HTTPException(status_code=400, detail="Email already registered")
+    db_user = models.User(username=user.username, email=user.email, password=get_password_hash(user.password))
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
@@ -51,41 +70,115 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(models.User).filter(models.User.username == user.username).first()
     if not db_user or not verify_password(user.password, db_user.password):
         raise HTTPException(status_code=400, detail="Invalid credentials")
-    return {"message": "Login successful", "user_id": db_user.id}
+    return {"message": "Login successful", "user_id": db_user.id, "username": db_user.username}
 
 @app.get("/animals")
-def get_animals(db: Session = Depends(get_db)):
-    animals = db.query(models.Animal).all()
-    result = []
-    for animal in animals:
-        animal_dict = {
-            "id": animal.id,
-            "name": animal.name,
-            "species": animal.species,
-            "breed": animal.breed,
-            "age": animal.age,
-            "description": animal.description,
-            "image": animal.image,
-            "center_id": animal.center_id,
-            "center": {
-                "id": animal.center.id,
-                "name": animal.center.name,
-                "location": animal.center.location,
-                "contact": animal.center.contact
-            } if animal.center else None
-        }
-        result.append(animal_dict)
-    return result
+def get_animals(species: str = None, search: str = None, status: str = None, user_id: int = None, db: Session = Depends(get_db)):
+    query = db.query(models.Animal)
+    if species and species != "all":
+        query = query.filter(models.Animal.species == species)
+    if status and status != "all":
+        query = query.filter(models.Animal.status == status)
+    if search:
+        query = query.filter(
+            models.Animal.name.ilike(f"%{search}%") |
+            models.Animal.breed.ilike(f"%{search}%")
+        )
+    animals = query.all()
+    favorites = []
+    if user_id:
+        favs = db.query(models.Favorite).filter(models.Favorite.user_id == user_id).all()
+        favorites = [f.animal_id for f in favs]
+    return [animal_to_dict(a, favorites) for a in animals]
 
-@app.get("/centers", response_model=list[schemas.Center])
+@app.get("/animals/{animal_id}")
+def get_animal(animal_id: int, user_id: int = None, db: Session = Depends(get_db)):
+    animal = db.query(models.Animal).filter(models.Animal.id == animal_id).first()
+    if not animal:
+        raise HTTPException(status_code=404, detail="Animal not found")
+    favorites = []
+    if user_id:
+        favs = db.query(models.Favorite).filter(models.Favorite.user_id == user_id).all()
+        favorites = [f.animal_id for f in favs]
+    return animal_to_dict(animal, favorites)
+
+@app.get("/centers")
 def get_centers(db: Session = Depends(get_db)):
     centers = db.query(models.Center).all()
-    return centers
+    result = []
+    for c in centers:
+        animal_count = db.query(models.Animal).filter(
+            models.Animal.center_id == c.id,
+            models.Animal.status == "available"
+        ).count()
+        result.append({
+            "id": c.id, "name": c.name,
+            "location": c.location, "contact": c.contact,
+            "animal_count": animal_count
+        })
+    return result
 
 @app.post("/adopt")
 def adopt(adoption: schemas.AdoptionCreate, db: Session = Depends(get_db)):
-    db_adoption = models.Adoption(**adoption.dict())
+    animal = db.query(models.Animal).filter(models.Animal.id == adoption.animal_id).first()
+    if not animal:
+        raise HTTPException(status_code=404, detail="Animal not found")
+    if animal.status == "adopted":
+        raise HTTPException(status_code=400, detail="Animal already adopted")
+    existing = db.query(models.Adoption).filter(
+        models.Adoption.user_id == adoption.user_id,
+        models.Adoption.animal_id == adoption.animal_id,
+        models.Adoption.status == "pending"
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="You already have a pending application for this animal")
+    db_adoption = models.Adoption(user_id=adoption.user_id, animal_id=adoption.animal_id, message=adoption.message)
     db.add(db_adoption)
+    animal.status = "pending"
     db.commit()
-    db.refresh(db_adoption)
-    return {"message": "Adoption request submitted"}
+    return {"message": "Adoption request submitted successfully"}
+
+@app.get("/my-applications")
+def get_my_applications(user_id: int, db: Session = Depends(get_db)):
+    adoptions = db.query(models.Adoption).filter(models.Adoption.user_id == user_id).order_by(models.Adoption.created_at.desc()).all()
+    return [{
+        "id": a.id,
+        "animal_id": a.animal_id,
+        "animal_name": a.animal.name,
+        "animal_image": a.animal.image,
+        "animal_species": a.animal.species,
+        "message": a.message,
+        "status": a.status,
+        "created_at": a.created_at.isoformat()
+    } for a in adoptions]
+
+@app.post("/favorites")
+def toggle_favorite(req: schemas.FavoriteRequest, db: Session = Depends(get_db)):
+    existing = db.query(models.Favorite).filter(
+        models.Favorite.user_id == req.user_id,
+        models.Favorite.animal_id == req.animal_id
+    ).first()
+    if existing:
+        db.delete(existing)
+        db.commit()
+        return {"favorited": False}
+    fav = models.Favorite(user_id=req.user_id, animal_id=req.animal_id)
+    db.add(fav)
+    db.commit()
+    return {"favorited": True}
+
+@app.get("/favorites")
+def get_favorites(user_id: int, db: Session = Depends(get_db)):
+    favs = db.query(models.Favorite).filter(models.Favorite.user_id == user_id).all()
+    favorites = [f.animal_id for f in favs]
+    animals = db.query(models.Animal).filter(models.Animal.id.in_(favorites)).all()
+    return [animal_to_dict(a, favorites) for a in animals]
+
+@app.get("/stats")
+def get_stats(db: Session = Depends(get_db)):
+    return {
+        "total_animals": db.query(models.Animal).count(),
+        "available": db.query(models.Animal).filter(models.Animal.status == "available").count(),
+        "adopted": db.query(models.Animal).filter(models.Animal.status == "adopted").count(),
+        "centers": db.query(models.Center).count(),
+    }
