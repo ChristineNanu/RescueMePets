@@ -171,7 +171,7 @@ A modern, full-stack pet adoption web application built with React, FastAPI, and
 
 ## Project Structure
 
-```
+`
 RescueMePets/
 ├── backend/
 │   ├── main.py          # FastAPI application with all endpoints
