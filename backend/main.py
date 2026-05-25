@@ -1,20 +1,20 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
 import models, schemas, sample_data
 from database import SessionLocal, engine, get_db
-from passlib.context import CryptContext
+import hashlib
+import traceback
 
 models.Base.metadata.create_all(bind=engine)
 
-# Create sample data
 db = SessionLocal()
 sample_data.create_sample_data(db)
 db.close()
 
 app = FastAPI()
 
-# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -23,13 +23,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    traceback.print_exc()
+    return JSONResponse(status_code=500, content={"detail": str(exc)})
 
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+def get_password_hash(password: str) -> str:
+    return hashlib.sha256(password.encode()).hexdigest()
 
-def get_password_hash(password):
-    return pwd_context.hash(password)
+def verify_password(plain: str, hashed: str) -> bool:
+    return get_password_hash(plain) == hashed
 
 @app.post("/register")
 def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
