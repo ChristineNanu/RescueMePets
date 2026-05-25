@@ -32,20 +32,28 @@ export const Register = () => {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Left - Photo */}
-      <div style={{ flex: 1, position: 'relative', minWidth: '45%', display: 'none' }} className="auth-photo-panel">
-        <img src="https://images.unsplash.com/photo-1552053831-71594a27632d?w=900&q=80" alt="pets"
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(102,126,234,0.8), rgba(118,75,162,0.7))' }} />
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '3rem', color: 'white' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏠</div>
-          <h2 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '1rem', lineHeight: 1.2 }}>Give a pet a forever home</h2>
-          <p style={{ fontSize: '1.1rem', opacity: 0.9, lineHeight: 1.7 }}>Join our community of animal lovers and help rescue pets find the loving families they deserve.</p>
-          <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+    <div className="flex min-h-screen">
+
+      {/* Left — Photo Panel */}
+      <div className="hidden md:flex md:w-1/2 relative">
+        <img
+          src="https://images.unsplash.com/photo-1552053831-71594a27632d?w=900&q=80"
+          alt="pets"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-600/85 to-purple-800/80" />
+        <div className="relative z-10 flex flex-col justify-center px-12 text-white">
+          <div className="text-5xl mb-6">🏠</div>
+          <h2 className="text-4xl font-extrabold leading-tight mb-4">
+            Give a pet a<br />forever home
+          </h2>
+          <p className="text-violet-200 text-lg leading-relaxed">
+            Join our community of animal lovers and help rescue pets find the loving families they deserve.
+          </p>
+          <div className="mt-8 flex flex-col gap-3">
             {['Browse 21+ animals available for adoption', 'Save your favorites with one click', 'Track your adoption applications'].map((item, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1rem' }}>
-                <div style={{ width: '24px', height: '24px', background: 'rgba(255,255,255,0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', flexShrink: 0 }}>✓</div>
+              <div key={i} className="flex items-center gap-3 text-sm text-violet-100">
+                <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-xs flex-shrink-0">✓</div>
                 {item}
               </div>
             ))}
@@ -53,67 +61,111 @@ export const Register = () => {
         </div>
       </div>
 
-      {/* Right - Form */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8f9ff', padding: '2rem' }}>
-        <div style={{ width: '100%', maxWidth: '420px' }}>
-          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-            <div onClick={() => navigate('/')} style={{ fontSize: '1.8rem', fontWeight: 800, background: 'linear-gradient(135deg, #667eea, #764ba2)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', cursor: 'pointer', marginBottom: '0.5rem' }}>
+      {/* Right — Form */}
+      <div className="flex-1 flex items-center justify-center bg-slate-50 px-6 py-12">
+        <div className="w-full max-w-md">
+
+          {/* Logo */}
+          <div className="text-center mb-8">
+            <button onClick={() => navigate('/')}
+              className="text-2xl font-extrabold bg-gradient-to-r from-violet-600 to-purple-700 bg-clip-text text-transparent bg-transparent border-0 cursor-pointer mb-2 block w-full">
               🐾 RescueMePets
-            </div>
-            <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#2d3748', margin: '0 0 0.5rem' }}>Create your account</h1>
-            <p style={{ color: '#718096', margin: 0 }}>Start your adoption journey today — it's free!</p>
+            </button>
+            <h1 className="text-2xl font-extrabold text-gray-800 mb-1">Create your account</h1>
+            <p className="text-gray-400 text-sm">Start your adoption journey today — it's free!</p>
           </div>
 
-          <div style={{ background: 'white', borderRadius: '20px', padding: '2.5rem', boxShadow: '0 8px 30px rgba(0,0,0,0.08)' }}>
+          {/* Card */}
+          <div className="bg-white rounded-3xl shadow-xl shadow-gray-100 border border-gray-100 p-8">
             {isSuccess ? (
-              <div style={{ textAlign: 'center', padding: '1rem' }}>
-                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🎉</div>
-                <h3 style={{ color: '#2d3748', marginBottom: '0.5rem' }}>Account Created!</h3>
-                <p style={{ color: '#718096' }}>Redirecting you to login...</p>
+              <div className="text-center py-6">
+                <div className="text-6xl mb-4">🎉</div>
+                <h3 className="text-xl font-extrabold text-gray-800 mb-2">Account Created!</h3>
+                <p className="text-gray-400 text-sm">Redirecting you to login...</p>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
-                <div className="form-group">
-                  <label className="form-label">Username</label>
-                  <input value={username} onChange={e => setUsername(e.target.value)} type="text"
-                    placeholder="Choose a username" className="auth-input" required />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Email</label>
-                  <input value={email} onChange={e => setEmail(e.target.value)} type="email"
-                    placeholder="your@email.com" className="auth-input" required />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Password</label>
-                  <input value={pass} onChange={e => setPass(e.target.value)} type="password"
-                    placeholder="Min. 6 characters" className="auth-input" required />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Confirm Password</label>
-                  <input value={confirmPass} onChange={e => setConfirmPass(e.target.value)} type="password"
-                    placeholder="Repeat your password" className="auth-input" required />
+              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-semibold text-gray-700">Username</label>
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={e => setUsername(e.target.value)}
+                    placeholder="Choose a username"
+                    required
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-violet-500 focus:outline-none text-gray-700 text-sm bg-gray-50 focus:bg-white transition-colors"
+                  />
                 </div>
 
-                {message && <div className="error-message">{message}</div>}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-semibold text-gray-700">Email</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    required
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-violet-500 focus:outline-none text-gray-700 text-sm bg-gray-50 focus:bg-white transition-colors"
+                  />
+                </div>
 
-                <button type="submit" className="auth-button" disabled={isLoading}>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-semibold text-gray-700">Password</label>
+                  <input
+                    type="password"
+                    value={pass}
+                    onChange={e => setPass(e.target.value)}
+                    placeholder="Min. 6 characters"
+                    required
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-violet-500 focus:outline-none text-gray-700 text-sm bg-gray-50 focus:bg-white transition-colors"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-semibold text-gray-700">Confirm Password</label>
+                  <input
+                    type="password"
+                    value={confirmPass}
+                    onChange={e => setConfirmPass(e.target.value)}
+                    placeholder="Repeat your password"
+                    required
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-violet-500 focus:outline-none text-gray-700 text-sm bg-gray-50 focus:bg-white transition-colors"
+                  />
+                </div>
+
+                {message && (
+                  <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">
+                    ⚠️ {message}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className={`w-full py-3.5 rounded-xl font-bold text-base transition-all border-0 mt-1
+                    ${isLoading
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-violet-600 to-purple-700 text-white cursor-pointer hover:shadow-lg hover:shadow-violet-200 hover:-translate-y-0.5'}`}>
                   {isLoading ? '⏳ Creating account...' : '🐾 Create Account'}
                 </button>
               </form>
             )}
 
             {!isSuccess && (
-              <div style={{ textAlign: 'center', marginTop: '1.5rem', color: '#718096' }}>
+              <div className="text-center mt-6 text-sm text-gray-400">
                 Already have an account?{' '}
-                <button onClick={() => navigate('/login')} style={{ background: 'none', border: 'none', color: '#667eea', fontWeight: 700, cursor: 'pointer', fontSize: '1rem' }}>
+                <button onClick={() => navigate('/login')}
+                  className="text-violet-600 font-bold bg-transparent border-0 cursor-pointer hover:text-purple-700">
                   Sign in
                 </button>
               </div>
             )}
           </div>
 
-          <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
-            <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: '#a0aec0', cursor: 'pointer', fontSize: '0.9rem' }}>
+          <div className="text-center mt-5">
+            <button onClick={() => navigate('/')}
+              className="text-gray-400 text-sm bg-transparent border-0 cursor-pointer hover:text-gray-600 transition-colors">
               ← Back to home
             </button>
           </div>
