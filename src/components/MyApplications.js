@@ -1,21 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../constants';
 
 const STATUS_MAP = {
-  pending:  { bg: 'bg-amber-100',  text: 'text-amber-700',  icon: '⏳', label: 'Pending Review' },
+  pending:  { bg: 'bg-amber-100',   text: 'text-amber-700',   icon: '⏳', label: 'Pending Review' },
   approved: { bg: 'bg-emerald-100', text: 'text-emerald-700', icon: '✅', label: 'Approved!' },
-  rejected: { bg: 'bg-red-100',    text: 'text-red-600',    icon: '❌', label: 'Not Approved' },
+  rejected: { bg: 'bg-red-100',     text: 'text-red-600',     icon: '❌', label: 'Not Approved' },
 };
 
 function MyApplications() {
   const [applications, setApplications] = useState([]);
-  const [favorites, setFavorites] = useState([]);
-  const [tab, setTab] = useState('applications');
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
-  const userId = localStorage.getItem('user_id');
-  const username = localStorage.getItem('username');
+  const [favorites, setFavorites]       = useState([]);
+  const [tab, setTab]                   = useState('applications');
+  const [loading, setLoading]           = useState(true);
+  const navigate  = useNavigate();
+  const userId    = localStorage.getItem('user_id');
+  const username  = localStorage.getItem('username');
 
   const handleLogout = () => {
     localStorage.removeItem('user_id');
@@ -24,7 +24,7 @@ function MyApplications() {
     window.location.reload();
   };
 
-  useEffect(() => {
+  const loadData = useCallback(() => {
     if (!userId) { navigate('/login'); return; }
     Promise.all([
       fetch(`${API_BASE_URL}/my-applications?user_id=${userId}`).then(r => r.json()),
@@ -36,8 +36,17 @@ function MyApplications() {
       .finally(() => setLoading(false));
   }, [userId, navigate]);
 
+  useEffect(() => { loadData(); }, [loadData]);
+
+  // Mark all as read when this page is visited
+  useEffect(() => {
+    if (!userId) return;
+    fetch(`${API_BASE_URL}/notifications/mark-read?user_id=${userId}`, { method: 'POST' })
+      .catch(() => {});
+  }, [userId]);
+
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-stone-50">
+    <div className="min-h-screen flex items-center justify-center bg-amber-50">
       <div className="text-center">
         <div className="text-5xl mb-4 animate-bounce">⏳</div>
         <p className="text-amber-600 font-semibold text-lg">Loading your profile...</p>
@@ -45,10 +54,12 @@ function MyApplications() {
     </div>
   );
 
-  const pending = applications.filter(a => a.status === 'pending').length;
+  const pending  = applications.filter(a => a.status === 'pending').length;
+  const unread   = applications.filter(a => a.read === false);
+  const approved = applications.filter(a => a.status === 'approved').length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-amber-50/20">
+    <div className="min-h-screen bg-gray-50">
 
       {/* Profile Header */}
       <div className="bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-12 text-center relative overflow-hidden">
@@ -68,25 +79,52 @@ function MyApplications() {
       <div className="max-w-3xl mx-auto px-4 -mt-6 mb-6 relative z-10">
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: 'Applications', value: applications.length, icon: '📋', color: 'text-amber-600' },
-            { label: 'Pending', value: pending, icon: '⏳', color: 'text-amber-600' },
-            { label: 'Saved', value: favorites.length, icon: '❤️', color: 'text-amber-600' },
+            { label: 'Applications', value: applications.length, icon: '📋' },
+            { label: 'Approved',     value: approved,            icon: '✅' },
+            { label: 'Saved',        value: favorites.length,    icon: '❤️' },
           ].map((s, i) => (
             <div key={i} className="bg-white rounded-2xl p-4 text-center shadow-md border border-gray-100">
               <div className="text-2xl mb-1">{s.icon}</div>
-              <p className={`text-2xl font-extrabold ${s.color}`}>{s.value}</p>
+              <p className="text-2xl font-extrabold text-amber-600">{s.value}</p>
               <p className="text-xs text-gray-400 font-medium">{s.label}</p>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 pb-10">
+      <div className="max-w-3xl mx-auto px-4 pb-6">
+
+        {/* Unread notification banner */}
+        {unread.length > 0 && (
+          <div className="mb-5 bg-white border-2 border-amber-300 rounded-2xl p-4 flex items-start gap-3 shadow-sm">
+            <span className="text-2xl flex-shrink-0">🔔</span>
+            <div>
+              <p className="font-bold text-gray-800 text-sm mb-1">
+                You have {unread.length} new update{unread.length > 1 ? 's' : ''} on your applications!
+              </p>
+              <div className="flex flex-col gap-1">
+                {unread.map(app => {
+                  const s = STATUS_MAP[app.status] || STATUS_MAP.pending;
+                  return (
+                    <p key={app.id} className="text-xs text-gray-500">
+                      <span className="font-semibold text-gray-700">{app.animal_name}</span>
+                      {' '}— application {' '}
+                      <span className={`font-bold ${app.status === 'approved' ? 'text-emerald-600' : 'text-red-500'}`}>
+                        {s.icon} {s.label}
+                      </span>
+                    </p>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 bg-white rounded-2xl p-1.5 shadow-sm border border-gray-100">
+        <div className="flex gap-2 mb-5 bg-white rounded-2xl p-1.5 shadow-sm border border-gray-100">
           {[
             { key: 'applications', icon: '📋', label: `Applications (${applications.length})` },
-            { key: 'favorites',    icon: '❤️', label: `Saved Animals (${favorites.length})` },
+            { key: 'favorites',    icon: '❤️', label: `Saved (${favorites.length})` },
           ].map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all border-0 cursor-pointer
@@ -100,7 +138,7 @@ function MyApplications() {
 
         {/* Applications Tab */}
         {tab === 'applications' && (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
             {applications.length === 0 ? (
               <div className="text-center py-16 bg-white rounded-2xl shadow-sm border border-gray-100">
                 <div className="text-5xl mb-3">📋</div>
@@ -113,16 +151,28 @@ function MyApplications() {
               </div>
             ) : applications.map(app => {
               const s = STATUS_MAP[app.status] || STATUS_MAP.pending;
+              const isUnread = app.read === false;
               return (
                 <div key={app.id}
-                  className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex gap-4 items-center hover:shadow-md transition-shadow">
-                  <img src={app.animal_image} alt={app.animal_name}
-                    className="w-16 h-16 rounded-xl object-cover flex-shrink-0"
-                    onError={e => e.target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=100&q=80'} />
+                  className={`bg-white rounded-2xl p-5 shadow-sm flex gap-4 items-center transition-all
+                    ${isUnread ? 'border-2 border-amber-300 shadow-amber-100' : 'border border-gray-100 hover:shadow-md'}`}>
+                  <div className="relative flex-shrink-0">
+                    <img src={app.animal_image} alt={app.animal_name}
+                      className="w-16 h-16 rounded-xl object-cover"
+                      onError={e => e.target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=100&q=80'} />
+                    {isUnread && (
+                      <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 rounded-full border-2 border-white" />
+                    )}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <h3 className="font-bold text-gray-800 text-base">{app.animal_name}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-bold text-gray-800 text-base">{app.animal_name}</h3>
+                          {isUnread && (
+                            <span className="text-xs bg-red-100 text-red-600 font-bold px-2 py-0.5 rounded-full">NEW</span>
+                          )}
+                        </div>
                         <p className="text-gray-400 text-xs">{app.animal_species}</p>
                       </div>
                       <span className={`text-xs font-bold px-3 py-1 rounded-full flex-shrink-0 ${s.bg} ${s.text}`}>

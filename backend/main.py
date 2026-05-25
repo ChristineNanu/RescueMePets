@@ -188,6 +188,24 @@ def mark_notifications_read(user_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "Marked as read"}
 
+# Temporary endpoint to simulate admin approving/rejecting — remove when admin panel is built
+@app.patch("/applications/{adoption_id}/status")
+def update_application_status(adoption_id: int, body: schemas.StatusUpdate, db: Session = Depends(get_db)):
+    adoption = db.query(models.Adoption).filter(models.Adoption.id == adoption_id).first()
+    if not adoption:
+        raise HTTPException(status_code=404, detail="Application not found")
+    old_status = adoption.status
+    adoption.status = body.status
+    # Mark as unread so user gets notified
+    if body.status in ("approved", "rejected") and old_status == "pending":
+        adoption.read = False
+        if body.status == "approved":
+            adoption.animal.status = "adopted"
+        elif body.status == "rejected":
+            adoption.animal.status = "available"
+    db.commit()
+    return {"message": f"Status updated to {body.status}"}
+
 @app.post("/favorites")
 def toggle_favorite(req: schemas.FavoriteRequest, db: Session = Depends(get_db)):
     existing = db.query(models.Favorite).filter(

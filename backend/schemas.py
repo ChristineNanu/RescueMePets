@@ -65,6 +65,9 @@ class FavoriteRequest(BaseModel):
     user_id: int
     animal_id: int
 
+class StatusUpdate(BaseModel):
+    status: str  # approved, rejected
+
 class QuizAnswers(BaseModel):
     activity: str        # active, moderate, relaxed
     home: str            # house, apartment, farm
