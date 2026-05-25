@@ -49,7 +49,7 @@ function AnimalList() {
         {animals.map(animal => (
           <div className="animal-card fade-in" key={animal.id}>
             <img
-              src={animal.image || `https://picsum.photos/400/300?random=${animal.id}`}
+              src={animal.image || 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=600&q=80'}
               alt={animal.name}
               className="animal-image"
               onError={(e) => {
