@@ -54,7 +54,6 @@ function MyApplications() {
     </div>
   );
 
-  const pending  = applications.filter(a => a.status === 'pending').length;
   const unread   = applications.filter(a => a.read === false);
   const approved = applications.filter(a => a.status === 'approved').length;
 
