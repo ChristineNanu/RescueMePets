@@ -5,7 +5,6 @@ function MpesaPayment({ adoptionId, animalName, onSuccess, onCancel }) {
   const [phone, setPhone] = useState('');
   const [amount] = useState(5); // KES 5 adoption fee (test)
   const [step, setStep] = useState('form'); // form | waiting | success | failed
-  const [paymentId, setPaymentId] = useState(null);
   const [receipt, setReceipt] = useState(null);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -70,7 +69,6 @@ function MpesaPayment({ adoptionId, animalName, onSuccess, onCancel }) {
       });
       const data = await res.json();
       if (res.ok) {
-        setPaymentId(data.payment_id);
         setStep('waiting');
         startPolling(data.payment_id);
       } else {
