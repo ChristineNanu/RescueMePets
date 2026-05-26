@@ -66,6 +66,15 @@ class FavoriteRequest(BaseModel):
     user_id: int
     animal_id: int
 
+class PaymentRequest(BaseModel):
+    user_id: int
+    adoption_id: int
+    phone: str
+    amount: int
+
+class PaymentCallback(BaseModel):
+    Body: dict
+
 class StatusUpdate(BaseModel):
     status: str  # approved, rejected
 

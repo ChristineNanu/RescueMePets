@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import models, schemas, sample_data
 from database import SessionLocal, engine, get_db
 import hashlib, traceback
+from daraja import stk_push, query_stk_status
 
 models.Base.metadata.create_all(bind=engine)
 db = SessionLocal()
@@ -153,7 +154,7 @@ def adopt(adoption: schemas.AdoptionCreate, db: Session = Depends(get_db)):
     db.add(db_adoption)
     animal.status = "pending"
     db.commit()
-    return {"message": "Adoption request submitted successfully"}
+    return {"message": "Adoption request submitted successfully", "adoption_id": db_adoption.id}
 
 @app.get("/my-applications")
 def get_my_applications(user_id: int, db: Session = Depends(get_db)):
@@ -326,6 +327,129 @@ def get_stats(db: Session = Depends(get_db)):
         "adopted": db.query(models.Animal).filter(models.Animal.status == "adopted").count(),
         "centers": db.query(models.Center).count(),
     }
+
+# ─── M-PESA PAYMENT ENDPOINTS ───────────────────────────────────────────────
+
+@app.post("/pay/stk-push")
+def initiate_stk_push(req: schemas.PaymentRequest, db: Session = Depends(get_db)):
+    adoption = db.query(models.Adoption).filter(models.Adoption.id == req.adoption_id).first()
+    if not adoption:
+        raise HTTPException(status_code=404, detail="Adoption not found")
+
+    animal = adoption.animal
+    description = f"Adoption fee for {animal.name}"
+    account_ref = f"ADOPT-{animal.name[:8].upper()}-{req.adoption_id}"
+
+    try:
+        result = stk_push(
+            phone=req.phone,
+            amount=req.amount,
+            account_ref=account_ref,
+            description=description
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"M-PESA error: {str(e)}")
+
+    if result.get("ResponseCode") != "0":
+        raise HTTPException(status_code=400, detail=result.get("errorMessage", "STK Push failed"))
+
+    payment = models.Payment(
+        user_id=req.user_id,
+        adoption_id=req.adoption_id,
+        phone=req.phone,
+        amount=req.amount,
+        checkout_request_id=result.get("CheckoutRequestID"),
+        merchant_request_id=result.get("MerchantRequestID"),
+        status="pending"
+    )
+    db.add(payment)
+    db.commit()
+    db.refresh(payment)
+
+    return {
+        "message": "STK Push sent! Check your phone and enter your M-PESA PIN.",
+        "checkout_request_id": result.get("CheckoutRequestID"),
+        "payment_id": payment.id
+    }
+
+@app.get("/pay/status/{payment_id}")
+def check_payment_status(payment_id: int, db: Session = Depends(get_db)):
+    payment = db.query(models.Payment).filter(models.Payment.id == payment_id).first()
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+
+    if payment.status == "pending" and payment.checkout_request_id:
+        try:
+            result = query_stk_status(payment.checkout_request_id)
+            result_code = result.get("ResultCode")
+            # Only update if explicitly success (0) - ignore processing states
+            if str(result_code) == "0":
+                payment.status = "completed"
+                if payment.adoption:
+                    payment.adoption.status = "approved"
+                db.commit()
+            # Code 1032 = cancelled by user, 1037 = timeout - only then mark failed
+            elif str(result_code) in ["1032", "1037", "1"]:
+                payment.status = "failed"
+                db.commit()
+            # All other codes = still processing, leave as pending
+        except Exception:
+            pass  # Keep as pending if query fails
+
+    return {
+        "payment_id": payment.id,
+        "status": payment.status,
+        "amount": payment.amount,
+        "phone": payment.phone,
+        "mpesa_receipt": payment.mpesa_receipt,
+        "created_at": payment.created_at.isoformat()
+    }
+
+@app.post("/pay/callback")
+async def mpesa_callback(request: Request, db: Session = Depends(get_db)):
+    body = await request.json()
+    try:
+        stk_callback = body["Body"]["stkCallback"]
+        checkout_request_id = stk_callback["CheckoutRequestID"]
+        result_code = stk_callback["ResultCode"]
+
+        payment = db.query(models.Payment).filter(
+            models.Payment.checkout_request_id == checkout_request_id
+        ).first()
+
+        if not payment:
+            return {"ResultCode": 0, "ResultDesc": "Accepted"}
+
+        if result_code == 0:
+            metadata = stk_callback.get("CallbackMetadata", {}).get("Item", [])
+            receipt = next((i["Value"] for i in metadata if i["Name"] == "MpesaReceiptNumber"), None)
+            payment.status = "completed"
+            payment.mpesa_receipt = receipt
+            if payment.adoption:
+                payment.adoption.status = "approved"
+        else:
+            payment.status = "failed"
+
+        db.commit()
+    except Exception:
+        traceback.print_exc()
+
+    return {"ResultCode": 0, "ResultDesc": "Accepted"}
+
+@app.get("/my-payments")
+def get_my_payments(user_id: int, db: Session = Depends(get_db)):
+    payments = db.query(models.Payment).filter(
+        models.Payment.user_id == user_id
+    ).order_by(models.Payment.created_at.desc()).all()
+    return [{
+        "id": p.id,
+        "amount": p.amount,
+        "phone": p.phone,
+        "status": p.status,
+        "mpesa_receipt": p.mpesa_receipt,
+        "animal_name": p.adoption.animal.name if p.adoption else None,
+        "created_at": p.created_at.isoformat()
+    } for p in payments]
 
 @app.post("/quiz/match")
 def quiz_match(answers: schemas.QuizAnswers, db: Session = Depends(get_db)):

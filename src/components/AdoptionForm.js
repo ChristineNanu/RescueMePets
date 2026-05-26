@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../constants';
+import MpesaPayment from './MpesaPayment';
 
 const STEPS = ['Choose Animal', 'Your Details', 'Review & Submit'];
 
@@ -15,6 +16,8 @@ function AdoptionForm() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPayment, setShowPayment] = useState(false);
+  const [adoptionId, setAdoptionId] = useState(null);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const userId = localStorage.getItem('user_id');
@@ -41,7 +44,10 @@ function AdoptionForm() {
         body: JSON.stringify({ user_id: parseInt(userId), animal_id: parseInt(animalId), message: fullMessage }),
       });
       const data = await res.json();
-      if (res.ok) setIsSubmitted(true);
+      if (res.ok) {
+        setAdoptionId(data.adoption_id);
+        setShowPayment(true);
+      }
       else setError(data.detail || 'Failed to submit');
     } catch { setError('Error submitting. Please try again.'); }
     finally { setIsLoading(false); }
@@ -75,6 +81,14 @@ function AdoptionForm() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-stone-50 to-amber-50/20">
+      {showPayment && adoptionId && (
+        <MpesaPayment
+          adoptionId={adoptionId}
+          animalName={selectedAnimal?.name}
+          onSuccess={() => { setShowPayment(false); setIsSubmitted(true); }}
+          onCancel={() => { setShowPayment(false); setIsSubmitted(true); }}
+        />
+      )}
       {/* Header */}
       <div className="bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-10 text-center">
         <h1 className="text-3xl font-extrabold text-white mb-1">Adopt a Pet 🐾</h1>
@@ -262,8 +276,17 @@ function AdoptionForm() {
                 <button disabled={isLoading} onClick={handleSubmit}
                   className={`flex-[2] py-3 rounded-xl font-bold text-sm transition-all border-0
                     ${isLoading ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-amber-500 to-amber-600 text-white cursor-pointer hover:shadow-lg'}`}>
-                  {isLoading ? '⏳ Submitting...' : '🐾 Submit Application'}
+                  {isLoading ? '⏳ Submitting...' : '🐾 Submit & Pay via M-PESA'}
                 </button>
+              </div>
+
+              {/* M-PESA info banner */}
+              <div className="mt-4 flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl p-3">
+                <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center text-white text-lg flex-shrink-0">💚</div>
+                <div>
+                  <p className="text-green-800 font-bold text-sm">Pay KES 500 adoption fee via M-PESA</p>
+                  <p className="text-green-600 text-xs">You'll receive an STK Push prompt on your phone after submitting</p>
+                </div>
               </div>
             </div>
           )}
