@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import models, schemas, sample_data
 from database import SessionLocal, engine, get_db
 import hashlib, traceback
-from daraja import stk_push, query_stk_status
+from daraja import stk_push, query_stk_status, b2c_payout
 
 models.Base.metadata.create_all(bind=engine)
 db = SessionLocal()
@@ -450,6 +450,54 @@ def get_my_payments(user_id: int, db: Session = Depends(get_db)):
         "animal_name": p.adoption.animal.name if p.adoption else None,
         "created_at": p.created_at.isoformat()
     } for p in payments]
+
+# ─── B2C PAYOUT ENDPOINT ─────────────────────────────────────────────────────
+
+@app.post("/pay/b2c")
+def initiate_b2c(req: schemas.B2CRequest, db: Session = Depends(get_db)):
+    """B2C - Send money FROM business TO user phone (refunds/payouts)."""
+    user = db.query(models.User).filter(models.User.id == req.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    try:
+        result = b2c_payout(
+            phone=req.phone,
+            amount=req.amount,
+            occasion=req.occasion,
+            remarks=req.remarks
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"B2C error: {str(e)}")
+
+    if result.get("ResponseCode") != "0":
+        raise HTTPException(status_code=400, detail=result.get("errorMessage", "B2C payout failed"))
+
+    return {
+        "message": f"Payout of KES {req.amount} initiated to {req.phone}",
+        "conversation_id": result.get("ConversationID"),
+        "originator_conversation_id": result.get("OriginatorConversationID")
+    }
+
+@app.post("/pay/b2c-callback")
+async def b2c_callback(request: Request, db: Session = Depends(get_db)):
+    """Webhook - Safaricom calls this after B2C payout completes."""
+    body = await request.json()
+    try:
+        result = body.get("Result", {})
+        result_code = result.get("ResultCode")
+        transaction_id = result.get("TransactionID")
+        amount = None
+        phone = None
+        items = result.get("ResultParameters", {}).get("ResultParameter", [])
+        for item in items:
+            if item.get("Key") == "TransactionAmount":
+                amount = item.get("Value")
+            if item.get("Key") == "ReceiverPartyPublicName":
+                phone = item.get("Value")
+        print(f"B2C Callback: code={result_code}, txn={transaction_id}, amount={amount}, phone={phone}")
+    except Exception:
+        traceback.print_exc()
+    return {"ResultCode": 0, "ResultDesc": "Accepted"}
 
 @app.post("/quiz/match")
 def quiz_match(answers: schemas.QuizAnswers, db: Session = Depends(get_db)):

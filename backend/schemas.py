@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional
 from datetime import datetime
 
@@ -71,6 +71,46 @@ class PaymentRequest(BaseModel):
     adoption_id: int
     phone: str
     amount: int
+
+    @field_validator('phone')
+    @classmethod
+    def validate_phone(cls, v):
+        phone = v.strip().replace('+', '').replace(' ', '')
+        if phone.startswith('0'):
+            phone = '254' + phone[1:]
+        if not phone.startswith('254'):
+            phone = '254' + phone
+        if len(phone) != 12:
+            raise ValueError('Invalid phone number. Use format: 0712345678 or 254712345678')
+        return phone
+
+    @field_validator('amount')
+    @classmethod
+    def validate_amount(cls, v):
+        if v < 1:
+            raise ValueError('Amount must be at least KES 1')
+        if v > 150000:
+            raise ValueError('Amount cannot exceed KES 150,000')
+        return v
+
+class B2CRequest(BaseModel):
+    user_id: int
+    phone: str
+    amount: int
+    occasion: str = "Adoption Refund"
+    remarks: str = "RescueMePets refund"
+
+    @field_validator('phone')
+    @classmethod
+    def validate_phone(cls, v):
+        phone = v.strip().replace('+', '').replace(' ', '')
+        if phone.startswith('0'):
+            phone = '254' + phone[1:]
+        if not phone.startswith('254'):
+            phone = '254' + phone
+        if len(phone) != 12:
+            raise ValueError('Invalid phone number')
+        return phone
 
 class PaymentCallback(BaseModel):
     Body: dict

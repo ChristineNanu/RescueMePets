@@ -35,7 +35,6 @@ def stk_push(phone: str, amount: int, account_ref: str, description: str) -> dic
     token = get_access_token()
     password, timestamp = generate_password()
 
-    # Format phone: ensure it starts with 254
     phone = phone.strip().replace("+", "").replace(" ", "")
     if phone.startswith("0"):
         phone = "254" + phone[1:]
@@ -80,6 +79,43 @@ def query_stk_status(checkout_request_id: str) -> dict:
     }
 
     url = f"{BASE_URL}/mpesa/stkpushquery/v1/query"
+    response = requests.post(
+        url,
+        json=payload,
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+    )
+    return response.json()
+
+
+def b2c_payout(phone: str, amount: int, occasion: str, remarks: str) -> dict:
+    """B2C - Business pays money TO a customer phone number (refunds/payouts)."""
+    token = get_access_token()
+
+    phone = phone.strip().replace("+", "").replace(" ", "")
+    if phone.startswith("0"):
+        phone = "254" + phone[1:]
+    if not phone.startswith("254"):
+        phone = "254" + phone
+
+    b2c_callback = CALLBACK_URL.replace("/pay/callback", "/pay/b2c-callback")
+
+    payload = {
+        "InitiatorName": "testapi",  # Sandbox initiator
+        "SecurityCredential": os.getenv("MPESA_SECURITY_CREDENTIAL", "Safaricom999!"),
+        "CommandID": "BusinessPayment",
+        "Amount": amount,
+        "PartyA": SHORTCODE,
+        "PartyB": phone,
+        "Remarks": remarks,
+        "QueueTimeOutURL": b2c_callback,
+        "ResultURL": b2c_callback,
+        "Occasion": occasion
+    }
+
+    url = f"{BASE_URL}/mpesa/b2c/v3/paymentrequest"
     response = requests.post(
         url,
         json=payload,
