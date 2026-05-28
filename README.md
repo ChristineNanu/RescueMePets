@@ -1,6 +1,6 @@
 # RescueMePets 🐾
 
-A modern, full-stack pet adoption web application built with React, FastAPI, and a custom RDBMS. Features premium UI/UX with glassmorphism, interactive dashboards, pet matching quiz, and comprehensive adoption management system.
+A modern, full-stack pet adoption web application built with React, FastAPI, and a custom RDBMS. Features premium UI/UX with glassmorphism, interactive dashboards, pet matching quiz, M-Pesa payment integration, and comprehensive adoption management system.
 
 ## ✨ Key Highlights
 
@@ -14,6 +14,7 @@ A modern, full-stack pet adoption web application built with React, FastAPI, and
 - 🔐 **Secure Authentication** - User registration with password hashing
 - 📋 **Application Tracking** - Track adoption applications with status updates
 - 🗄️ **Custom SQL Engine** - Full RDBMS with interactive query interface
+- 💳 **M-Pesa Payments** - Real M-Pesa STK Push integration via Safaricom Daraja API
 
 ## Features
 
@@ -82,6 +83,15 @@ A modern, full-stack pet adoption web application built with React, FastAPI, and
 - **Bulk Operations** - Efficient animal database management
 - **Real-time Updates** - Changes reflect immediately across app
 
+### 💳 **M-Pesa Payment Integration**
+- **STK Push** - Initiates M-Pesa payment prompt directly to adopter's phone
+- **Payment Polling** - Auto-polls payment status every 5 seconds with 120s timeout
+- **Callback Handling** - Webhook endpoint for Safaricom payment confirmation
+- **Auto-Approval** - Adoption application automatically approved on payment success
+- **Receipt Display** - Shows M-PESA receipt number after successful payment
+- **B2C Payouts** - Business-to-customer disbursement support
+- **Sandbox Support** - Full sandbox/production environment toggle
+
 ### 🗄️ **SQL Interface (Database Admin)**
 - **Interactive Query Editor** - Write and execute SQL commands
 - **Command History** - Navigate previous queries with keyboard shortcuts
@@ -141,6 +151,7 @@ A modern, full-stack pet adoption web application built with React, FastAPI, and
 - See application status (Pending/Approved/Rejected)
 - Track application dates
 - Get notified of status updates
+- Pay adoption fee via M-Pesa directly from application
 
 ### ✨ **Quiz** - *Find Your Match*
 - Interactive pet matching questionnaire
@@ -168,6 +179,8 @@ A modern, full-stack pet adoption web application built with React, FastAPI, and
 - **SQLite** - Lightweight relational database
 - **Pydantic** - Data validation and serialization
 - **Passlib** - Password hashing and security
+- **Safaricom Daraja API** - M-Pesa STK Push, payment status query, B2C payouts
+- **python-dotenv** - Environment variable management for API credentials
 
 ## Project Structure
 
@@ -180,6 +193,10 @@ RescueMePets/
 │   ├── sql_engine.py    # Custom SQL parser and query executor
 │   ├── database.py      # Database configuration
 │   ├── sample_data.py   # Sample data creation
+│   ├── daraja.py        # Safaricom Daraja M-Pesa integration
+│   ├── render.yaml      # Render deployment configuration
+│   ├── runtime.txt      # Python runtime specification
+│   ├── .env             # Environment variables (API keys - not committed)
 │   └── requirements.txt # Python dependencies
 ├── src/
 │   ├── components/
@@ -189,10 +206,12 @@ RescueMePets/
 │   │   ├── Centers.js            # Rescue centers exploration
 │   │   ├── AdoptionForm.js       # Adoption application form
 │   │   ├── MyApplications.js     # Application tracking
+│   │   ├── MpesaPayment.js       # M-Pesa STK Push payment modal
 │   │   ├── Quiz.js               # Pet matching quiz
 │   │   ├── Chatbot.js            # AI chatbot interface
 │   │   ├── Login.js              # User login with glassmorphism UI
 │   │   ├── Register.js           # User registration with glassmorphism UI
+│   │   ├── SQLInterface.js       # Interactive SQL query editor
 │   │   └── Navbar.js             # Navigation bar with user profile
 │   ├── contexts/
 │   │   └── AnimalContext.js      # Global animal state management
@@ -231,6 +250,11 @@ RescueMePets/
 - `POST /quiz` - Get pet recommendations from quiz answers
 - `POST /chat` - Send message to chatbot
 
+### M-Pesa Payments
+- `POST /pay/stk-push` - Initiate M-Pesa STK Push payment
+- `GET /pay/status/{payment_id}` - Poll payment status
+- `POST /pay/callback` - Safaricom payment confirmation webhook
+
 ### SQL Interface (Admin)
 - `POST /sql` - Execute SQL query
 - `GET /tables` - Get database schema information
@@ -265,7 +289,18 @@ RescueMePets/
    pip install -r requirements.txt
    ```
 
-4. Start the FastAPI server:
+4. Configure environment variables — create `backend/.env`:
+   ```env
+   MPESA_CONSUMER_KEY=<your_consumer_key>
+   MPESA_CONSUMER_SECRET=<your_consumer_secret>
+   MPESA_SHORTCODE=174379
+   MPESA_PASSKEY=<your_passkey>
+   MPESA_CALLBACK_URL=https://<your-domain>/pay/callback
+   MPESA_ENV=sandbox
+   ```
+   > Get credentials from [Safaricom Daraja Portal](https://developer.safaricom.co.ke)
+
+5. Start the FastAPI server:
    ```bash
    uvicorn main:app --reload --host 0.0.0.0 --port 8002
    ```
@@ -302,8 +337,9 @@ The frontend will be running at `http://localhost:3000`
 5. **Find Your Match** - Take the "Find My Match" quiz for personalized recommendations
 6. **Adopt a Pet** - Click "Adopt Me!" or "🐾 Apply to Adopt" to start the process
 7. **Submit Application** - Fill out the adoption form with your information
-8. **Track Status** - Monitor application status in "My Applications"
-9. **Get Support** - Use the chatbot for adoption questions
+8. **Pay Adoption Fee** - Complete payment via M-Pesa STK Push
+9. **Track Status** - Monitor application status in "My Applications"
+10. **Get Support** - Use the chatbot for adoption questions
 
 ### For Administrators
 
@@ -355,6 +391,15 @@ The frontend will be running at `http://localhost:3000`
 - **Logging**: Check browser console and terminal for detailed logs
 
 ## Recent Updates (May 2026)
+
+### 💳 M-Pesa Integration
+- **Daraja API** - Full Safaricom M-Pesa integration via `daraja.py`
+- **STK Push** - Sends payment prompt to adopter's phone on adoption
+- **Payment Polling** - Frontend polls status every 5s with countdown timer
+- **Webhook Callback** - `/pay/callback` endpoint for Safaricom confirmation
+- **Auto-Approval** - Application status set to `approved` on payment success
+- **B2C Support** - Business-to-customer payout capability added
+- **Sandbox/Production** - Toggle via `MPESA_ENV` environment variable
 
 ### 🎨 UI/UX Enhancements
 - **Glassmorphism Design** - Frosted glass effect on cards and modals
@@ -411,6 +456,7 @@ The frontend will be running at `http://localhost:3000`
 - ✅ View detailed animal profiles
 - ✅ Explore rescue centers
 - ✅ Submit adoption applications
+- ✅ Pay adoption fee via M-Pesa
 - ✅ Track adoption applications
 - ✅ Get status notifications
 - ✅ Use AI chatbot for support
@@ -458,7 +504,7 @@ The frontend will be running at `http://localhost:3000`
 
 - 📧 Email notifications for application status
 - 🗺️ Map integration for rescue center locations
-- 💳 Online payment for adoption fees
+- ~~💳 Online payment for adoption fees~~ ✅ **Implemented** (M-Pesa STK Push)
 - 📸 Photo upload for user profiles
 - ⭐ Rating and review system for adoptions
 - 🔔 Push notifications
@@ -518,6 +564,18 @@ For issues, questions, or suggestions:
 - user_id (Foreign Key)
 - animal_id (Foreign Key)
 - message
+- status (pending/approved/rejected)
+- created_at (Timestamp)
+
+### Payments
+- id (Primary Key)
+- user_id (Foreign Key)
+- adoption_id (Foreign Key)
+- phone
+- amount
+- status (pending/completed/failed)
+- checkout_request_id (M-Pesa reference)
+- mpesa_receipt
 - created_at (Timestamp)
 
 ## Contributing
