@@ -390,7 +390,7 @@ The frontend will be running at `http://localhost:3000`
 - **Development Mode**: Both frontend and backend support hot reload
 - **Logging**: Check browser console and terminal for detailed logs
 
-## Recent Updates (May 2026)
+## Recent Updates 
 
 ### 💳 M-Pesa Integration
 - **Daraja API** - Full Safaricom M-Pesa integration via `daraja.py`
