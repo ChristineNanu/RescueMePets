@@ -31,7 +31,7 @@ function AdoptionForm() {
     if (id) { setAnimalId(id); setStep(1); }
   }, [searchParams]);
 
-  const selectedAnimal = animals.find(a => a.id === parseInt(animalId));
+  const selectedAnimal = animalId ? animals.find(a => a.id === parseInt(animalId)) : null;
 
   const handleSubmit = async () => {
     if (!userId) { navigate('/login'); return; }
