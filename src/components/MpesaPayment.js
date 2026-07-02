@@ -3,7 +3,7 @@ import { API_BASE_URL } from '../constants';
 
 function MpesaPayment({ adoptionId, animalName, onSuccess, onCancel }) {
   const [phone, setPhone] = useState('');
-  const [amount] = useState(5000); // 5000 cents = KES 50 adoption fee
+  const [amount] = useState(50); // 50 cents = KES 0.5 for testing
   const [step, setStep] = useState('form'); // form | waiting | success | failed
   const [receipt, setReceipt] = useState(null);
   const [error, setError] = useState('');

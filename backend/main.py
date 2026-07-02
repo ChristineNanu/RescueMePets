@@ -339,7 +339,7 @@ def initiate_stk_push(req: schemas.PaymentRequest, db: Session = Depends(get_db)
     adoption = db.query(models.Adoption).filter(models.Adoption.id == req.adoption_id).first()
     if not adoption:
         raise HTTPException(status_code=404, detail="Adoption not found")
-    if req.amount < 500 or req.amount > 100000:
+    if req.amount < 1 or req.amount > 100000:
         raise HTTPException(status_code=400, detail="Invalid payment amount")
 
     animal = adoption.animal
@@ -410,6 +410,22 @@ def check_payment_status(payment_id: int, db: Session = Depends(get_db)):
         "mpesa_receipt": payment.mpesa_receipt,
         "created_at": payment.created_at.isoformat()
     }
+
+# TEST ENDPOINT - For local testing without M-PESA callback
+@app.post("/pay/test-complete/{payment_id}")
+def test_complete_payment(payment_id: int, db: Session = Depends(get_db)):
+    """Complete a payment manually for testing. Remove in production."""
+    payment = db.query(models.Payment).filter(models.Payment.id == payment_id).first()
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    
+    payment.status = "completed"
+    payment.mpesa_receipt = "TEST123456"
+    if payment.adoption:
+        payment.adoption.status = "approved"
+    db.commit()
+    
+    return {"message": "Payment completed for testing", "payment_id": payment.id}
 
 @app.post("/pay/callback")
 async def mpesa_callback(request: Request, db: Session = Depends(get_db)):

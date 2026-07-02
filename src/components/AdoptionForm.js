@@ -88,7 +88,12 @@ function AdoptionForm() {
         <MpesaPayment
           adoptionId={adoptionId}
           animalName={selectedAnimal?.name}
-          onSuccess={() => { setShowPayment(false); setIsSubmitted(true); }}
+          onSuccess={() => { 
+            setShowPayment(false); 
+            setIsSubmitted(true);
+            // Auto-navigate to applications after 2 seconds
+            setTimeout(() => navigate('/my-profile'), 2000);
+          }}
           onCancel={() => { setShowPayment(false); setIsSubmitted(true); }}
         />
       )}
