@@ -44,8 +44,13 @@ function MyApplications() {
       setFavorites(Array.isArray(favs) ? favs : []);
       setSponsorships(Array.isArray(sponsors) ? sponsors : []);
       setProfile(prof);
-      setEditForm({ username: prof.username, email: prof.email, avatar: prof.avatar });
-    }).catch(console.error)
+      if (prof?.username && prof?.email) {
+        setEditForm({ username: prof.username, email: prof.email, avatar: prof.avatar });
+      }
+    }).catch(err => {
+      setEditMsg('Failed to load profile data');
+      console.error(err);
+    })
       .finally(() => setLoading(false));
   }, [userId, navigate]);
 

@@ -20,13 +20,13 @@ export const Login = ({ onLogin }) => {
         body: JSON.stringify({ username, password: pass }),
       });
       const data = await res.json();
-      if (res.ok) {
+      if (res.ok && data.user_id && data.username) {
         localStorage.setItem('user_id', data.user_id);
         localStorage.setItem('username', data.username);
         if (onLogin) onLogin();
         navigate('/dashboard');
       } else {
-        setMessage(data.detail);
+        setMessage(data.detail || 'Login failed');
       }
     } catch { setMessage('Connection error. Is the server running?'); }
     finally { setIsLoading(false); }

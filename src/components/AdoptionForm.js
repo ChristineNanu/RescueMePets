@@ -24,9 +24,12 @@ function AdoptionForm() {
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/animals`)
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error('Failed to load animals');
+        return r.json();
+      })
       .then(data => setAnimals(data.filter(a => a.status !== 'adopted')))
-      .catch(() => setError('Failed to load animals'));
+      .catch(err => setError(err.message || 'Failed to load animals'));
     const id = searchParams.get('animalId');
     if (id) { setAnimalId(id); setStep(1); }
   }, [searchParams]);

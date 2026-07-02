@@ -251,6 +251,7 @@ function AnimalList({ onOpenQuiz }) {
       if (statusFilter !== 'all') params.append('status', statusFilter);
       if (userId) params.append('user_id', userId);
       const res = await fetch(`${API_BASE_URL}/animals?${params}`);
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
       setAnimals(await res.json());
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
@@ -266,6 +267,7 @@ function AnimalList({ onOpenQuiz }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: parseInt(userId), animal_id: animalId })
     });
+    if (!res.ok) return;
     const data = await res.json();
     setAnimals(prev => prev.map(a => a.id === animalId ? { ...a, is_favorited: data.favorited } : a));
     if (selectedAnimal?.id === animalId) setSelectedAnimal(prev => ({ ...prev, is_favorited: data.favorited }));

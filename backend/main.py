@@ -149,7 +149,7 @@ def adopt(adoption: schemas.AdoptionCreate, db: Session = Depends(get_db)):
         user_id=adoption.user_id,
         animal_id=adoption.animal_id,
         message=adoption.message,
-        read=True  # own submission is always read
+        read=False  # new applications unread until reviewed
     )
     db.add(db_adoption)
     animal.status = "pending"
@@ -335,6 +335,8 @@ def initiate_stk_push(req: schemas.PaymentRequest, db: Session = Depends(get_db)
     adoption = db.query(models.Adoption).filter(models.Adoption.id == req.adoption_id).first()
     if not adoption:
         raise HTTPException(status_code=404, detail="Adoption not found")
+    if req.amount < 500 or req.amount > 100000:
+        raise HTTPException(status_code=400, detail="Invalid payment amount")
 
     animal = adoption.animal
     description = f"Adoption fee for {animal.name}"

@@ -45,20 +45,22 @@ export default function Dashboard({ onOpenQuiz }) {
   const [recentAnimals, setRecentAnimals] = useState([]);
   const [applications, setApplications]   = useState([]);
   const [loading, setLoading]       = useState(true);
+  const [error, setError]           = useState('');
   const navigate  = useNavigate();
   const username  = localStorage.getItem('username');
   const userId    = localStorage.getItem('user_id');
 
   useEffect(() => {
+    setError('');
     Promise.all([
-      fetch(`${API_BASE_URL}/stats`).then(r => r.json()),
-      fetch(`${API_BASE_URL}/animals?user_id=${userId}`).then(r => r.json()),
-      userId ? fetch(`${API_BASE_URL}/my-applications?user_id=${userId}`).then(r => r.json()) : Promise.resolve([]),
+      fetch(`${API_BASE_URL}/stats`).then(r => { if (!r.ok) throw new Error('Failed to load stats'); return r.json(); }),
+      fetch(`${API_BASE_URL}/animals?user_id=${userId}`).then(r => { if (!r.ok) throw new Error('Failed to load animals'); return r.json(); }),
+      userId ? fetch(`${API_BASE_URL}/my-applications?user_id=${userId}`).then(r => { if (!r.ok) throw new Error('Failed to load applications'); return r.json(); }) : Promise.resolve([]),
     ]).then(([s, animals, apps]) => {
       setStats(s);
       setRecentAnimals(animals.filter(a => a.status === 'available').slice(0, 4));
       setApplications(apps.slice(0, 3));
-    }).catch(console.error).finally(() => setLoading(false));
+    }).catch(err => setError(err.message || 'Failed to load dashboard')).finally(() => setLoading(false));
   }, [userId]);
 
   const hour     = new Date().getHours();
@@ -70,6 +72,19 @@ export default function Dashboard({ onOpenQuiz }) {
       <div className="text-center">
         <div className="text-5xl mb-4 animate-bounce">🐾</div>
         <p className="text-amber-600 font-semibold text-lg">Loading your dashboard...</p>
+      </div>
+    </div>
+  );
+
+  if (error) return (
+    <div className="min-h-screen flex items-center justify-center bg-red-50">
+      <div className="text-center">
+        <div className="text-5xl mb-4">⚠️</div>
+        <p className="text-red-600 font-semibold text-lg mb-4">{error}</p>
+        <button onClick={() => window.location.reload()}
+          className="px-6 py-2 rounded-xl bg-red-600 text-white font-bold cursor-pointer hover:bg-red-700 border-0">
+          Try Again
+        </button>
       </div>
     </div>
   );
