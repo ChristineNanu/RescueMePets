@@ -18,12 +18,15 @@ function Navbar({ isLoggedIn, onLogout }) {
 
   // Poll for unread notifications every 30s
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || isNaN(parseInt(userId))) return;
     const fetch_count = () => {
-      fetch(`${API_BASE_URL}/notifications/unread-count?user_id=${userId}`)
-        .then(r => r.json())
+      fetch(`${API_BASE_URL}/notifications/unread-count?user_id=${parseInt(userId)}`)
+        .then(r => {
+          if (!r.ok) throw new Error(`API error: ${r.status}`);
+          return r.json();
+        })
         .then(d => setUnread(d.count || 0))
-        .catch(() => {});
+        .catch(err => console.error('Unread count error:', err));
     };
     fetch_count();
     const interval = setInterval(fetch_count, 30000);
@@ -32,9 +35,14 @@ function Navbar({ isLoggedIn, onLogout }) {
 
   // Mark read when visiting profile
   useEffect(() => {
-    if (location.pathname === '/my-profile' && userId && unread > 0) {
-      fetch(`${API_BASE_URL}/notifications/mark-read?user_id=${userId}`, { method: 'POST' })
-        .then(() => setUnread(0)).catch(() => {});
+    if (location.pathname === '/my-profile' && userId && unread > 0 && !isNaN(parseInt(userId))) {
+      fetch(`${API_BASE_URL}/notifications/mark-read?user_id=${parseInt(userId)}`, { method: 'POST' })
+        .then(r => {
+          if (!r.ok) throw new Error(`Mark read error: ${r.status}`);
+          return r.json();
+        })
+        .then(() => setUnread(0))
+        .catch(err => console.error('Mark read error:', err));
     }
   }, [location.pathname, userId, unread]);
 

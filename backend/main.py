@@ -175,6 +175,8 @@ def get_my_applications(user_id: int, db: Session = Depends(get_db)):
 
 @app.get("/notifications/unread-count")
 def get_unread_count(user_id: int, db: Session = Depends(get_db)):
+    if user_id <= 0:
+        raise HTTPException(status_code=400, detail="Invalid user_id")
     count = db.query(models.Adoption).filter(
         models.Adoption.user_id == user_id,
         models.Adoption.read == False
@@ -183,6 +185,8 @@ def get_unread_count(user_id: int, db: Session = Depends(get_db)):
 
 @app.post("/notifications/mark-read")
 def mark_notifications_read(user_id: int, db: Session = Depends(get_db)):
+    if user_id <= 0:
+        raise HTTPException(status_code=400, detail="Invalid user_id")
     db.query(models.Adoption).filter(
         models.Adoption.user_id == user_id,
         models.Adoption.read == False
