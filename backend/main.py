@@ -328,7 +328,8 @@ def get_stats(db: Session = Depends(get_db)):
     return {
         "total_animals": db.query(models.Animal).count(),
         "available": db.query(models.Animal).filter(models.Animal.status == "available").count(),
-        "adopted": db.query(models.Animal).filter(models.Animal.status == "adopted").count(),
+        # Use completed/approved adoptions from the Adoption table as the adopted metric
+        "adopted": db.query(models.Adoption).filter(models.Adoption.status == "approved").count(),
         "centers": db.query(models.Center).count(),
     }
 
