@@ -39,12 +39,14 @@ function MpesaPayment({ adoptionId, animalName, onSuccess, onCancel }) {
       try {
         const res = await fetch(`${API_BASE_URL}/pay/status/${pid}`);
         const data = await res.json();
+        console.debug('PAYMENT POLL', pid, data);
         if (data.status === 'completed') {
           clearInterval(pollRef.current);
           clearInterval(countRef.current);
           setReceipt(data.mpesa_receipt);
           setStep('success');
-          if (onSuccess) onSuccess(data);
+          // Call onSuccess without args to match parent handlers
+          if (onSuccess) onSuccess();
         }
         // Only mark failed if explicitly failed - NOT on pending/processing
         // We let the countdown handle timeout
