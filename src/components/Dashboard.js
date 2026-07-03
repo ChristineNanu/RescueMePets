@@ -56,16 +56,21 @@ export default function Dashboard({ onOpenQuiz }) {
       fetch(`${API_BASE_URL}/stats`).then(r => { if (!r.ok) throw new Error('Failed to load stats'); return r.json(); }),
       fetch(`${API_BASE_URL}/animals?user_id=${userId}`).then(r => { if (!r.ok) throw new Error('Failed to load animals'); return r.json(); }),
       userId ? fetch(`${API_BASE_URL}/my-applications?user_id=${userId}`).then(r => { if (!r.ok) throw new Error('Failed to load applications'); return r.json(); }) : Promise.resolve([]),
-    ]).then(([s, animals, apps]) => {
+      ]).then(([s, animals, apps]) => {
       setStats(s);
       setRecentAnimals(animals.filter(a => a.status === 'available').slice(0, 4));
-      setApplications(apps.slice(0, 3));
+      // keep the full applications list so counts and slices are accurate
+      setApplications(Array.isArray(apps) ? apps : []);
     }).catch(err => setError(err.message || 'Failed to load dashboard')).finally(() => setLoading(false));
   }, [userId]);
 
   const hour     = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const adoptionRate = stats.total_animals > 0 ? Math.round((stats.adopted / stats.total_animals) * 100) : 0;
+
+  // If user is logged in, prefer showing their approved adoptions count in the "Happy Adoptions" stat
+  const userApprovedCount = applications.filter(a => a.status === 'approved').length;
+  const happyAdoptionsValue = userId ? userApprovedCount : stats.adopted;
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-amber-50">
@@ -133,7 +138,7 @@ export default function Dashboard({ onOpenQuiz }) {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
           <StatCard icon="🐾" value={stats.total_animals} label="Total Animals"   sub="In our network"          iconBg="bg-gradient-to-br from-amber-100 to-orange-100" valueColor="text-orange-600" />
           <StatCard icon="✅" value={stats.available}     label="Available Now"   sub="Ready to adopt"          iconBg="bg-gradient-to-br from-emerald-100 to-green-100" valueColor="text-emerald-600" />
-          <StatCard icon="🏠" value={stats.adopted}       label="Happy Adoptions" sub={`${adoptionRate}% rate`} iconBg="bg-gradient-to-br from-rose-100 to-pink-100" valueColor="text-rose-600" />
+          <StatCard icon="🏠" value={happyAdoptionsValue}       label="Happy Adoptions" sub={`${adoptionRate}% rate`} iconBg="bg-gradient-to-br from-rose-100 to-pink-100" valueColor="text-rose-600" />
           <StatCard icon="🏥" value={stats.centers}       label="Rescue Centers"  sub="Partner locations"       iconBg="bg-gradient-to-br from-purple-100 to-indigo-100" valueColor="text-purple-600" />
         </div>
 
@@ -242,7 +247,7 @@ export default function Dashboard({ onOpenQuiz }) {
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
-                  {applications.map(app => {
+                  {applications.slice(0,3).map(app => {
                     const s = statusMap[app.status] || statusMap.pending;
                     return (
                       <div key={app.id} className="flex items-center gap-3">
