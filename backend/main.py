@@ -149,7 +149,7 @@ def adopt(adoption: schemas.AdoptionCreate, db: Session = Depends(get_db)):
         user_id=adoption.user_id,
         animal_id=adoption.animal_id,
         message=adoption.message,
-        read=False  # new applications unread until reviewed
+        read=False  
     )
     db.add(db_adoption)
     animal.status = "pending"
