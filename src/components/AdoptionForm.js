@@ -94,7 +94,7 @@ function AdoptionForm() {
             // Auto-navigate to applications after 2 seconds
             setTimeout(() => navigate('/my-profile'), 2000);
           }}
-          onCancel={() => { setShowPayment(false); setIsSubmitted(true); }}
+          onCancel={() => { setShowPayment(false); }}
         />
       )}
       {/* Header */}
