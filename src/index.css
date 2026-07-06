@@ -6,43 +6,53 @@
 
 @layer base {
   * { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
-  body { background: #fafaf9; }
+  body { background: #f8fffe; }
 }
 
 @layer utilities {
   .text-gradient {
-    @apply bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-teal-500 via-teal-400 to-coral-400 bg-clip-text text-transparent;
   }
   .btn-primary {
-    @apply bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-2xl
-           hover:from-amber-600 hover:to-orange-600 hover:-translate-y-0.5 hover:shadow-lg
-           hover:shadow-amber-200 transition-all duration-200 border-0 cursor-pointer active:scale-95;
+    @apply bg-gradient-to-r from-teal-500 to-teal-600 text-white font-bold rounded-2xl
+           hover:from-teal-600 hover:to-teal-700 hover:-translate-y-0.5
+           hover:shadow-lg hover:shadow-teal-200 transition-all duration-200
+           border-0 cursor-pointer active:scale-95;
+  }
+  .btn-coral {
+    @apply bg-gradient-to-r from-coral-500 to-coral-600 text-white font-bold rounded-2xl
+           hover:from-coral-600 hover:to-coral-700 hover:-translate-y-0.5
+           hover:shadow-lg hover:shadow-coral-200 transition-all duration-200
+           border-0 cursor-pointer active:scale-95;
   }
   .btn-ghost {
     @apply bg-white text-gray-700 font-semibold rounded-2xl border border-gray-200
-           hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700
+           hover:border-teal-300 hover:bg-teal-50 hover:text-teal-700
            transition-all duration-200 cursor-pointer;
   }
   .card {
-    @apply bg-white rounded-2xl border border-gray-100 shadow-sm
-           hover:shadow-md transition-all duration-200;
+    @apply bg-white rounded-3xl border border-gray-100 shadow-card
+           hover:shadow-card-hover transition-all duration-300;
   }
   .input-field {
     @apply w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white text-gray-800
-           focus:border-amber-400 focus:outline-none focus:ring-4 focus:ring-amber-100
+           focus:border-teal-400 focus:outline-none focus:ring-4 focus:ring-teal-100
            transition-all duration-200 placeholder:text-gray-400 text-sm font-medium;
   }
   .badge {
     @apply inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full;
   }
   .section-label {
-    @apply text-xs font-black uppercase tracking-widest text-amber-600;
+    @apply text-xs font-black uppercase tracking-widest text-teal-600;
+  }
+  .page-bg {
+    @apply min-h-screen bg-gradient-to-br from-teal-50/60 via-white to-cream-50/40;
   }
 }
 
 /* ── Keyframes ─────────────────────────────────────────── */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(24px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes fadeIn {
@@ -50,7 +60,7 @@
   to   { opacity: 1; }
 }
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.95); }
+  from { opacity: 0; transform: scale(0.93); }
   to   { opacity: 1; transform: scale(1); }
 }
 @keyframes shimmer {
@@ -58,44 +68,67 @@
   100% { background-position:  200% center; }
 }
 @keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-8px); }
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50%       { transform: translateY(-10px) rotate(2deg); }
 }
 @keyframes wiggle {
-  0%, 100% { transform: rotate(-3deg); }
-  50%       { transform: rotate(3deg); }
+  0%, 100% { transform: rotate(-4deg); }
+  50%       { transform: rotate(4deg); }
 }
 @keyframes slideDown {
-  from { opacity: 0; transform: translateY(-10px); }
+  from { opacity: 0; transform: translateY(-12px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(20,184,166,0.4); }
+  70%  { box-shadow: 0 0 0 10px rgba(20,184,166,0); }
+  100% { box-shadow: 0 0 0 0 rgba(20,184,166,0); }
+}
+@keyframes gradientShift {
+  0%,100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
 }
 
 /* ── Animation classes ─────────────────────────────────── */
-.animate-fade-up   { animation: fadeUp   0.5s ease both; }
-.animate-fade-in   { animation: fadeIn   0.4s ease both; }
-.animate-scale-in  { animation: scaleIn  0.3s ease both; }
-.animate-float     { animation: float    3s ease-in-out infinite; }
-.animate-wiggle    { animation: wiggle   1s ease-in-out infinite; }
-.animate-slide-down { animation: slideDown 0.3s ease both; }
+.animate-fade-up    { animation: fadeUp    0.55s ease both; }
+.animate-fade-in    { animation: fadeIn    0.4s  ease both; }
+.animate-scale-in   { animation: scaleIn   0.3s  ease both; }
+.animate-float      { animation: float     3.5s  ease-in-out infinite; }
+.animate-wiggle     { animation: wiggle    1s    ease-in-out infinite; }
+.animate-slide-down { animation: slideDown 0.3s  ease both; }
 
-.animate-fade-up-1 { animation: fadeUp 0.5s 0.1s ease both; }
-.animate-fade-up-2 { animation: fadeUp 0.5s 0.2s ease both; }
-.animate-fade-up-3 { animation: fadeUp 0.5s 0.3s ease both; }
-.animate-fade-up-4 { animation: fadeUp 0.5s 0.4s ease both; }
+.animate-fade-up-1 { animation: fadeUp 0.55s 0.1s ease both; }
+.animate-fade-up-2 { animation: fadeUp 0.55s 0.2s ease both; }
+.animate-fade-up-3 { animation: fadeUp 0.55s 0.3s ease both; }
+.animate-fade-up-4 { animation: fadeUp 0.55s 0.4s ease both; }
 
 .shimmer-text {
-  background: linear-gradient(90deg, #f59e0b, #f97316, #ef4444, #f97316, #f59e0b);
+  background: linear-gradient(90deg, #14b8a6, #2dd4bf, #ff7b6b, #ff5a47, #2dd4bf, #14b8a6);
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: shimmer 3s linear infinite;
+  animation: shimmer 4s linear infinite;
 }
+
+.gradient-animate {
+  background-size: 200% 200%;
+  animation: gradientShift 6s ease infinite;
+}
+
+.pulse-ring { animation: pulse-ring 2s ease-out infinite; }
 
 /* ── Scrollbar ─────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #f5f5f4; }
-::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: #a8a29e; }
+::-webkit-scrollbar-track { background: #f0fdfa; }
+::-webkit-scrollbar-thumb { background: #99f6e4; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #2dd4bf; }
 
-/* ── Modal backdrop ────────────────────────────────────── */
+/* ── Glass card ────────────────────────────────────────── */
+.glass {
+  background: rgba(255,255,255,0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.5);
+}
+
 .modal-enter { animation: scaleIn 0.25s ease both; }
