@@ -82,26 +82,15 @@ export default function Navbar({ isLoggedIn, onLogout }) {
               <>
                 {/* Profile */}
                 <button onClick={() => navigate('/my-profile')}
-                  className="hidden md:flex relative items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl
+                  className="hidden md:flex relative items-center gap-2 pl-3 pr-3 py-1.5 rounded-xl
                     hover:bg-gray-50 transition-all duration-200 border-0 bg-transparent cursor-pointer group">
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500
-                    flex items-center justify-center text-white text-sm font-black shadow-sm
-                    group-hover:shadow-md group-hover:shadow-amber-200 transition-all">
-                    {username?.[0]?.toUpperCase() || 'U'}
-                  </div>
-                  <span className="text-sm font-semibold text-gray-700 max-w-[80px] truncate">{username}</span>
+                  <span className="text-sm font-semibold text-gray-700">My Profile</span>
                   {unread > 0 && (
                     <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full
                       flex items-center justify-center text-white text-[10px] font-black border-2 border-white px-1">
                       {unread > 9 ? '9+' : unread}
                     </span>
                   )}
-                </button>
-                <button onClick={handleLogout}
-                  className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold
-                    text-gray-500 hover:text-red-500 hover:bg-red-50 transition-all duration-200
-                    border-0 bg-transparent cursor-pointer">
-                  <span>↩</span> Logout
                 </button>
                 {/* Mobile hamburger */}
                 <button onClick={() => setMenuOpen(!menuOpen)}
@@ -144,14 +133,9 @@ export default function Navbar({ isLoggedIn, onLogout }) {
           })}
           <Link to="/my-profile" onClick={() => setMenuOpen(false)}
             className="flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold no-underline text-gray-600 hover:bg-gray-50 transition-all">
-            <span className="flex items-center gap-3"><span className="text-lg">👤</span>Profile</span>
+            <span className="flex items-center gap-3"><span className="text-lg">👤</span>My Profile</span>
             {unread > 0 && <span className="bg-red-500 text-white text-xs font-black px-2 py-0.5 rounded-full">{unread}</span>}
           </Link>
-          <button onClick={() => { setMenuOpen(false); handleLogout(); }}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold
-              text-red-500 hover:bg-red-50 transition-all border-0 bg-transparent cursor-pointer text-left">
-            <span className="text-lg">↩</span> Logout
-          </button>
         </div>
       )}
     </nav>

@@ -140,17 +140,7 @@ export default function Dashboard({ onOpenQuiz }) {
 
           <div className="relative z-10 p-8 sm:p-10 flex flex-col sm:flex-row sm:items-center gap-8">
             <div className="flex-1">
-              {/* avatar + greeting */}
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-12 h-12 rounded-2xl bg-white/25 backdrop-blur-sm ring-2 ring-white/40
-                  flex items-center justify-center text-white font-black text-xl shadow-lg">
-                  {username[0].toUpperCase()}
-                </div>
-                <div>
-                  <p className="text-white/60 text-xs font-semibold uppercase tracking-widest">{greetIcon} {greeting}</p>
-                  <p className="text-white font-black text-base">Welcome back, {username}!</p>
-                </div>
-              </div>
+              <p className="text-white/70 text-sm font-semibold uppercase tracking-widest mb-3">{greetIcon} {greeting}, {username}!</p>
               <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight mb-2">
                 Your perfect companion<br />
                 <span className="text-white/80">is waiting for you.</span>
