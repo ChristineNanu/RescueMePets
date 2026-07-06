@@ -96,7 +96,7 @@ function MyApplications() {
   };
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-amber-50">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-stone-50 to-amber-50/20">
       <div className="text-center">
         <div className="text-5xl mb-4 animate-bounce">⏳</div>
         <p className="text-amber-600 font-semibold text-lg">Loading your profile...</p>
@@ -108,7 +108,7 @@ function MyApplications() {
   const approved = applications.filter(a => a.status === 'approved').length;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 to-amber-50/20">
 
       {/* Profile Header */}
       <div className="bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-12 text-center relative overflow-hidden">
@@ -194,27 +194,27 @@ function MyApplications() {
       <div className="max-w-3xl mx-auto px-4 pb-6">
 
         {/* Wallet Card */}
-        <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl p-5 mb-5 text-white shadow-lg">
+        <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-5 mb-5 text-white shadow-lg shadow-amber-200">
           <div className="flex items-center justify-between mb-3">
             <div>
               <p className="text-xs font-bold opacity-80 uppercase tracking-wide">💳 My Wallet</p>
               <p className="text-3xl font-extrabold">${((profile?.wallet_balance || 0) / 100).toFixed(2)}</p>
               <p className="text-xs opacity-70">Available balance</p>
             </div>
-            <div className="text-5xl opacity-30">💜</div>
+            <div className="text-5xl opacity-20">🐾</div>
           </div>
           <div className="flex gap-2 flex-wrap mb-2">
             {TOPUP_AMOUNTS.map(amt => (
               <button key={amt} onClick={() => setTopUpAmount(amt)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold border-0 cursor-pointer transition-all
-                  ${topUpAmount === amt ? 'bg-white text-purple-600 shadow-md' : 'bg-white/20 text-white hover:bg-white/30'}`}>
+                  ${topUpAmount === amt ? 'bg-white text-amber-600 shadow-md' : 'bg-white/20 text-white hover:bg-white/30'}`}>
                 +${amt / 100}
               </button>
             ))}
           </div>
           {walletMsg && <p className="text-xs font-semibold mb-2">{walletMsg}</p>}
           <button onClick={handleTopUp}
-            className="w-full py-2.5 rounded-xl text-sm font-bold bg-white text-purple-600 border-0 cursor-pointer hover:shadow-lg transition-all">
+            className="w-full py-2.5 rounded-xl text-sm font-bold bg-white text-amber-600 border-0 cursor-pointer hover:shadow-lg transition-all">
             Top Up ${(topUpAmount / 100).toFixed(0)}
           </button>
         </div>
@@ -359,7 +359,7 @@ function MyApplications() {
                 <h3 className="font-bold text-gray-700 mb-1">Not sponsoring anyone yet</h3>
                 <p className="text-gray-400 text-sm mb-4">Open any animal profile to sponsor their care</p>
                 <button onClick={() => navigate('/animals')}
-                  className="bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold px-6 py-2.5 rounded-xl text-sm border-0 cursor-pointer hover:shadow-lg transition-all">
+                  className="bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold px-6 py-2.5 rounded-xl text-sm border-0 cursor-pointer hover:shadow-lg transition-all">
                   Browse Animals
                 </button>
               </div>
@@ -375,14 +375,14 @@ function MyApplications() {
                       <p className="text-gray-400 text-xs">{s.animal_species}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-lg font-extrabold text-purple-600">${(s.amount / 100).toFixed(0)}</p>
+                      <p className="text-lg font-extrabold text-amber-600">${(s.amount / 100).toFixed(0)}</p>
                       <p className="text-xs text-gray-400">per month</p>
                     </div>
                   </div>
                 ))}
-                <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-4 border border-purple-100 text-center">
-                  <p className="text-sm font-bold text-purple-700">
-                    💜 Total: ${(sponsorships.reduce((sum, s) => sum + s.amount, 0) / 100).toFixed(0)}/month
+                <div className="bg-amber-50 rounded-2xl p-4 border border-amber-100 text-center">
+                  <p className="text-sm font-bold text-amber-700">
+                    🐾 Total: ${(sponsorships.reduce((sum, s) => sum + s.amount, 0) / 100).toFixed(0)}/month
                   </p>
                   <p className="text-xs text-gray-400 mt-1">Thank you for making a difference!</p>
                 </div>
