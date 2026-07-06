@@ -64,9 +64,41 @@ export default function Dashboard({ onOpenQuiz }) {
     }).catch(err => setError(err.message || 'Failed to load dashboard')).finally(() => setLoading(false));
   }, [userId]);
 
+  const [barWidth, setBarWidth]     = useState(0);
+  const [tipIndex, setTipIndex]     = useState(0);
+  const [tipVisible, setTipVisible] = useState(true);
+
   const hour     = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const greetingEmoji = hour < 12 ? '☀️' : hour < 17 ? '🌤️' : '🌙';
   const adoptionRate = stats.total_animals > 0 ? Math.round((stats.adopted / stats.total_animals) * 100) : 0;
+
+  const tips = [
+    'Visit the center to meet the animal before applying — it makes a huge difference for both of you! 🐾',
+    'Prepare your home before adoption day — remove hazards and set up a cozy corner for your new pet! 🏠',
+    'Ask the rescue center about the animal\'s personality and history to find the best match for your lifestyle! 💬',
+    'Consider adopting a senior pet — they\'re often calmer, already trained, and just as loving! 🐕',
+  ];
+
+  useEffect(() => {
+    if (!loading) setTimeout(() => setBarWidth(adoptionRate), 100);
+  }, [loading, adoptionRate]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTipVisible(false);
+      setTimeout(() => {
+        setTipIndex(i => (i + 1) % tips.length);
+        setTipVisible(true);
+      }, 400);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // #1 — build a unified activity feed from applications
+  const activityFeed = [...applications]
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .slice(0, 4);
 
   // If user is logged in, prefer showing their approved adoptions count in the "Happy Adoptions" stat
   const userApprovedCount = applications.filter(a => a.status === 'approved').length;
@@ -115,7 +147,7 @@ export default function Dashboard({ onOpenQuiz }) {
             <p className="text-amber-100 text-sm font-semibold mb-1 tracking-wide uppercase">{greeting},</p>
             <h1 className="text-4xl sm:text-5xl font-black text-white mb-3">Welcome back, {username}! 👋</h1>
             <p className="text-amber-50 text-base mb-6 font-medium">
-              🎉 {stats.available} adorable friends are waiting for their forever home today!
+              {greetingEmoji} {stats.available} adorable friends are waiting for their forever home today!
             </p>
             <div className="flex flex-wrap gap-3">
               <button onClick={() => navigate('/animals')}
@@ -152,8 +184,8 @@ export default function Dashboard({ onOpenQuiz }) {
             <span className="text-3xl font-black text-amber-600">{adoptionRate}%</span>
           </div>
           <div className="w-full bg-gradient-to-r from-gray-100 to-gray-50 rounded-full h-4 overflow-hidden shadow-inner">
-            <div className="bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 h-4 rounded-full transition-all duration-1000 shadow-lg shadow-amber-300/50"
-              style={{ width: `${adoptionRate}%` }} />
+            <div className="bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 h-4 rounded-full shadow-lg shadow-amber-300/50"
+              style={{ width: `${barWidth}%`, transition: 'width 1.2s cubic-bezier(0.4,0,0.2,1)' }} />
           </div>
           <p className="text-xs text-gray-400 mt-3">🎉 {stats.adopted} adopted out of {stats.total_animals} total animals</p>
         </div>
@@ -170,6 +202,17 @@ export default function Dashboard({ onOpenQuiz }) {
               </button>
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
+              {recentAnimals.length === 0 && (
+                <div className="col-span-2 flex flex-col items-center justify-center py-12 bg-white rounded-2xl border border-dashed border-amber-200">
+                  <div className="text-5xl mb-3">🐾</div>
+                  <p className="text-gray-500 font-semibold mb-1">No animals available right now</p>
+                  <p className="text-gray-400 text-xs mb-4">Check back soon — new rescues arrive regularly!</p>
+                  <button onClick={() => navigate('/animals')}
+                    className="text-xs font-bold text-amber-600 bg-amber-50 border border-amber-200 px-4 py-2 rounded-xl cursor-pointer hover:bg-amber-100 transition-colors">
+                    Browse all animals →
+                  </button>
+                </div>
+              )}
               {recentAnimals.map(animal => (
                 <div key={animal.id}
                   className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer group"
@@ -227,16 +270,16 @@ export default function Dashboard({ onOpenQuiz }) {
               </div>
             </div>
 
-            {/* My Applications */}
+            {/* Activity Feed */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-extrabold text-gray-800">📋 My Applications</h2>
+                <h2 className="text-lg font-extrabold text-gray-800">📋 Recent Activity</h2>
                 <button onClick={() => navigate('/my-profile')}
                   className="text-xs font-semibold text-amber-600 bg-transparent border-0 cursor-pointer">
                   View all →
                 </button>
               </div>
-              {applications.length === 0 ? (
+              {activityFeed.length === 0 ? (
                 <div className="text-center py-6">
                   <div className="text-4xl mb-2">📭</div>
                   <p className="text-gray-400 text-sm">No applications yet</p>
@@ -246,19 +289,27 @@ export default function Dashboard({ onOpenQuiz }) {
                   </button>
                 </div>
               ) : (
-                <div className="flex flex-col gap-3">
-                  {applications.slice(0,3).map(app => {
+                <div className="relative flex flex-col gap-0">
+                  {activityFeed.map((app, idx) => {
                     const s = statusMap[app.status] || statusMap.pending;
                     return (
-                      <div key={app.id} className="flex items-center gap-3">
+                      <div key={app.id} className="flex gap-3 relative">
+                        {/* timeline line */}
+                        {idx < activityFeed.length - 1 && (
+                          <div className="absolute left-[18px] top-8 bottom-0 w-px bg-gray-100" />
+                        )}
                         <img src={app.animal_image} alt={app.animal_name}
-                          className="w-10 h-10 rounded-xl object-cover flex-shrink-0"
+                          className="w-9 h-9 rounded-xl object-cover flex-shrink-0 mt-1 z-10 ring-2 ring-white"
                           onError={e => e.target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=100&q=80'} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gray-700 truncate">{app.animal_name}</p>
-                          <p className="text-xs text-gray-400">{new Date(app.created_at).toLocaleDateString()}</p>
+                        <div className="flex-1 min-w-0 pb-4">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-sm font-semibold text-gray-700 truncate">{app.animal_name}</p>
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0 ${s.bg} ${s.text}`}>
+                              {s.icon} {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-400 mt-0.5">{new Date(app.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}</p>
                         </div>
-                        <span className={`text-xs font-bold px-2 py-1 rounded-full ${s.bg} ${s.text}`}>{s.icon}</span>
                       </div>
                     );
                   })}
@@ -266,14 +317,22 @@ export default function Dashboard({ onOpenQuiz }) {
               )}
             </div>
 
-            {/* Tip */}
+            {/* Rotating Tips */}
             <div className="bg-amber-50 border border-amber-100 rounded-2xl p-5">
               <div className="flex gap-3">
                 <span className="text-2xl">💡</span>
-                <div>
-                  <h3 className="font-bold text-amber-800 text-sm mb-1">Adoption Tip</h3>
-                  <p className="text-amber-700 text-xs leading-relaxed">
-                    Visit the center to meet the animal before applying — it makes a huge difference for both of you! 🐾
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className="font-bold text-amber-800 text-sm">Adoption Tip</h3>
+                    <div className="flex gap-1">
+                      {tips.map((_, i) => (
+                        <div key={i} className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${i === tipIndex ? 'bg-amber-500 w-3' : 'bg-amber-200'}`} />
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-amber-700 text-xs leading-relaxed transition-opacity duration-400"
+                    style={{ opacity: tipVisible ? 1 : 0, transition: 'opacity 0.4s ease' }}>
+                    {tips[tipIndex]}
                   </p>
                 </div>
               </div>
