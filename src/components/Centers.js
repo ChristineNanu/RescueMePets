@@ -15,12 +15,48 @@ const STATUS = {
   adopted:   { pill: 'bg-coral-100 text-coral-600', dot: '🔴', label: 'Adopted'   },
 };
 
+function StoryCard({ story }) {
+  return (
+    <div className="bg-white rounded-3xl overflow-hidden shadow-card border border-teal-50 flex flex-col">
+      <div className="relative h-44 overflow-hidden">
+        <img src={story.animal_image} alt={story.animal_name}
+          className="w-full h-full object-cover"
+          onError={e => e.target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=600&q=80'} />
+        <div className="absolute inset-0 bg-gradient-to-t from-teal-900/70 to-transparent" />
+        <div className="absolute bottom-3 left-3">
+          <span className="bg-teal-500 text-white text-xs font-bold px-2.5 py-1 rounded-full">🏠 Adopted</span>
+        </div>
+        <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full px-2.5 py-1">
+          <span className="text-xs font-bold text-gray-500">{story.adopted_on}</span>
+        </div>
+      </div>
+      <div className="p-5 flex flex-col flex-1">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-8 h-8 bg-gradient-to-br from-teal-400 to-teal-600 rounded-full flex items-center justify-center text-white text-sm font-black flex-shrink-0">
+            {story.adopter_name[0]}
+          </div>
+          <div>
+            <p className="text-xs font-bold text-gray-800">{story.adopter_name}</p>
+            <p className="text-xs text-teal-600">adopted {story.animal_name}</p>
+          </div>
+        </div>
+        <p className="text-gray-500 text-sm leading-relaxed flex-1 italic">"{story.story}"</p>
+        <div className="mt-3 flex gap-0.5">
+          {[...Array(5)].map((_, i) => <span key={i} className="text-amber-400 text-sm">★</span>)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Centers() {
   const [centers, setCenters]               = useState([]);
   const [selectedCenter, setSelectedCenter] = useState(null);
   const [centerAnimals, setCenterAnimals]   = useState([]);
+  const [stories, setStories]               = useState([]);
   const [loading, setLoading]               = useState(true);
   const [animalsLoading, setAnimalsLoading] = useState(false);
+  const [galleryAnimal, setGalleryAnimal]   = useState(null);
   const navigate = useNavigate();
   const userId = localStorage.getItem('user_id');
 
@@ -34,10 +70,15 @@ function Centers() {
   const handleVisitCenter = (center) => {
     setSelectedCenter(center);
     setAnimalsLoading(true);
+    setStories([]);
     const params = userId ? `?user_id=${userId}` : '';
     fetch(`${API_BASE_URL}/animals${params}`)
       .then(r => r.json())
       .then(animals => { setCenterAnimals(animals.filter(a => a.center?.id === center.id)); setAnimalsLoading(false); });
+    fetch(`${API_BASE_URL}/centers/${center.id}/stories`)
+      .then(r => r.json())
+      .then(setStories)
+      .catch(() => {});
   };
 
   const toggleFavorite = async (e, animalId) => {
@@ -75,7 +116,7 @@ function Centers() {
         <div className="relative h-80 overflow-hidden">
           <img src={CENTER_IMAGES[idx]} alt={selectedCenter.name} className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-teal-900/90 via-teal-800/50 to-teal-700/20" />
-          <button onClick={() => { setSelectedCenter(null); setCenterAnimals([]); }}
+          <button onClick={() => { setSelectedCenter(null); setCenterAnimals([]); setStories([]); setGalleryAnimal(null); }}
             className="absolute top-5 left-5 flex items-center gap-2 glass text-white px-4 py-2 rounded-full font-semibold text-sm hover:bg-white/25 transition-all cursor-pointer border-0">
             ← Back
           </button>
@@ -149,12 +190,16 @@ function Centers() {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
-          <div className="flex items-center justify-between mb-6">
+        {/* ── Photo Gallery ── */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-4">
+          <div className="flex items-center justify-between mb-5">
             <div>
-              <h2 className="text-2xl font-black text-gray-800">Animals at this center</h2>
-              <p className="text-gray-400 text-sm mt-0.5">{centerAnimals.filter(a => a.status === 'available').length} available for adoption</p>
+              <h2 className="text-2xl font-black text-gray-800">Animal Gallery</h2>
+              <p className="text-gray-400 text-sm mt-0.5">Click any photo to meet them up close</p>
             </div>
+            <span className="text-xs font-bold text-teal-600 bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-full">
+              {centerAnimals.filter(a => a.status === 'available').length} available
+            </span>
           </div>
 
           {animalsLoading ? (
@@ -171,40 +216,103 @@ function Centers() {
               <p className="text-gray-400 text-sm">Check back soon — new animals are added regularly!</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
               {centerAnimals.map(animal => {
                 const s = STATUS[animal.status] || STATUS.available;
                 return (
                   <div key={animal.id}
-                    className="bg-white rounded-3xl overflow-hidden shadow-card border border-teal-50 hover:shadow-card-hover hover:-translate-y-1.5 transition-all duration-300 group">
-                    <div className="relative h-48 overflow-hidden">
-                      <img src={animal.image} alt={animal.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        onError={e => e.target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=600&q=80'} />
-                      <div className={`absolute top-3 left-3 text-xs font-bold px-2.5 py-1 rounded-full ${s.pill}`}>{s.dot} {s.label}</div>
-                      <button onClick={e => toggleFavorite(e, animal.id)}
-                        className="absolute top-3 right-3 bg-white/90 rounded-full w-8 h-8 flex items-center justify-center text-base shadow-sm hover:scale-110 transition-transform border-0 cursor-pointer">
-                        {animal.is_favorited ? '❤️' : '🤍'}
-                      </button>
+                    className="relative rounded-2xl overflow-hidden cursor-pointer group shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300"
+                    style={{ aspectRatio: '1' }}
+                    onClick={() => setGalleryAnimal(animal)}>
+                    <img src={animal.image} alt={animal.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      onError={e => e.target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=600&q=80'} />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <div className="absolute bottom-0 left-0 right-0 p-2.5 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                      <p className="text-white font-black text-sm truncate">{animal.name}</p>
+                      <p className="text-white/70 text-xs truncate">{animal.breed}</p>
                     </div>
-                    <div className="p-4">
-                      <h3 className="font-black text-gray-800 text-base mb-0.5">{animal.name}</h3>
-                      <p className="text-gray-400 text-xs mb-3">{animal.breed} · {animal.age} yr{animal.age !== 1 ? 's' : ''}</p>
-                      <button onClick={() => navigate(`/adoption?animalId=${animal.id}`)}
-                        disabled={animal.status === 'adopted'}
-                        className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all border-0
-                          ${animal.status === 'adopted'
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : 'bg-gradient-to-r from-coral-500 to-coral-600 text-white hover:shadow-md cursor-pointer'}`}>
-                        {animal.status === 'adopted' ? '🏠 Adopted' : '🐾 Adopt Me!'}
-                      </button>
-                    </div>
+                    <div className={`absolute top-2 left-2 text-xs font-bold px-2 py-0.5 rounded-full ${s.pill}`}>{s.label}</div>
+                    <button onClick={e => toggleFavorite(e, animal.id)}
+                      className="absolute top-2 right-2 bg-white/90 rounded-full w-7 h-7 flex items-center justify-center text-sm shadow-sm hover:scale-110 transition-transform border-0 cursor-pointer">
+                      {animal.is_favorited ? '❤️' : '🤍'}
+                    </button>
                   </div>
                 );
               })}
             </div>
           )}
         </div>
+
+        {/* ── Gallery Lightbox Modal ── */}
+        {galleryAnimal && (() => {
+          const s = STATUS[galleryAnimal.status] || STATUS.available;
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              onClick={() => setGalleryAnimal(null)}>
+              <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+              <div className="relative bg-white rounded-3xl overflow-hidden shadow-2xl max-w-lg w-full"
+                onClick={e => e.stopPropagation()}>
+                <div className="relative h-72 overflow-hidden">
+                  <img src={galleryAnimal.image} alt={galleryAnimal.name}
+                    className="w-full h-full object-cover"
+                    onError={e => e.target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=600&q=80'} />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  <button onClick={() => setGalleryAnimal(null)}
+                    className="absolute top-4 right-4 bg-white/90 rounded-full w-9 h-9 flex items-center justify-center text-gray-700 font-bold text-lg hover:bg-white transition-all border-0 cursor-pointer shadow-md">✕</button>
+                  <div className={`absolute top-4 left-4 text-xs font-bold px-2.5 py-1 rounded-full ${s.pill}`}>{s.dot} {s.label}</div>
+                  <div className="absolute bottom-4 left-4">
+                    <h3 className="text-2xl font-black text-white drop-shadow">{galleryAnimal.name}</h3>
+                    <p className="text-white/80 text-sm">{galleryAnimal.breed} · {galleryAnimal.age} yr{galleryAnimal.age !== 1 ? 's' : ''}</p>
+                  </div>
+                </div>
+                <div className="p-5">
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {galleryAnimal.vaccinated    && <span className="badge bg-teal-50 text-teal-700 border border-teal-100">💉 Vaccinated</span>}
+                    {galleryAnimal.neutered      && <span className="badge bg-teal-50 text-teal-700 border border-teal-100">✂️ Neutered</span>}
+                    {galleryAnimal.microchipped  && <span className="badge bg-teal-50 text-teal-700 border border-teal-100">📡 Microchipped</span>}
+                    {galleryAnimal.good_with_kids && <span className="badge bg-cream-50 text-cream-700 border border-cream-100">👶 Good with kids</span>}
+                    {galleryAnimal.good_with_pets && <span className="badge bg-cream-50 text-cream-700 border border-cream-100">🐾 Good with pets</span>}
+                  </div>
+                  <p className="text-gray-500 text-sm leading-relaxed mb-4">{galleryAnimal.description}</p>
+                  <div className="flex gap-3">
+                    <button onClick={() => setGalleryAnimal(null)}
+                      className="flex-1 py-2.5 rounded-xl text-sm font-bold border border-gray-200 text-gray-500 hover:bg-gray-50 transition-all cursor-pointer bg-white">
+                      Close
+                    </button>
+                    <button
+                      onClick={() => { setGalleryAnimal(null); navigate(`/adoption?animalId=${galleryAnimal.id}`); }}
+                      disabled={galleryAnimal.status === 'adopted'}
+                      className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all border-0
+                        ${galleryAnimal.status === 'adopted'
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'btn-coral cursor-pointer'}`}>
+                      {galleryAnimal.status === 'adopted' ? '🏠 Adopted' : '🐾 Apply to Adopt'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── Happy Tails Stories ── */}
+        {stories.length > 0 && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <div className="bg-gradient-to-r from-teal-600 to-teal-500 rounded-3xl px-8 pt-8 pb-2 mb-8 relative overflow-hidden">
+              <div className="absolute inset-0 opacity-[0.06]"
+                style={{ backgroundImage: 'radial-gradient(circle, white 1.5px, transparent 1.5px)', backgroundSize: '28px 28px' }} />
+              <div className="relative z-10">
+                <p className="section-label text-teal-200 mb-1">Happy Tails</p>
+                <h2 className="text-2xl font-black text-white mb-1">Success Stories 🐾</h2>
+                <p className="text-teal-100 text-sm pb-6">Animals from this center who found their forever homes.</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {stories.map(story => <StoryCard key={story.id} story={story} />)}
+            </div>
+          </div>
+        )}
       </div>
     );
   }

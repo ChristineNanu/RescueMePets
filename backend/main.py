@@ -59,6 +59,7 @@ def animal_to_dict(animal, favorites=None):
         "good_with_pets": animal.good_with_pets or False,
         "energy_level": animal.energy_level or "medium",
         "personality_badges": animal.personality_badges.split(",") if animal.personality_badges else [],
+        "photos": [p.strip() for p in animal.photos.split(",") if p.strip()] if animal.photos else [],
     }
 
 @app.post("/register")
@@ -109,6 +110,18 @@ def get_animal(animal_id: int, user_id: int = None, db: Session = Depends(get_db
         favs = db.query(models.Favorite).filter(models.Favorite.user_id == user_id).all()
         favorites = [f.animal_id for f in favs]
     return animal_to_dict(animal, favorites)
+
+@app.get("/centers/{center_id}/stories")
+def get_center_stories(center_id: int, db: Session = Depends(get_db)):
+    stories = db.query(models.RescueStory).filter(models.RescueStory.center_id == center_id).all()
+    return [{
+        "id": s.id,
+        "adopter_name": s.adopter_name,
+        "animal_name": s.animal_name,
+        "animal_image": s.animal_image,
+        "story": s.story,
+        "adopted_on": s.adopted_on,
+    } for s in stories]
 
 @app.get("/centers")
 def get_centers(db: Session = Depends(get_db)):

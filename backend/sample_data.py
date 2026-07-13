@@ -149,3 +149,50 @@ def create_sample_data(db: Session):
     ]
     db.add_all(animals)
     db.commit()
+
+    stories = [
+        models.RescueStory(
+            center_id=center1.id, animal_name="Mittens",
+            animal_image="https://images.unsplash.com/photo-1561948955-570b270e7c36?w=600&q=80",
+            adopter_name="The Johnson Family",
+            story="We adopted Mittens two years ago and she has completely transformed our home. She sleeps at the foot of our bed every night and greets us at the door. We can't imagine life without her.",
+            adopted_on="January 2023"
+        ),
+        models.RescueStory(
+            center_id=center1.id, animal_name="Rex",
+            animal_image="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=600&q=80",
+            adopter_name="Sarah & Tom",
+            story="Rex was shy when we first met him but within a week he was running laps around our backyard. He's our jogging partner, our alarm clock, and our best friend. Best decision we ever made.",
+            adopted_on="June 2023"
+        ),
+        models.RescueStory(
+            center_id=center2.id, animal_name="Biscuit",
+            animal_image="https://images.unsplash.com/photo-1552053831-71594a27632d?w=600&q=80",
+            adopter_name="The Omondi Family",
+            story="Biscuit came to us as a timid puppy. Today he's the most confident, loving dog you'll ever meet. He plays with our kids every afternoon and has brought so much joy to our family.",
+            adopted_on="March 2024"
+        ),
+        models.RescueStory(
+            center_id=center2.id, animal_name="Pearl",
+            animal_image="https://images.unsplash.com/photo-1574158622682-e40e69881006?w=600&q=80",
+            adopter_name="Amara N.",
+            story="I was nervous about adopting my first cat but the team at Paws Rescue guided me through everything. Pearl settled in within days and now she's my work-from-home companion. She sits on my desk every single day.",
+            adopted_on="August 2024"
+        ),
+        models.RescueStory(
+            center_id=center3.id, animal_name="Duke",
+            animal_image="https://images.unsplash.com/photo-1589941013453-ec89f33b5e95?w=600&q=80",
+            adopter_name="The Williams Family",
+            story="Duke was a Second Chance success story in every sense. He'd been passed over three times before we met him. Now he goes hiking with us every weekend and has his own Instagram. He deserved this.",
+            adopted_on="November 2023"
+        ),
+        models.RescueStory(
+            center_id=center4.id, animal_name="Cinnamon",
+            animal_image="https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=600&q=80",
+            adopter_name="James & Priya",
+            story="We adopted Cinnamon on a whim and it was the best whim of our lives. She's feisty, funny, and endlessly entertaining. Our apartment feels like a home now because of her.",
+            adopted_on="February 2025"
+        ),
+    ]
+    db.add_all(stories)
+    db.commit()

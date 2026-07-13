@@ -33,6 +33,7 @@ class Animal(Base):
     good_with_pets = Column(Boolean, default=False)
     energy_level = Column(String, default="medium")
     personality_badges = Column(String, default="")
+    photos = Column(String, default="")  # comma-separated extra photo URLs
 
 class Center(Base):
     __tablename__ = "centers"
@@ -79,6 +80,19 @@ class Payment(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     user = relationship("User")
     adoption = relationship("Adoption")
+
+class RescueStory(Base):
+    __tablename__ = "rescue_stories"
+    id = Column(Integer, primary_key=True, index=True)
+    center_id = Column(Integer, ForeignKey("centers.id"))
+    animal_id = Column(Integer, ForeignKey("animals.id"), nullable=True)
+    adopter_name = Column(String)          # e.g. "The Kamau Family"
+    animal_name = Column(String)           # denormalised for speed
+    animal_image = Column(String)
+    story = Column(Text)
+    adopted_on = Column(String)            # e.g. "March 2025"
+    center = relationship("Center")
+    animal = relationship("Animal")
 
 class Waitlist(Base):
     __tablename__ = "waitlist"
