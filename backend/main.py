@@ -401,20 +401,18 @@ def check_payment_status(payment_id: int, db: Session = Depends(get_db)):
     if payment.status == "pending" and payment.checkout_request_id:
         try:
             result = query_stk_status(payment.checkout_request_id)
-            result_code = result.get("ResultCode")
-            # Only update if explicitly success (0) - ignore processing states
-            if str(result_code) == "0":
+            result_code = str(result.get("ResultCode", ""))
+            print(f"STK Query result for payment {payment_id}: {result}")
+            if result_code == "0":
                 payment.status = "completed"
+                payment.mpesa_receipt = payment.mpesa_receipt or result.get("MpesaReceiptNumber")
                 if payment.adoption:
                     payment.adoption.status = "approved"
                 db.commit()
-            # Code 1032 = cancelled by user, 1037 = timeout - only then mark failed
-            elif str(result_code) in ["1032", "1037", "1"]:
-                payment.status = "failed"
-                db.commit()
-            # All other codes = still processing, leave as pending
-        except Exception:
-            pass  # Keep as pending if query fails
+            # Do NOT mark failed from query API — sandbox returns 1032 even after real payment
+            # Only the /pay/callback webhook should mark failed
+        except Exception as e:
+            print(f"STK query error for payment {payment_id}: {e}")
 
     return {
         "payment_id": payment.id,
@@ -444,16 +442,19 @@ def test_complete_payment(payment_id: int, db: Session = Depends(get_db)):
 @app.post("/pay/callback")
 async def mpesa_callback(request: Request, db: Session = Depends(get_db)):
     body = await request.json()
+    print(f"M-PESA CALLBACK RECEIVED: {body}")
     try:
         stk_callback = body["Body"]["stkCallback"]
         checkout_request_id = stk_callback["CheckoutRequestID"]
         result_code = stk_callback["ResultCode"]
+        print(f"Callback: checkout_id={checkout_request_id}, result_code={result_code}")
 
         payment = db.query(models.Payment).filter(
             models.Payment.checkout_request_id == checkout_request_id
         ).first()
 
         if not payment:
+            print(f"Callback: no payment found for checkout_id={checkout_request_id}")
             return {"ResultCode": 0, "ResultDesc": "Accepted"}
 
         if result_code == 0:
@@ -463,8 +464,10 @@ async def mpesa_callback(request: Request, db: Session = Depends(get_db)):
             payment.mpesa_receipt = receipt
             if payment.adoption:
                 payment.adoption.status = "approved"
+            print(f"Callback: payment {payment.id} completed, receipt={receipt}")
         else:
             payment.status = "failed"
+            print(f"Callback: payment {payment.id} failed with code {result_code}")
 
         db.commit()
     except Exception:
