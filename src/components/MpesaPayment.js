@@ -195,7 +195,6 @@ function MpesaPayment({ adoptionId, animalName, onSuccess, onCancel }) {
                 setManualConfirming(true);
                 try {
                   const res = await fetch(`${API_BASE_URL}/pay/test-complete/${paymentId}`, { method: 'POST' });
-                  const data = await res.json();
                   if (res.ok) {
                     clearInterval(pollRef.current);
                     clearInterval(countRef.current);
