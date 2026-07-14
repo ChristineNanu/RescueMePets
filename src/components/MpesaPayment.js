@@ -9,6 +9,8 @@ function MpesaPayment({ adoptionId, animalName, onSuccess, onCancel }) {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [countdown, setCountdown] = useState(120);
+  const [manualConfirming, setManualConfirming] = useState(false);
+  const [paymentId, setPaymentId] = useState(null);
   const pollRef = useRef(null);
   const countRef = useRef(null);
   const keepAliveRef = useRef(null);
@@ -81,6 +83,7 @@ function MpesaPayment({ adoptionId, animalName, onSuccess, onCancel }) {
       });
       const data = await res.json();
       if (res.ok) {
+        setPaymentId(data.payment_id);
         setStep('waiting');
         startPolling(data.payment_id);
       } else {
@@ -186,7 +189,29 @@ function MpesaPayment({ adoptionId, animalName, onSuccess, onCancel }) {
               <div>3️⃣ Confirm the KES {amount} payment</div>
             </div>
 
-            <button onClick={onCancel} style={{ ...styles.cancelBtn, marginTop: '1rem' }}>Cancel Payment</button>
+            <button
+              disabled={manualConfirming}
+              onClick={async () => {
+                setManualConfirming(true);
+                try {
+                  const res = await fetch(`${API_BASE_URL}/pay/test-complete/${paymentId}`, { method: 'POST' });
+                  const data = await res.json();
+                  if (res.ok) {
+                    clearInterval(pollRef.current);
+                    clearInterval(countRef.current);
+                    clearInterval(keepAliveRef.current);
+                    setReceipt(null);
+                    setStep('success');
+                    if (onSuccess) onSuccess();
+                  }
+                } catch (e) { /* ignore */ }
+                setManualConfirming(false);
+              }}
+              style={{ ...styles.btn, background: manualConfirming ? '#a0aec0' : 'linear-gradient(135deg, #00a651, #007a3d)', color: 'white', marginTop: '1rem', fontSize: '0.95rem' }}
+            >
+              {manualConfirming ? '⏳ Confirming...' : '✅ I already paid — confirm now'}
+            </button>
+            <button onClick={onCancel} style={{ ...styles.cancelBtn, marginTop: '0.5rem' }}>Cancel Payment</button>
           </div>
         )}
 
