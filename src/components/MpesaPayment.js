@@ -11,22 +11,31 @@ function MpesaPayment({ adoptionId, animalName, onSuccess, onCancel }) {
   const [countdown, setCountdown] = useState(120);
   const pollRef = useRef(null);
   const countRef = useRef(null);
+  const keepAliveRef = useRef(null);
   const userId = localStorage.getItem('user_id');
 
   useEffect(() => {
     return () => {
       clearInterval(pollRef.current);
       clearInterval(countRef.current);
+      clearInterval(keepAliveRef.current);
     };
   }, []);
 
   const startPolling = (pid) => {
     setCountdown(120);
+
+    // Keep Render awake during payment so callback isn't missed
+    keepAliveRef.current = setInterval(() => {
+      fetch(`${API_BASE_URL}/health`).catch(() => {});
+    }, 20000);
+
     countRef.current = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
           clearInterval(countRef.current);
           clearInterval(pollRef.current);
+          clearInterval(keepAliveRef.current);
           setStep('failed');
           setError('Payment timed out. Please try again.');
           return 0;
@@ -43,6 +52,7 @@ function MpesaPayment({ adoptionId, animalName, onSuccess, onCancel }) {
         if (data.status === 'completed') {
           clearInterval(pollRef.current);
           clearInterval(countRef.current);
+          clearInterval(keepAliveRef.current);
           setReceipt(data.mpesa_receipt);
           setStep('success');
           // Call onSuccess without args to match parent handlers
