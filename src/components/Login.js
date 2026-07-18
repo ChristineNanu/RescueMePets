@@ -31,9 +31,10 @@ export const Login = ({ onLogin }) => {
   return (
     <div className="min-h-screen flex">
       {/* Left panel */}
-      <div className="hidden lg:flex lg:w-[52%] relative overflow-hidden">
-        <img src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=1200&q=85"
-          alt="pets" className="absolute inset-0 w-full h-full object-cover" />
+      <div className="hidden lg:flex lg:w-[52%] relative overflow-hidden bg-teal-800">
+        <img src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800&q=75"
+          alt="pets" className="absolute inset-0 w-full h-full object-cover"
+          loading="eager" fetchpriority="high" decoding="async" />
         <div className="absolute inset-0 bg-gradient-to-br from-teal-900/92 via-teal-800/80 to-teal-600/70" />
         <div className="absolute top-0 right-0 w-64 h-64 bg-coral-400/10 rounded-full blur-3xl" />
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-teal-300/10 rounded-full blur-3xl" />
