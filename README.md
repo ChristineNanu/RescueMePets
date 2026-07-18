@@ -316,7 +316,6 @@ npm start
 
 Frontend runs at `http://localhost:3000`
 
-
 ## User Roles
 
 ### 👤 Visitor
