@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../constants';
 
 function MpesaPayment({ adoptionId, animalName, onSuccess, onCancel }) {
@@ -11,6 +12,7 @@ function MpesaPayment({ adoptionId, animalName, onSuccess, onCancel }) {
   const [countdown, setCountdown] = useState(120);
   const [manualConfirming, setManualConfirming] = useState(false);
   const [paymentId, setPaymentId] = useState(null);
+  const navigate = useNavigate();
   const pollRef = useRef(null);
   const countRef = useRef(null);
   const keepAliveRef = useRef(null);
@@ -57,8 +59,7 @@ function MpesaPayment({ adoptionId, animalName, onSuccess, onCancel }) {
           clearInterval(keepAliveRef.current);
           setReceipt(data.mpesa_receipt);
           setStep('success');
-          // Call onSuccess without args to match parent handlers
-          if (onSuccess) onSuccess();
+          // Don't call onSuccess here — let user click the button to navigate
         }
         // Only mark failed if explicitly failed - NOT on pending/processing
         // We let the countdown handle timeout
@@ -201,7 +202,6 @@ function MpesaPayment({ adoptionId, animalName, onSuccess, onCancel }) {
                     clearInterval(keepAliveRef.current);
                     setReceipt(null);
                     setStep('success');
-                    if (onSuccess) onSuccess();
                   }
                 } catch (e) { /* ignore */ }
                 setManualConfirming(false);
@@ -232,7 +232,7 @@ function MpesaPayment({ adoptionId, animalName, onSuccess, onCancel }) {
               🎉 Your adoption application has been <strong>automatically approved!</strong>
             </div>
 
-            <button onClick={() => onSuccess && onSuccess()} style={{ ...styles.btn, background: 'linear-gradient(135deg, #667eea, #764ba2)', color: 'white' }}>
+            <button onClick={() => { if (onSuccess) onSuccess(); navigate('/my-profile'); }} style={{ ...styles.btn, background: 'linear-gradient(135deg, #667eea, #764ba2)', color: 'white' }}>
               🐾 View My Applications
             </button>
           </div>
