@@ -2,8 +2,11 @@ from sqlalchemy.orm import Session
 import models
 
 def create_sample_data(db: Session):
-    if db.query(models.Center).count() > 0:
-        return
+    try:
+        if db.query(models.Center).count() > 0:
+            return
+    except Exception:
+        return  # Tables not ready yet, skip seeding
 
     center1 = models.Center(
         name="Happy Tails Shelter", location="New York, NY",
