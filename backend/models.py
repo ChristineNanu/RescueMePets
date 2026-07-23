@@ -112,3 +112,26 @@ class Sponsor(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     user = relationship("User")
     animal = relationship("Animal")
+
+class Vet(Base):
+    __tablename__ = "vets"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String)
+    clinic = Column(String)
+    phone = Column(String)
+    specialization = Column(String, default="General")
+    center_id = Column(Integer, ForeignKey("centers.id"))
+    center = relationship("Center")
+
+class SupportTicket(Base):
+    __tablename__ = "support_tickets"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    adoption_id = Column(Integer, ForeignKey("adoptions.id"))
+    issue = Column(Text)
+    status = Column(String, default="open")  # open, in_progress, resolved
+    vet_id = Column(Integer, ForeignKey("vets.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    user = relationship("User")
+    adoption = relationship("Adoption")
+    vet = relationship("Vet")

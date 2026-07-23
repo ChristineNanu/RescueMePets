@@ -10,11 +10,18 @@ const STATUS_MAP = {
 
 const TOPUP_AMOUNTS = [1000, 2000, 5000, 10000];
 
+const TICKET_STATUS = {
+  open:        { bg: 'bg-cream-100',  text: 'text-cream-700',  label: 'Open' },
+  in_progress: { bg: 'bg-teal-100',   text: 'text-teal-700',   label: 'In Progress' },
+  resolved:    { bg: 'bg-gray-100',   text: 'text-gray-500',   label: 'Resolved' },
+};
+
 function MyApplications() {
   const [applications, setApplications] = useState([]);
   const [favorites, setFavorites]       = useState([]);
   const [sponsorships, setSponsorships] = useState([]);
   const [profile, setProfile]           = useState(null);
+  const [tickets, setTickets]           = useState([]);
   const [tab, setTab]                   = useState('applications');
   const [loading, setLoading]           = useState(true);
   const [editing, setEditing]           = useState(false);
@@ -22,6 +29,10 @@ function MyApplications() {
   const [editMsg, setEditMsg]           = useState('');
   const [topUpAmount, setTopUpAmount]   = useState(1000);
   const [walletMsg, setWalletMsg]       = useState('');
+  const [supportModal, setSupportModal] = useState(null); // adoption object
+  const [issueText, setIssueText]       = useState('');
+  const [ticketMsg, setTicketMsg]       = useState('');
+  const [ticketLoading, setTicketLoading] = useState(false);
   const navigate = useNavigate();
   const userId   = localStorage.getItem('user_id');
 
@@ -39,11 +50,13 @@ function MyApplications() {
       fetch(`${API_BASE_URL}/favorites?user_id=${userId}`).then(r => r.json()),
       fetch(`${API_BASE_URL}/my-sponsorships?user_id=${userId}`).then(r => r.json()),
       fetch(`${API_BASE_URL}/profile?user_id=${userId}`).then(r => r.json()),
-    ]).then(([apps, favs, sponsors, prof]) => {
+      fetch(`${API_BASE_URL}/support?user_id=${userId}`).then(r => r.json()),
+    ]).then(([apps, favs, sponsors, prof, tix]) => {
       setApplications(Array.isArray(apps) ? apps : []);
       setFavorites(Array.isArray(favs) ? favs : []);
       setSponsorships(Array.isArray(sponsors) ? sponsors : []);
       setProfile(prof);
+      setTickets(Array.isArray(tix) ? tix : []);
       if (prof?.username && prof?.email) setEditForm({ username: prof.username, email: prof.email, avatar: prof.avatar });
     }).catch(() => setEditMsg('Failed to load profile data'))
       .finally(() => setLoading(false));
@@ -76,6 +89,24 @@ function MyApplications() {
     const data = await res.json();
     if (res.ok) { setProfile(p => ({ ...p, wallet_balance: data.wallet_balance })); setWalletMsg(`✅ $${(topUpAmount / 100).toFixed(0)} added!`); }
     else setWalletMsg('❌ Top up failed');
+  };
+
+  const submitTicket = async () => {
+    if (!issueText.trim()) return;
+    setTicketLoading(true); setTicketMsg('');
+    const res = await fetch(`${API_BASE_URL}/support`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: parseInt(userId), adoption_id: supportModal.id, issue: issueText }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setTicketMsg('✅ Your request has been sent! The rescue center will assign a vet shortly.');
+      setIssueText('');
+      fetch(`${API_BASE_URL}/support?user_id=${userId}`).then(r => r.json()).then(tix => setTickets(Array.isArray(tix) ? tix : []));
+    } else {
+      setTicketMsg(`⚠️ ${data.detail || 'Failed to submit'}`);
+    }
+    setTicketLoading(false);
   };
 
   if (loading) return (
@@ -113,6 +144,39 @@ function MyApplications() {
           </button>
         </div>
       </div>
+
+      {/* Support Modal */}
+      {supportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-teal-50 modal-enter">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-2xl bg-teal-100 flex items-center justify-center text-xl">🐾</div>
+              <div>
+                <h2 className="text-base font-black text-gray-800">Need Help with {supportModal.animal_name}?</h2>
+                <p className="text-xs text-gray-400">We'll connect you with a vet from the rescue center</p>
+              </div>
+            </div>
+            <textarea
+              className="input-field w-full resize-none text-sm"
+              rows={4}
+              placeholder="Describe the issue (e.g. not eating, limping, skin rash...)" 
+              value={issueText}
+              onChange={e => setIssueText(e.target.value)}
+            />
+            {ticketMsg && (
+              <p className={`text-xs font-semibold mt-2 ${ticketMsg.startsWith('✅') ? 'text-teal-600' : 'text-coral-600'}`}>{ticketMsg}</p>
+            )}
+            <div className="flex gap-2 mt-3">
+              <button onClick={() => { setSupportModal(null); setIssueText(''); setTicketMsg(''); }}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold text-gray-500 bg-gray-100 border-0 cursor-pointer hover:bg-gray-200 transition-all">Cancel</button>
+              <button onClick={submitTicket} disabled={ticketLoading || !issueText.trim()}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white btn-primary border-0 cursor-pointer disabled:opacity-50">
+                {ticketLoading ? 'Sending...' : 'Send Request'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Edit Modal */}
       {editing && (
@@ -265,6 +329,38 @@ function MyApplications() {
                     <p className="text-gray-300 text-xs mt-1">
                       Applied {new Date(app.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                     </p>
+                    {/* Ticket info or Need Help button */}
+                    {(() => {
+                      const ticket = tickets.find(t => t.adoption_id === app.id);
+                      if (ticket) {
+                        const ts = TICKET_STATUS[ticket.status] || TICKET_STATUS.open;
+                        return (
+                          <div className="mt-3 bg-teal-50 border border-teal-100 rounded-xl p-3">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-bold text-teal-700">🐾 Support Request</span>
+                              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${ts.bg} ${ts.text}`}>{ts.label}</span>
+                            </div>
+                            <p className="text-xs text-gray-500 italic line-clamp-1">"{ticket.issue}"</p>
+                            {ticket.vet ? (
+                              <div className="mt-2 bg-white rounded-lg p-2 border border-teal-100">
+                                <p className="text-xs font-bold text-gray-700">🩺 Assigned Vet: {ticket.vet.name}</p>
+                                <p className="text-xs text-gray-400">{ticket.vet.clinic} · {ticket.vet.specialization}</p>
+                                <p className="text-xs text-teal-600 font-semibold mt-0.5">📞 {ticket.vet.phone}</p>
+                              </div>
+                            ) : (
+                              <p className="text-xs text-gray-400 mt-1">⏳ A vet will be assigned shortly</p>
+                            )}
+                          </div>
+                        );
+                      }
+                      return (
+                        <button
+                          onClick={() => { setSupportModal(app); setTicketMsg(''); setIssueText(''); }}
+                          className="mt-3 text-xs font-bold text-teal-600 bg-teal-50 border border-teal-200 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-teal-100 transition-all">
+                          🐾 Need Help?
+                        </button>
+                      );
+                    })()}
                   </div>
                 </div>
               );

@@ -136,10 +136,19 @@ class WalletTopUp(BaseModel):
     amount: int  # in cents
 
 class QuizAnswers(BaseModel):
-    activity: str        # active, moderate, relaxed
-    home: str            # house, apartment, farm
+    activity: str
+    home: str
     has_kids: bool
     has_pets: bool
-    experience: str      # first, some, experienced
-    time_home: str       # always, sometimes, rarely
-    species_pref: str    # any, Dog, Cat, Rabbit, Bird
+    experience: str
+    time_home: str
+    species_pref: str
+
+class SupportTicketCreate(BaseModel):
+    user_id: int
+    adoption_id: int
+    issue: str
+
+class TicketStatusUpdate(BaseModel):
+    status: str
+    vet_id: Optional[int] = None

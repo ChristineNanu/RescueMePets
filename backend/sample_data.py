@@ -199,3 +199,16 @@ def create_sample_data(db: Session):
     ]
     db.add_all(stories)
     db.commit()
+
+    vets = [
+        models.Vet(name="Dr. Sarah Kimani", clinic="PawsCare Veterinary", phone="+1 (212) 555-1001", specialization="General & Surgery", center_id=center1.id),
+        models.Vet(name="Dr. James Oduya", clinic="Happy Tails Vet Clinic", phone="+1 (212) 555-1002", specialization="Exotic Animals", center_id=center1.id),
+        models.Vet(name="Dr. Maria Lopez", clinic="LA Animal Health Center", phone="+1 (310) 555-2001", specialization="General Practice", center_id=center2.id),
+        models.Vet(name="Dr. Kevin Mwangi", clinic="Paws & Claws Clinic", phone="+1 (310) 555-2002", specialization="Dermatology", center_id=center2.id),
+        models.Vet(name="Dr. Aisha Njoroge", clinic="Second Chance Vet", phone="+1 (312) 555-3001", specialization="Internal Medicine", center_id=center3.id),
+        models.Vet(name="Dr. Tom Waweru", clinic="Chicago Pet Hospital", phone="+1 (312) 555-3002", specialization="Orthopedics", center_id=center3.id),
+        models.Vet(name="Dr. Grace Otieno", clinic="Austin Animal Clinic", phone="+1 (512) 555-4001", specialization="General Practice", center_id=center4.id),
+        models.Vet(name="Dr. Brian Kamau", clinic="Forever Home Vet", phone="+1 (512) 555-4002", specialization="Nutrition & Wellness", center_id=center4.id),
+    ]
+    db.add_all(vets)
+    db.commit()

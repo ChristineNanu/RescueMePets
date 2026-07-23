@@ -545,6 +545,55 @@ async def b2c_callback(request: Request, db: Session = Depends(get_db)):
         traceback.print_exc()
     return {"ResultCode": 0, "ResultDesc": "Accepted"}
 
+# ─── SUPPORT TICKETS ────────────────────────────────────────────────────────
+
+@app.post("/support")
+def create_ticket(req: schemas.SupportTicketCreate, db: Session = Depends(get_db)):
+    existing = db.query(models.SupportTicket).filter(
+        models.SupportTicket.adoption_id == req.adoption_id,
+        models.SupportTicket.status != "resolved"
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="An open ticket already exists for this adoption")
+    ticket = models.SupportTicket(user_id=req.user_id, adoption_id=req.adoption_id, issue=req.issue)
+    db.add(ticket)
+    db.commit()
+    db.refresh(ticket)
+    return {"message": "Support ticket created", "ticket_id": ticket.id}
+
+@app.get("/support")
+def get_tickets(user_id: int, db: Session = Depends(get_db)):
+    tickets = db.query(models.SupportTicket).filter(
+        models.SupportTicket.user_id == user_id
+    ).order_by(models.SupportTicket.created_at.desc()).all()
+    return [{
+        "id": t.id,
+        "adoption_id": t.adoption_id,
+        "animal_name": t.adoption.animal.name,
+        "issue": t.issue,
+        "status": t.status,
+        "created_at": t.created_at.isoformat(),
+        "vet": {"name": t.vet.name, "clinic": t.vet.clinic, "phone": t.vet.phone, "specialization": t.vet.specialization} if t.vet else None
+    } for t in tickets]
+
+@app.patch("/support/{ticket_id}")
+def update_ticket(ticket_id: int, body: schemas.TicketStatusUpdate, db: Session = Depends(get_db)):
+    ticket = db.query(models.SupportTicket).filter(models.SupportTicket.id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    ticket.status = body.status
+    if body.vet_id:
+        ticket.vet_id = body.vet_id
+    db.commit()
+    return {"message": "Ticket updated"}
+
+@app.get("/vets")
+def get_vets(center_id: int = None, db: Session = Depends(get_db)):
+    query = db.query(models.Vet)
+    if center_id:
+        query = query.filter(models.Vet.center_id == center_id)
+    return [{"id": v.id, "name": v.name, "clinic": v.clinic, "phone": v.phone, "specialization": v.specialization, "center_id": v.center_id} for v in query.all()]
+
 @app.post("/quiz/match")
 def quiz_match(answers: schemas.QuizAnswers, db: Session = Depends(get_db)):
     """Score all available animals against quiz answers and return top matches."""
