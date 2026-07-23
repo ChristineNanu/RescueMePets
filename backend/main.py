@@ -405,6 +405,11 @@ def check_payment_status(payment_id: int, db: Session = Depends(get_db)):
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
 
+    # If adoption is already approved, sync payment to completed
+    if payment.status == "pending" and payment.adoption and payment.adoption.status == "approved":
+        payment.status = "completed"
+        db.commit()
+
     if payment.status == "pending" and payment.checkout_request_id:
         try:
             result = query_stk_status(payment.checkout_request_id)
@@ -416,8 +421,6 @@ def check_payment_status(payment_id: int, db: Session = Depends(get_db)):
                 if payment.adoption:
                     payment.adoption.status = "approved"
                 db.commit()
-            # Do NOT mark failed from query API — sandbox returns 1032 even after real payment
-            # Only the /pay/callback webhook should mark failed
         except Exception as e:
             print(f"STK query error for payment {payment_id}: {e}")
 
@@ -471,6 +474,7 @@ async def mpesa_callback(request: Request, db: Session = Depends(get_db)):
             payment.mpesa_receipt = receipt
             if payment.adoption:
                 payment.adoption.status = "approved"
+                payment.adoption.read = False
             print(f"Callback: payment {payment.id} completed, receipt={receipt}")
         else:
             payment.status = "failed"
