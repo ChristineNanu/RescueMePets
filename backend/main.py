@@ -81,8 +81,10 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
 @app.post("/login")
 def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(models.User).filter(models.User.username == user.username).first()
-    if not db_user or not verify_password(user.password, db_user.password):
-        raise HTTPException(status_code=400, detail="Invalid credentials")
+    if not db_user:
+        raise HTTPException(status_code=400, detail="Username not found. Please check your username or register.")
+    if not verify_password(user.password, db_user.password):
+        raise HTTPException(status_code=400, detail="Incorrect password. Please try again.")
     return {"message": "Login successful", "user_id": db_user.id, "username": db_user.username}
 
 @app.get("/animals")
