@@ -576,6 +576,20 @@ def get_tickets(user_id: int, db: Session = Depends(get_db)):
         "vet": {"name": t.vet.name, "clinic": t.vet.clinic, "phone": t.vet.phone, "specialization": t.vet.specialization} if t.vet else None
     } for t in tickets]
 
+@app.get("/support/all")
+def get_all_tickets(db: Session = Depends(get_db)):
+    tickets = db.query(models.SupportTicket).order_by(models.SupportTicket.created_at.desc()).all()
+    return [{
+        "id": t.id,
+        "adoption_id": t.adoption_id,
+        "animal_name": t.adoption.animal.name,
+        "center_id": t.adoption.animal.center_id,
+        "issue": t.issue,
+        "status": t.status,
+        "created_at": t.created_at.isoformat(),
+        "vet": {"name": t.vet.name, "clinic": t.vet.clinic, "phone": t.vet.phone, "specialization": t.vet.specialization} if t.vet else None
+    } for t in tickets]
+
 @app.patch("/support/{ticket_id}")
 def update_ticket(ticket_id: int, body: schemas.TicketStatusUpdate, db: Session = Depends(get_db)):
     ticket = db.query(models.SupportTicket).filter(models.SupportTicket.id == ticket_id).first()

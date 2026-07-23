@@ -59,6 +59,10 @@ export default function Dashboard({ onOpenQuiz }) {
   const [barWidth, setBarWidth]     = useState(0);
   const [tipIdx, setTipIdx]         = useState(0);
   const [tipVisible, setTipVisible] = useState(true);
+  const [tickets, setTickets]       = useState([]);
+  const [vets, setVets]             = useState([]);
+  const [assigningTicket, setAssigningTicket] = useState(null); // ticket id
+  const [assignVetId, setAssignVetId]         = useState('');
 
   const navigate  = useNavigate();
   const username  = localStorage.getItem('username') || 'Friend';
@@ -72,17 +76,47 @@ export default function Dashboard({ onOpenQuiz }) {
       fetch(`${API_BASE_URL}/stats`).then(r => r.ok ? r.json() : Promise.reject()),
       fetch(`${API_BASE_URL}/animals?user_id=${userId}`).then(r => r.ok ? r.json() : Promise.reject()),
       userId ? fetch(`${API_BASE_URL}/my-applications?user_id=${userId}`).then(r => r.ok ? r.json() : []) : Promise.resolve([]),
-    ]).then(([s, a, ap]) => {
+      fetch(`${API_BASE_URL}/vets`).then(r => r.ok ? r.json() : []),
+    ]).then(([s, a, ap, v]) => {
       setStats(s);
       setAnimals(a.filter(x => x.status === 'available').slice(0, 4));
       setApps(Array.isArray(ap) ? ap : []);
+      setVets(Array.isArray(v) ? v : []);
     }).catch(() => setError('Failed to load dashboard'))
       .finally(() => setLoading(false));
+
+    // Load all support tickets (admin view)
+    fetch(`${API_BASE_URL}/support/all`)
+      .then(r => r.ok ? r.json() : [])
+      .then(t => setTickets(Array.isArray(t) ? t : []))
+      .catch(() => {});
   }, [userId]);
 
   const rate     = stats.total_animals > 0 ? Math.round((stats.adopted / stats.total_animals) * 100) : 0;
   const approved = apps.filter(a => a.status === 'approved').length;
   const feed     = [...apps].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 4);
+
+  const assignVet = async (ticketId) => {
+    if (!assignVetId) return;
+    await fetch(`${API_BASE_URL}/support/${ticketId}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'in_progress', vet_id: parseInt(assignVetId) }),
+    });
+    setTickets(ts => ts.map(t => t.id === ticketId
+      ? { ...t, status: 'in_progress', vet: vets.find(v => v.id === parseInt(assignVetId)) }
+      : t
+    ));
+    setAssigningTicket(null);
+    setAssignVetId('');
+  };
+
+  const resolveTicket = async (ticketId) => {
+    await fetch(`${API_BASE_URL}/support/${ticketId}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'resolved' }),
+    });
+    setTickets(ts => ts.map(t => t.id === ticketId ? { ...t, status: 'resolved' } : t));
+  };
 
   useEffect(() => { if (!loading) setTimeout(() => setBarWidth(rate), 300); }, [loading, rate]);
 
@@ -350,6 +384,84 @@ export default function Dashboard({ onOpenQuiz }) {
           </div>
         </div>
       </div>
+
+      {/* ── Support Tickets (Admin) ─────────────────────── */}
+      {tickets.length > 0 && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+          <div className="bg-white rounded-3xl border border-teal-50 shadow-card overflow-hidden">
+            <div className="px-6 py-4 border-b border-teal-50 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <h2 className="font-black text-gray-900 text-base">🐾 Support Tickets</h2>
+                <span className="badge bg-coral-100 text-coral-700">
+                  {tickets.filter(t => t.status !== 'resolved').length} open
+                </span>
+              </div>
+            </div>
+            <div className="divide-y divide-teal-50">
+              {tickets.map(ticket => {
+                const TSTATUS = {
+                  open:        { bg: 'bg-cream-100',  text: 'text-cream-700',  label: 'Open' },
+                  in_progress: { bg: 'bg-teal-100',   text: 'text-teal-700',   label: 'In Progress' },
+                  resolved:    { bg: 'bg-gray-100',   text: 'text-gray-400',   label: 'Resolved' },
+                };
+                const ts = TSTATUS[ticket.status] || TSTATUS.open;
+                const centerVets = vets.filter(v => v.center_id === ticket.center_id);
+                return (
+                  <div key={ticket.id} className={`px-6 py-4 flex flex-col sm:flex-row sm:items-start gap-3 ${ticket.status === 'resolved' ? 'opacity-50' : ''}`}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-bold text-gray-800 text-sm">{ticket.animal_name}</span>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${ts.bg} ${ts.text}`}>{ts.label}</span>
+                      </div>
+                      <p className="text-xs text-gray-500 italic mb-1">"{ticket.issue}"</p>
+                      <p className="text-xs text-gray-300">{new Date(ticket.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                      {ticket.vet && (
+                        <p className="text-xs text-teal-600 font-semibold mt-1">🩺 {ticket.vet.name} · {ticket.vet.clinic}</p>
+                      )}
+                    </div>
+                    {ticket.status !== 'resolved' && (
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {assigningTicket === ticket.id ? (
+                          <>
+                            <select
+                              value={assignVetId}
+                              onChange={e => setAssignVetId(e.target.value)}
+                              className="text-xs border border-teal-200 rounded-xl px-3 py-2 outline-none focus:border-teal-400 bg-white">
+                              <option value="">Select vet...</option>
+                              {vets.map(v => (
+                                <option key={v.id} value={v.id}>{v.name} — {v.specialization}</option>
+                              ))}
+                            </select>
+                            <button onClick={() => assignVet(ticket.id)}
+                              className="text-xs font-bold text-white bg-teal-500 border-0 px-3 py-2 rounded-xl cursor-pointer hover:bg-teal-600 transition-all">
+                              Assign
+                            </button>
+                            <button onClick={() => setAssigningTicket(null)}
+                              className="text-xs font-bold text-gray-400 bg-gray-100 border-0 px-3 py-2 rounded-xl cursor-pointer hover:bg-gray-200 transition-all">
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button onClick={() => { setAssigningTicket(ticket.id); setAssignVetId(''); }}
+                              className="text-xs font-bold text-teal-600 bg-teal-50 border border-teal-200 px-3 py-2 rounded-xl cursor-pointer hover:bg-teal-100 transition-all">
+                              🩺 {ticket.vet ? 'Reassign Vet' : 'Assign Vet'}
+                            </button>
+                            <button onClick={() => resolveTicket(ticket.id)}
+                              className="text-xs font-bold text-gray-500 bg-gray-100 border-0 px-3 py-2 rounded-xl cursor-pointer hover:bg-gray-200 transition-all">
+                              ✓ Resolve
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="mt-12 border-t border-teal-100/60 bg-white py-8">
