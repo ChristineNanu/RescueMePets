@@ -405,7 +405,7 @@ export default function Dashboard({ onOpenQuiz }) {
                   resolved:    { bg: 'bg-gray-100',   text: 'text-gray-400',   label: 'Resolved' },
                 };
                 const ts = TSTATUS[ticket.status] || TSTATUS.open;
-                const centerVets = vets.filter(v => v.center_id === ticket.center_id);
+
                 return (
                   <div key={ticket.id} className={`px-6 py-4 flex flex-col sm:flex-row sm:items-start gap-3 ${ticket.status === 'resolved' ? 'opacity-50' : ''}`}>
                     <div className="flex-1 min-w-0">
