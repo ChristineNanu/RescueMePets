@@ -67,6 +67,7 @@ def health_check():
     return {"status": "ok"}
 
 
+@app.post("/register")
 def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     if db.query(models.User).filter(models.User.username == user.username).first():
         raise HTTPException(status_code=400, detail="Username already registered")
