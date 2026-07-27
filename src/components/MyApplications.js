@@ -103,9 +103,10 @@ function MyApplications() {
     });
     const data = await res.json();
     if (res.ok) {
-      setTicketMsg('✅ Your request has been sent! The rescue center will assign a vet shortly.');
-      setIssueText('');
       fetch(`${API_BASE_URL}/support?user_id=${userId}`).then(r => r.json()).then(tix => setTickets(Array.isArray(tix) ? tix : []));
+      setSupportModal(null);
+      setIssueText('');
+      setTicketMsg('');
     } else {
       setTicketMsg(`⚠️ ${data.detail || 'Failed to submit'}`);
     }
@@ -129,6 +130,7 @@ function MyApplications() {
     if (res.ok) {
       setApplications(prev => prev.map(a => a.id === editAppModal.id ? { ...a, message: editAppText } : a));
       setEditAppModal(null);
+      setEditAppMsg('');
     } else setEditAppMsg(data.detail || 'Update failed');
   };
 
