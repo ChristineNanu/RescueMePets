@@ -318,19 +318,23 @@ function AnimalList({ onOpenQuiz }) {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {animals.map(animal => {
+            {[...animals].sort((a, b) => (b.sponsored ? 1 : 0) - (a.sponsored ? 1 : 0)).map(animal => {
               const s = STATUS[animal.status] || STATUS.available;
               return (
                 <div key={animal.id}
-                  className="bg-white rounded-3xl overflow-hidden shadow-card border border-teal-50 hover:shadow-card-hover hover:-translate-y-2 transition-all duration-300 cursor-pointer group"
+                  className={`bg-white rounded-3xl overflow-hidden shadow-card border hover:shadow-card-hover hover:-translate-y-2 transition-all duration-300 cursor-pointer group
+                    ${animal.sponsored ? 'border-teal-300 ring-2 ring-teal-100' : 'border-teal-50'}`}
                   onClick={() => setSelectedAnimal(animal)}>
                   <div className="relative h-52 overflow-hidden bg-teal-50">
                     <img src={animal.image || 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=600&q=80'}
                       alt={animal.name}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                       onError={e => e.target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=600&q=80'} />
-                    <div className={`absolute top-3 left-3 text-xs font-bold px-3 py-1.5 rounded-full backdrop-blur-md ${s.pill}`}>
-                      {s.dot} {s.label}
+                    <div className="absolute top-3 left-3 flex flex-col gap-1">
+                      {animal.sponsored && (
+                        <span className="text-xs font-black px-2.5 py-1 rounded-full bg-amber-400 text-white shadow-sm">⭐ Sponsored</span>
+                      )}
+                      <span className={`text-xs font-bold px-3 py-1.5 rounded-full backdrop-blur-md ${s.pill}`}>{s.dot} {s.label}</span>
                     </div>
                     <button onClick={e => toggleFavorite(e, animal.id)}
                       className="absolute top-3 right-3 bg-white/90 backdrop-blur-md rounded-full w-9 h-9 flex items-center justify-center text-lg shadow-lg hover:scale-125 transition-transform border-0 cursor-pointer hover:bg-white">

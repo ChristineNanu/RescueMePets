@@ -11,6 +11,8 @@ import Chatbot from './components/Chatbot';
 import Quiz from './components/Quiz';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
+import Pricing from './components/Pricing';
+import Shop from './components/Shop';
 import './App.css';
 
 const HIDDEN_NAV = ['/', '/login', '/register'];
@@ -35,6 +37,8 @@ function AppContent({ isLoggedIn, handleLogin, handleLogout }) {
         <Route path="/centers"   element={isLoggedIn ? <Centers /> : <Navigate to="/" replace />} />
         <Route path="/adoption"  element={isLoggedIn ? <AdoptionForm /> : <Navigate to="/" replace />} />
         <Route path="/my-profile" element={isLoggedIn ? <MyApplications /> : <Navigate to="/" replace />} />
+        <Route path="/pricing" element={<Pricing />} />
+        <Route path="/shop" element={isLoggedIn ? <Shop /> : <Navigate to="/" replace />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to={isLoggedIn ? '/dashboard' : '/'} replace />} />

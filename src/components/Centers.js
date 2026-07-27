@@ -217,11 +217,11 @@ function Centers() {
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-              {centerAnimals.map(animal => {
+              {[...centerAnimals].sort((a, b) => (b.sponsored ? 1 : 0) - (a.sponsored ? 1 : 0)).map(animal => {
                 const s = STATUS[animal.status] || STATUS.available;
                 return (
                   <div key={animal.id}
-                    className="relative rounded-2xl overflow-hidden cursor-pointer group shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300"
+                    className={`relative rounded-2xl overflow-hidden cursor-pointer group shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 ${animal.sponsored ? 'ring-2 ring-amber-300' : ''}`}
                     style={{ aspectRatio: '1' }}
                     onClick={() => setGalleryAnimal(animal)}>
                     <img src={animal.image} alt={animal.name}
@@ -232,7 +232,10 @@ function Centers() {
                       <p className="text-white font-black text-sm truncate">{animal.name}</p>
                       <p className="text-white/70 text-xs truncate">{animal.breed}</p>
                     </div>
-                    <div className={`absolute top-2 left-2 text-xs font-bold px-2 py-0.5 rounded-full ${s.pill}`}>{s.label}</div>
+                    <div className="absolute top-2 left-2 flex flex-col gap-1">
+                      {animal.sponsored && <span className="text-xs font-black px-2 py-0.5 rounded-full bg-amber-400 text-white">⭐</span>}
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${s.pill}`}>{s.label}</span>
+                    </div>
                     <button onClick={e => toggleFavorite(e, animal.id)}
                       className="absolute top-2 right-2 bg-white/90 rounded-full w-7 h-7 flex items-center justify-center text-sm shadow-sm hover:scale-110 transition-transform border-0 cursor-pointer">
                       {animal.is_favorited ? '❤️' : '🤍'}

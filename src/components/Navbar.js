@@ -7,6 +7,7 @@ const NAV_LINKS = [
   { to: '/animals',   label: 'Animals' },
   { to: '/centers',   label: 'Centers' },
   { to: '/adoption',  label: 'Adopt'   },
+  { to: '/shop',      label: '🛒 Shop' },
 ];
 
 export default function Navbar({ isLoggedIn, onLogout }) {

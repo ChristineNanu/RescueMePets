@@ -278,6 +278,7 @@ export default function LandingPage() {
           <div className="flex gap-5 text-sm">
             <button onClick={() => navigate('/login')} className="text-gray-500 hover:text-white transition-colors bg-transparent border-0 cursor-pointer font-medium">Login</button>
             <button onClick={() => navigate('/register')} className="text-gray-500 hover:text-white transition-colors bg-transparent border-0 cursor-pointer font-medium">Register</button>
+            <button onClick={() => navigate('/pricing')} className="text-gray-500 hover:text-white transition-colors bg-transparent border-0 cursor-pointer font-medium">Pricing</button>
           </div>
         </div>
       </footer>

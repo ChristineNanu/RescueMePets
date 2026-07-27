@@ -34,6 +34,17 @@ class Animal(Base):
     energy_level = Column(String, default="medium")
     personality_badges = Column(String, default="")
     photos = Column(String, default="")  # comma-separated extra photo URLs
+    sponsored = Column(Boolean, default=False)
+
+class CenterSubscription(Base):
+    __tablename__ = "center_subscriptions"
+    id = Column(Integer, primary_key=True, index=True)
+    center_id = Column(Integer, ForeignKey("centers.id"), unique=True)
+    plan = Column(String, default="free")  # free, pro, premium
+    sponsored_slots = Column(Integer, default=0)
+    active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    center = relationship("Center")
 
 class Center(Base):
     __tablename__ = "centers"

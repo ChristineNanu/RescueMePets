@@ -28,6 +28,7 @@ class AnimalBase(BaseModel):
     good_with_pets: Optional[bool] = False
     energy_level: Optional[str] = "medium"
     personality_badges: Optional[str] = ""
+    sponsored: Optional[bool] = False
 
 class Animal(AnimalBase):
     id: int
