@@ -33,6 +33,9 @@ function MyApplications() {
   const [issueText, setIssueText]       = useState('');
   const [ticketMsg, setTicketMsg]       = useState('');
   const [ticketLoading, setTicketLoading] = useState(false);
+  const [editAppModal, setEditAppModal] = useState(null);
+  const [editAppMsg, setEditAppMsg]     = useState('');
+  const [editAppText, setEditAppText]   = useState('');
   const navigate = useNavigate();
   const userId   = localStorage.getItem('user_id');
 
@@ -109,6 +112,26 @@ function MyApplications() {
     setTicketLoading(false);
   };
 
+  const deleteApplication = async (appId) => {
+    if (!window.confirm('Are you sure you want to withdraw this application?')) return;
+    const res = await fetch(`${API_BASE_URL}/applications/${appId}?user_id=${userId}`, { method: 'DELETE' });
+    if (res.ok) setApplications(prev => prev.filter(a => a.id !== appId));
+  };
+
+  const saveEditApp = async () => {
+    if (!editAppText.trim()) return;
+    setEditAppMsg('');
+    const res = await fetch(`${API_BASE_URL}/applications/${editAppModal.id}?user_id=${userId}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: editAppText }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setApplications(prev => prev.map(a => a.id === editAppModal.id ? { ...a, message: editAppText } : a));
+      setEditAppModal(null);
+    } else setEditAppMsg(data.detail || 'Update failed');
+  };
+
   if (loading) return (
     <div className="page-bg min-h-screen flex items-center justify-center">
       <div className="text-center">
@@ -178,7 +201,26 @@ function MyApplications() {
         </div>
       )}
 
-      {/* Edit Modal */}
+      {/* Edit Application Modal */}
+      {editAppModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-teal-50">
+            <h2 className="text-base font-black text-gray-800 mb-1">Edit Application</h2>
+            <p className="text-xs text-gray-400 mb-3">Update your message for <strong>{editAppModal.animal_name}</strong></p>
+            <textarea className="input-field w-full resize-none text-sm" rows={4}
+              value={editAppText} onChange={e => setEditAppText(e.target.value)} />
+            {editAppMsg && <p className="text-xs text-coral-600 font-semibold mt-2">{editAppMsg}</p>}
+            <div className="flex gap-2 mt-3">
+              <button onClick={() => setEditAppModal(null)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold text-gray-500 bg-gray-100 border-0 cursor-pointer">Cancel</button>
+              <button onClick={saveEditApp}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white btn-primary border-0 cursor-pointer">Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Profile Modal */}
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-teal-50 modal-enter">
@@ -329,6 +371,21 @@ function MyApplications() {
                     <p className="text-gray-300 text-xs mt-1">
                       Applied {new Date(app.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                     </p>
+                    {/* Edit / Delete — only for pending */}
+                    {app.status === 'pending' && (
+                      <div className="flex gap-2 mt-3">
+                        <button
+                          onClick={() => { setEditAppModal(app); setEditAppText(app.message || ''); setEditAppMsg(''); }}
+                          className="text-xs font-bold text-teal-600 bg-teal-50 border border-teal-200 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-teal-100 transition-all">
+                          ✏️ Edit
+                        </button>
+                        <button
+                          onClick={() => deleteApplication(app.id)}
+                          className="text-xs font-bold text-coral-600 bg-coral-50 border border-coral-200 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-coral-100 transition-all">
+                          🗑️ Withdraw
+                        </button>
+                      </div>
+                    )}
                     {/* Ticket info or Need Help button */}
                     {(() => {
                       const ticket = tickets.find(t => t.adoption_id === app.id);

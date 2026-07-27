@@ -214,8 +214,34 @@ def mark_notifications_read(user_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "Marked as read"}
 
-# Temporary endpoint to simulate admin approving/rejecting — remove when admin panel is built
-@app.patch("/applications/{adoption_id}/status")
+@app.patch("/applications/{adoption_id}")
+def edit_application(adoption_id: int, user_id: int, body: schemas.ApplicationEdit, db: Session = Depends(get_db)):
+    adoption = db.query(models.Adoption).filter(
+        models.Adoption.id == adoption_id,
+        models.Adoption.user_id == user_id,
+        models.Adoption.status == "pending"
+    ).first()
+    if not adoption:
+        raise HTTPException(status_code=404, detail="Application not found or cannot be edited")
+    adoption.message = body.message
+    db.commit()
+    return {"message": "Application updated"}
+
+@app.delete("/applications/{adoption_id}")
+def delete_application(adoption_id: int, user_id: int, db: Session = Depends(get_db)):
+    adoption = db.query(models.Adoption).filter(
+        models.Adoption.id == adoption_id,
+        models.Adoption.user_id == user_id,
+        models.Adoption.status == "pending"
+    ).first()
+    if not adoption:
+        raise HTTPException(status_code=404, detail="Application not found or cannot be withdrawn")
+    adoption.animal.status = "available"
+    db.delete(adoption)
+    db.commit()
+    return {"message": "Application withdrawn"}
+
+
 def update_application_status(adoption_id: int, body: schemas.StatusUpdate, db: Session = Depends(get_db)):
     adoption = db.query(models.Adoption).filter(models.Adoption.id == adoption_id).first()
     if not adoption:

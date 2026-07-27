@@ -115,7 +115,10 @@ class B2CRequest(BaseModel):
 class PaymentCallback(BaseModel):
     Body: dict
 
-class StatusUpdate(BaseModel):
+class ApplicationEdit(BaseModel):
+    message: str
+
+
     status: str  # approved, rejected
 
 class WaitlistRequest(BaseModel):
