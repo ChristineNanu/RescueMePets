@@ -653,6 +653,16 @@ def get_vets(center_id: int = None, db: Session = Depends(get_db)):
         query = query.filter(models.Vet.center_id == center_id)
     return [{"id": v.id, "name": v.name, "clinic": v.clinic, "phone": v.phone, "specialization": v.specialization, "center_id": v.center_id} for v in query.all()]
 
+@app.post("/vets/{vet_id}/message")
+def send_vet_message(vet_id: int, body: schemas.VetMessageCreate, db: Session = Depends(get_db)):
+    vet = db.query(models.Vet).filter(models.Vet.id == vet_id).first()
+    if not vet:
+        raise HTTPException(status_code=404, detail="Vet not found")
+    msg = models.VetMessage(vet_id=vet_id, user_id=body.user_id, name=body.name, email=body.email, message=body.message)
+    db.add(msg)
+    db.commit()
+    return {"ok": True, "detail": f"Message sent to {vet.name}"}
+
 @app.post("/quiz/match")
 def quiz_match(answers: schemas.QuizAnswers, db: Session = Depends(get_db)):
     """Score all available animals against quiz answers and return top matches."""

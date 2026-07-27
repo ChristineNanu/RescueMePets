@@ -49,11 +49,76 @@ function StoryCard({ story }) {
   );
 }
 
+function VetCard({ vet, userId }) {
+  const [open, setOpen]   = useState(false);
+  const [name, setName]   = useState('');
+  const [email, setEmail] = useState('');
+  const [msg, setMsg]     = useState('');
+  const [status, setStatus] = useState('');
+  const [sending, setSending] = useState(false);
+
+  const send = async () => {
+    if (!msg.trim() || !name.trim() || !email.trim()) { setStatus('Please fill all fields.'); return; }
+    setSending(true);
+    const res = await fetch(`${API_BASE_URL}/vets/${vet.id}/message`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, message: msg, user_id: userId ? parseInt(userId) : null }),
+    });
+    setSending(false);
+    if (res.ok) { setStatus('✅ Message sent!'); setMsg(''); setTimeout(() => { setOpen(false); setStatus(''); }, 1800); }
+    else setStatus('❌ Failed to send. Try again.');
+  };
+
+  return (
+    <div style={{ animation: `fadeUp 0.5s ${vet._idx * 80}ms ease both` }}
+      className="bg-white rounded-2xl shadow-card border border-teal-50 hover:-translate-y-1 hover:shadow-card-hover transition-all duration-300">
+      <div className="p-5 flex items-start gap-4">
+        <div className="w-12 h-12 bg-gradient-to-br from-teal-400 to-teal-600 rounded-2xl flex items-center justify-center text-white text-xl font-black flex-shrink-0 shadow-md">
+          {vet.name.split(' ').pop()[0]}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-black text-gray-800 text-sm">{vet.name}</p>
+          <p className="text-teal-600 text-xs font-semibold mb-2">{vet.specialization}</p>
+          <p className="text-gray-400 text-xs mb-0.5 truncate">🏥 {vet.clinic}</p>
+          <a href={`tel:${vet.phone}`} className="text-xs text-teal-600 font-semibold no-underline hover:underline">📞 {vet.phone}</a>
+        </div>
+        <button onClick={() => { setOpen(o => !o); setStatus(''); }}
+          className={`flex-shrink-0 text-xs font-bold px-3 py-1.5 rounded-xl border-0 cursor-pointer transition-all
+            ${open ? 'bg-gray-100 text-gray-500' : 'bg-teal-50 text-teal-700 hover:bg-teal-100'}`}>
+          {open ? '✕ Close' : '✉️ Message'}
+        </button>
+      </div>
+
+      {open && (
+        <div className="px-5 pb-5 animate-slide-down">
+          <div className="border-t border-teal-50 pt-4 space-y-2.5">
+            <div className="grid grid-cols-2 gap-2">
+              <input value={name} onChange={e => setName(e.target.value)}
+                placeholder="Your name" className="input-field text-xs py-2" />
+              <input value={email} onChange={e => setEmail(e.target.value)}
+                placeholder="Your email" type="email" className="input-field text-xs py-2" />
+            </div>
+            <textarea value={msg} onChange={e => setMsg(e.target.value)}
+              placeholder={`Message for ${vet.name}...`} rows={3}
+              className="input-field text-xs py-2 resize-none w-full" />
+            {status && <p className="text-xs font-semibold">{status}</p>}
+            <button onClick={send} disabled={sending}
+              className="w-full py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-teal-500 to-teal-600 text-white border-0 cursor-pointer hover:shadow-lg transition-all disabled:opacity-50">
+              {sending ? 'Sending...' : '📨 Send Message'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Centers() {
   const [centers, setCenters]               = useState([]);
   const [selectedCenter, setSelectedCenter] = useState(null);
   const [centerAnimals, setCenterAnimals]   = useState([]);
   const [stories, setStories]               = useState([]);
+  const [centerVets, setCenterVets]         = useState([]);
   const [loading, setLoading]               = useState(true);
   const [animalsLoading, setAnimalsLoading] = useState(false);
   const [galleryAnimal, setGalleryAnimal]   = useState(null);
@@ -71,6 +136,7 @@ function Centers() {
     setSelectedCenter(center);
     setAnimalsLoading(true);
     setStories([]);
+    setCenterVets([]);
     const params = userId ? `?user_id=${userId}` : '';
     fetch(`${API_BASE_URL}/animals${params}`)
       .then(r => r.json())
@@ -78,6 +144,10 @@ function Centers() {
     fetch(`${API_BASE_URL}/centers/${center.id}/stories`)
       .then(r => r.json())
       .then(setStories)
+      .catch(() => {});
+    fetch(`${API_BASE_URL}/vets?center_id=${center.id}`)
+      .then(r => r.json())
+      .then(data => setCenterVets(Array.isArray(data) ? data.filter(v => v.center_id === center.id) : []))
       .catch(() => {});
   };
 
@@ -206,6 +276,25 @@ function Centers() {
             </div>
           </div>
         </div>
+
+        {/* ── Vets Section ── */}
+        {centerVets.length > 0 && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6">
+            <div className="flex items-center gap-2.5 mb-5">
+              <h2 className="text-2xl font-black text-gray-800">Our Veterinary Team</h2>
+              <span className="text-xs font-bold text-teal-600 bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-full">
+                {centerVets.length} vet{centerVets.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {centerVets.map((vet, i) => (
+                <div key={vet.id} style={{ animation: `fadeUp 0.5s ${i * 80}ms ease both` }}>
+                  <VetCard vet={{ ...vet, _idx: i }} userId={userId} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ── Photo Gallery ── */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-4">

@@ -134,6 +134,18 @@ class Vet(Base):
     center_id = Column(Integer, ForeignKey("centers.id"))
     center = relationship("Center")
 
+class VetMessage(Base):
+    __tablename__ = "vet_messages"
+    id = Column(Integer, primary_key=True, index=True)
+    vet_id = Column(Integer, ForeignKey("vets.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    name = Column(String)
+    email = Column(String)
+    message = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    vet = relationship("Vet")
+    user = relationship("User")
+
 class SupportTicket(Base):
     __tablename__ = "support_tickets"
     id = Column(Integer, primary_key=True, index=True)
