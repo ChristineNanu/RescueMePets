@@ -118,7 +118,7 @@ class PaymentCallback(BaseModel):
 class ApplicationEdit(BaseModel):
     message: str
 
-
+class StatusUpdate(BaseModel):
     status: str  # approved, rejected
 
 class WaitlistRequest(BaseModel):
