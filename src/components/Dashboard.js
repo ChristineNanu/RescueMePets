@@ -61,6 +61,7 @@ export default function Dashboard({ onOpenQuiz }) {
   const [tipVisible, setTipVisible] = useState(true);
   const [tickets, setTickets]       = useState([]);
   const [vets, setVets]             = useState([]);
+  const [showMerchBanner, setShowMerchBanner] = useState(() => !sessionStorage.getItem('merch_dismissed'));
   const [assigningTicket, setAssigningTicket] = useState(null); // ticket id
   const [assignVetId, setAssignVetId]         = useState('');
 
@@ -198,6 +199,29 @@ export default function Dashboard({ onOpenQuiz }) {
           </div>
         </div>
 
+        {/* ── Merch Promo Banner ───────────────────────── */}
+        {showMerchBanner && (
+          <div className="relative bg-gradient-to-r from-coral-500 to-coral-400 rounded-3xl px-6 py-4 flex items-center justify-between gap-4 shadow-card animate-fade-up overflow-hidden">
+            <div className="absolute inset-0 opacity-[0.06]"
+              style={{ backgroundImage: 'radial-gradient(circle, white 1.5px, transparent 1.5px)', backgroundSize: '24px 24px' }} />
+            <div className="relative z-10 flex items-center gap-4 flex-1 min-w-0">
+              <span className="text-3xl flex-shrink-0">🛍️</span>
+              <div className="min-w-0">
+                <p className="text-white font-black text-sm">New! RescueMePets Merch is here 🐾</p>
+                <p className="text-white/80 text-xs">Tees, mugs, tote bags & more — 30% of every sale goes to rescue centers.</p>
+              </div>
+            </div>
+            <div className="relative z-10 flex items-center gap-2 flex-shrink-0">
+              <button onClick={() => navigate('/shop')}
+                className="bg-white text-coral-600 font-black text-xs px-4 py-2 rounded-xl border-0 cursor-pointer hover:shadow-lg transition-all whitespace-nowrap">
+                Shop Now →
+              </button>
+              <button onClick={() => { setShowMerchBanner(false); sessionStorage.setItem('merch_dismissed', '1'); }}
+                className="text-white/70 hover:text-white bg-transparent border-0 cursor-pointer text-lg leading-none p-1">✕</button>
+            </div>
+          </div>
+        )}
+
         {/* ── Stat Cards ──────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard icon="🐾" value={stats.total_animals}               label="Total Animals"  sub="In our network"      accent="teal"  delay={0}   />
@@ -296,6 +320,7 @@ export default function Dashboard({ onOpenQuiz }) {
                   { icon: '🏠', label: 'Explore Centers', sub: 'Visit rescue centers', to: '/centers',    bar: 'bg-teal-500',  hover: 'hover:bg-teal-50'  },
                   { icon: '📋', label: 'Apply to Adopt',  sub: 'Start an application', to: '/adoption',   bar: 'bg-coral-400', hover: 'hover:bg-coral-50' },
                   { icon: '❤️', label: 'My Favourites',   sub: 'Saved animals',        to: '/my-profile', bar: 'bg-coral-500', hover: 'hover:bg-coral-50' },
+                  { icon: '🛍️', label: 'Merch Shop',       sub: 'Support rescue centers', to: '/shop',     bar: 'bg-amber-400', hover: 'hover:bg-amber-50' },
                 ].map(({ icon, label, sub, to, bar, hover }) => (
                   <button key={to} onClick={() => navigate(to)}
                     className={`w-full flex items-center gap-3 p-3 rounded-xl ${hover}
