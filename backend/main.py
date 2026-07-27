@@ -584,12 +584,27 @@ def create_ticket(req: schemas.SupportTicketCreate, db: Session = Depends(get_db
         models.SupportTicket.status != "resolved"
     ).first()
     if existing:
-        raise HTTPException(status_code=400, detail="An open ticket already exists for this adoption")
+        existing.issue = req.issue
+        db.commit()
+        return {"message": "Support ticket updated", "ticket_id": existing.id}
     ticket = models.SupportTicket(user_id=req.user_id, adoption_id=req.adoption_id, issue=req.issue)
     db.add(ticket)
     db.commit()
     db.refresh(ticket)
     return {"message": "Support ticket created", "ticket_id": ticket.id}
+
+@app.delete("/support/{ticket_id}")
+def delete_ticket(ticket_id: int, user_id: int, db: Session = Depends(get_db)):
+    ticket = db.query(models.SupportTicket).filter(
+        models.SupportTicket.id == ticket_id,
+        models.SupportTicket.user_id == user_id,
+        models.SupportTicket.status == "open"
+    ).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found or cannot be deleted")
+    db.delete(ticket)
+    db.commit()
+    return {"message": "Ticket withdrawn"}
 
 @app.get("/support")
 def get_tickets(user_id: int, db: Session = Depends(get_db)):

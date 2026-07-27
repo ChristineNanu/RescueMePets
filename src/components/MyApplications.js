@@ -395,7 +395,23 @@ function MyApplications() {
                           <div className="mt-3 bg-teal-50 border border-teal-100 rounded-xl p-3">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs font-bold text-teal-700">🐾 Support Request</span>
-                              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${ts.bg} ${ts.text}`}>{ts.label}</span>
+                              <div className="flex items-center gap-2">
+                                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${ts.bg} ${ts.text}`}>{ts.label}</span>
+                                {ticket.status === 'open' && (
+                                  <>
+                                    <button
+                                      onClick={() => { setSupportModal(app); setIssueText(ticket.issue); setTicketMsg(''); }}
+                                      className="text-xs font-bold text-teal-600 bg-white border border-teal-200 px-2 py-0.5 rounded-lg cursor-pointer hover:bg-teal-50 transition-all">✏️</button>
+                                    <button
+                                      onClick={async () => {
+                                        if (!window.confirm('Withdraw this support request?')) return;
+                                        const res = await fetch(`${API_BASE_URL}/support/${ticket.id}?user_id=${userId}`, { method: 'DELETE' });
+                                        if (res.ok) setTickets(prev => prev.filter(t => t.id !== ticket.id));
+                                      }}
+                                      className="text-xs font-bold text-coral-600 bg-white border border-coral-200 px-2 py-0.5 rounded-lg cursor-pointer hover:bg-coral-50 transition-all">🗑️</button>
+                                  </>
+                                )}
+                              </div>
                             </div>
                             <p className="text-xs text-gray-500 italic line-clamp-1">"{ticket.issue}"</p>
                             {ticket.vet ? (
