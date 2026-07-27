@@ -93,10 +93,27 @@ function Centers() {
   };
 
   if (loading) return (
-    <div className="page-bg min-h-screen flex items-center justify-center">
-      <div className="text-center">
-        <div className="w-20 h-20 bg-gradient-to-br from-teal-400 to-teal-600 rounded-3xl flex items-center justify-center text-4xl mx-auto mb-5 shadow-glow-teal animate-float">🏠</div>
-        <p className="text-teal-700 font-semibold text-lg">Loading centers...</p>
+    <div className="page-bg min-h-screen">
+      <div className="relative bg-gradient-to-r from-teal-600 to-teal-500 px-6 py-20 overflow-hidden">
+        <div className="max-w-7xl mx-auto">
+          <div className="skeleton h-4 w-24 mb-3" />
+          <div className="skeleton h-12 w-64 mb-3" />
+          <div className="skeleton h-4 w-80" />
+        </div>
+      </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-white rounded-3xl overflow-hidden shadow-card border border-teal-50">
+              <div className="skeleton h-56 w-full" style={{ borderRadius: 0 }} />
+              <div className="p-5 space-y-3">
+                <div className="skeleton h-5 w-3/4" />
+                <div className="skeleton h-4 w-1/2" />
+                <div className="skeleton h-10 w-full mt-2" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -254,7 +271,7 @@ function Centers() {
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
               onClick={() => setGalleryAnimal(null)}>
               <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
-              <div className="relative bg-white rounded-3xl overflow-hidden shadow-2xl max-w-lg w-full"
+              <div className="relative bg-white rounded-3xl overflow-hidden shadow-2xl max-w-lg w-full animate-pop-in"
                 onClick={e => e.stopPropagation()}>
                 <div className="relative h-72 overflow-hidden">
                   <img src={galleryAnimal.image} alt={galleryAnimal.name}
@@ -356,6 +373,7 @@ function Centers() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {centers.map((center, idx) => (
             <div key={center.id}
+              style={{ animation: `fadeUp 0.5s ${idx * 80}ms ease both` }}
               className="bg-white rounded-3xl overflow-hidden shadow-card border border-teal-50 hover:shadow-card-hover hover:-translate-y-2 transition-all duration-300 cursor-pointer group"
               onClick={() => handleVisitCenter(center)}>
               <div className="relative h-56 overflow-hidden">

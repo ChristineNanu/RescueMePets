@@ -85,7 +85,7 @@ function AnimalModal({ animal, onClose, onAdopt, userId }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
       onClick={onClose}>
-      <div className="bg-white rounded-3xl overflow-hidden max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto border border-teal-50 modal-enter"
+      <div className="bg-white rounded-3xl overflow-hidden max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto border border-teal-50 animate-pop-in"
         onClick={e => e.stopPropagation()}>
         <div className="relative h-64 flex-shrink-0 overflow-hidden">
           <img src={animal.image} alt={animal.name}
@@ -249,10 +249,30 @@ function AnimalList({ onOpenQuiz }) {
   };
 
   if (loading) return (
-    <div className="page-bg min-h-screen flex items-center justify-center">
-      <div className="text-center">
-        <div className="w-20 h-20 bg-gradient-to-br from-teal-400 to-teal-600 rounded-3xl flex items-center justify-center text-4xl mx-auto mb-5 shadow-glow-teal animate-float">🐾</div>
-        <p className="text-teal-700 font-semibold text-lg">Loading animals...</p>
+    <div className="page-bg min-h-screen">
+      <div className="relative bg-gradient-to-r from-teal-600 to-teal-500 px-6 py-16 text-center overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.06]"
+          style={{ backgroundImage: 'radial-gradient(circle, white 1.5px, transparent 1.5px)', backgroundSize: '28px 28px' }} />
+        <div className="relative z-10">
+          <div className="skeleton h-4 w-24 mx-auto mb-3" />
+          <div className="skeleton h-10 w-64 mx-auto mb-3" />
+          <div className="skeleton h-4 w-48 mx-auto" />
+        </div>
+      </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="bg-white rounded-3xl overflow-hidden shadow-card border border-teal-50">
+              <div className="skeleton h-52 w-full" style={{ borderRadius: 0 }} />
+              <div className="p-5 space-y-3">
+                <div className="skeleton h-5 w-3/4" />
+                <div className="skeleton h-4 w-1/2" />
+                <div className="skeleton h-4 w-2/3" />
+                <div className="skeleton h-10 w-full mt-2" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -318,10 +338,11 @@ function AnimalList({ onOpenQuiz }) {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {[...animals].sort((a, b) => (b.sponsored ? 1 : 0) - (a.sponsored ? 1 : 0)).map(animal => {
+            {[...animals].sort((a, b) => (b.sponsored ? 1 : 0) - (a.sponsored ? 1 : 0)).map((animal, idx) => {
               const s = STATUS[animal.status] || STATUS.available;
               return (
                 <div key={animal.id}
+                  style={{ animation: `fadeUp 0.5s ${idx * 60}ms ease both` }}
                   className={`bg-white rounded-3xl overflow-hidden shadow-card border hover:shadow-card-hover hover:-translate-y-2 transition-all duration-300 cursor-pointer group
                     ${animal.sponsored ? 'border-teal-300 ring-2 ring-teal-100' : 'border-teal-50'}`}
                   onClick={() => setSelectedAnimal(animal)}>

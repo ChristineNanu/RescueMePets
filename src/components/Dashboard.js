@@ -276,6 +276,7 @@ export default function Dashboard({ onOpenQuiz }) {
               <div className="grid sm:grid-cols-2 gap-4">
                 {animals.map((a, i) => (
                   <div key={a.id}
+                    style={{ animation: `fadeUp 0.5s ${i * 80}ms ease both` }}
                     className="group bg-white rounded-3xl overflow-hidden border border-teal-50 shadow-card
                       hover:shadow-card-hover hover:-translate-y-1.5 transition-all duration-300 cursor-pointer"
                     onClick={() => navigate(`/adoption?animalId=${a.id}`)}>

@@ -15,12 +15,34 @@ import Pricing from './components/Pricing';
 import Shop from './components/Shop';
 import './App.css';
 
+// Global paw particle on adopt button clicks
+function usePawParticles() {
+  useEffect(() => {
+    const handler = (e) => {
+      const btn = e.target.closest('button, a');
+      if (!btn) return;
+      const text = btn.textContent || '';
+      if (!text.includes('Adopt') && !text.includes('adopt') && !text.includes('🐾')) return;
+      const paw = document.createElement('span');
+      paw.className = 'paw-particle';
+      paw.textContent = ['🐾','🐶','🐱','🐰'][Math.floor(Math.random()*4)];
+      paw.style.left = `${e.clientX - 10}px`;
+      paw.style.top  = `${e.clientY - 10}px`;
+      document.body.appendChild(paw);
+      setTimeout(() => paw.remove(), 900);
+    };
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, []);
+}
+
 const HIDDEN_NAV = ['/', '/login', '/register'];
 
 function AppContent({ isLoggedIn, handleLogin, handleLogout }) {
   const location = useLocation();
   const showNav = isLoggedIn && !HIDDEN_NAV.includes(location.pathname);
   const [showQuiz, setShowQuiz] = useState(false);
+  usePawParticles();
 
   return (
     <div className="App">
