@@ -90,6 +90,10 @@ export default function VetPortal({ onLogout }) {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'resolved', resolution_note: resolveNote }),
     });
+    // clear unread flag for this ticket
+    const id = userId();
+    await fetch(`${API_BASE_URL}/vet/mark-read?user_id=${id}`, { method: 'POST' }).catch(() => {});
+    setUnread(0);
     setResolveTicket(null);
     setResolveNote('');
     setResolving(false);
