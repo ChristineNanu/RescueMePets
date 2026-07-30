@@ -32,6 +32,7 @@ function MyApplications() {
   const [walletMsg, setWalletMsg]       = useState('');
   const [supportModal, setSupportModal] = useState(null); // adoption object
   const [threadTicket, setThreadTicket]  = useState(null);
+  const [msgPreview, setMsgPreview]      = useState({}); // { [ticketId]: { text, sender } }
   const [issueText, setIssueText]       = useState('');
   const [ticketMsg, setTicketMsg]       = useState('');
   const [ticketLoading, setTicketLoading] = useState(false);
@@ -64,6 +65,21 @@ function MyApplications() {
       setSponsorships(Array.isArray(sponsors) ? sponsors : []);
       setProfile(prof);
       setTickets(Array.isArray(tix) ? tix : []);
+      // fetch last message preview for tickets with assigned vets
+      if (Array.isArray(tix)) {
+        tix.filter(t => t.vet && t.status !== 'resolved').forEach(t => {
+          fetch(`${API_BASE_URL}/tickets/${t.id}/messages`)
+            .then(r => r.json())
+            .then(msgs => {
+              if (Array.isArray(msgs) && msgs.length > 0) {
+                const last = msgs[msgs.length - 1];
+                if (last.sender_role === 'vet') {
+                  setMsgPreview(prev => ({ ...prev, [t.id]: { text: last.message, sender: last.sender_name } }));
+                }
+              }
+            }).catch(() => {});
+        });
+      }
       if (prof?.username && prof?.email) setEditForm({ username: prof.username, email: prof.email, avatar: prof.avatar });
     }).catch(() => setEditMsg('Failed to load profile data'))
       .finally(() => setLoading(false));
@@ -311,24 +327,48 @@ function MyApplications() {
         </div>
 
         {/* Unread banner */}
-        {unread.length > 0 && (
-          <div className="mb-5 bg-white border-2 border-teal-300 rounded-2xl p-4 flex items-start gap-3 shadow-sm">
-            <span className="text-2xl flex-shrink-0">🔔</span>
-            <div>
-              <p className="font-bold text-gray-800 text-sm mb-1">
-                You have {unread.length} new update{unread.length > 1 ? 's' : ''} on your applications!
-              </p>
-              <div className="flex flex-col gap-1">
-                {unread.map(app => {
-                  const s = STATUS_MAP[app.status] || STATUS_MAP.pending;
-                  return (
-                    <p key={app.id} className="text-xs text-gray-500">
-                      <span className="font-semibold text-gray-700">{app.animal_name}</span>{' '}—{' '}
-                      <span className={`font-bold ${app.status === 'approved' ? 'text-teal-600' : 'text-coral-500'}`}>{s.icon} {s.label}</span>
-                    </p>
-                  );
-                })}
-              </div>
+        {(unread.length > 0 || Object.values(msgPreview).length > 0) && (
+          <div className="mb-5 bg-white border-2 border-teal-300 rounded-2xl p-4 shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xl">🔔</span>
+              <p className="font-black text-gray-800 text-sm">New Notifications</p>
+            </div>
+            <div className="flex flex-col gap-2">
+              {unread.length > 0 && (
+                <div className="bg-teal-50 rounded-xl px-4 py-3 border border-teal-100">
+                  <p className="text-sm font-semibold text-gray-700 mb-1">
+                    {unread.length} application update{unread.length > 1 ? 's' : ''}:
+                  </p>
+                  {unread.map(app => {
+                    const s = STATUS_MAP[app.status] || STATUS_MAP.pending;
+                    return (
+                      <p key={app.id} className="text-xs text-gray-500">
+                        <span className="font-semibold text-gray-700">{app.animal_name}</span>{' '}—{' '}
+                        <span className={`font-bold ${app.status === 'approved' ? 'text-teal-600' : 'text-coral-500'}`}>{s.icon} {s.label}</span>
+                      </p>
+                    );
+                  })}
+                </div>
+              )}
+              {Object.entries(msgPreview).map(([ticketId, preview]) => {
+                const ticket = tickets.find(t => t.id === parseInt(ticketId));
+                if (!ticket) return null;
+                return (
+                  <button key={ticketId}
+                    onClick={() => {
+                      setThreadTicket(ticket);
+                      setMsgPreview(prev => { const n = { ...prev }; delete n[ticketId]; return n; });
+                    }}
+                    className="bg-teal-50 rounded-xl px-4 py-3 border border-teal-200 text-left w-full cursor-pointer hover:border-teal-400 hover:shadow-sm transition-all">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs font-black text-teal-600">💬 Message from your vet — {ticket.animal_name}</p>
+                      <span className="w-2 h-2 bg-coral-500 rounded-full" />
+                    </div>
+                    <p className="text-xs text-gray-600 truncate">"{preview.sender}: {preview.text}"</p>
+                    <p className="text-xs text-teal-500 font-semibold mt-1">Tap to open chat →</p>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}

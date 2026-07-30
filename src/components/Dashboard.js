@@ -62,8 +62,11 @@ export default function Dashboard({ onOpenQuiz }) {
   const [tickets, setTickets]       = useState([]);
   const [vets, setVets]             = useState([]);
   const [showMerchBanner, setShowMerchBanner] = useState(() => !sessionStorage.getItem('merch_dismissed'));
-  const [assigningTicket, setAssigningTicket] = useState(null); // ticket id
+  const [assigningTicket, setAssigningTicket] = useState(null);
   const [assignVetId, setAssignVetId]         = useState('');
+  const [notifCount, setNotifCount]           = useState(0);
+  const [showNotifBanner, setShowNotifBanner] = useState(false);
+  const role = localStorage.getItem('role') || 'adopter';
 
   const navigate  = useNavigate();
   const username  = localStorage.getItem('username') || 'Friend';
@@ -92,7 +95,30 @@ export default function Dashboard({ onOpenQuiz }) {
       .then(r => r.ok ? r.json() : [])
       .then(t => setTickets(Array.isArray(t) ? t : []))
       .catch(() => {});
-  }, [userId]);
+
+    // Notification count
+    if (role === 'vet') {
+      fetch(`${API_BASE_URL}/vet/unread-count?user_id=${userId}`)
+        .then(r => r.ok ? r.json() : { count: 0 })
+        .then(d => { if (d.count > 0) { setNotifCount(d.count); setShowNotifBanner(true); } })
+        .catch(() => {});
+    } else {
+      // adopter: check status updates + unread ticket messages
+      Promise.all([
+        fetch(`${API_BASE_URL}/notifications/unread-count?user_id=${userId}`).then(r => r.ok ? r.json() : { count: 0 }),
+        fetch(`${API_BASE_URL}/support?user_id=${userId}`).then(r => r.ok ? r.json() : []),
+      ]).then(([notif, tix]) => {
+        const ticketMsgUnread = Array.isArray(tix)
+          ? tix.filter(t => t.vet && t.status !== 'resolved').length  // tickets with vet assigned = potential messages
+          : 0;
+        const total = (notif.count || 0);
+        if (total > 0 || ticketMsgUnread > 0) {
+          setNotifCount(total + ticketMsgUnread);
+          setShowNotifBanner(true);
+        }
+      }).catch(() => {});
+    }
+  }, [userId, role]);
 
   const rate     = stats.total_animals > 0 ? Math.round((stats.adopted / stats.total_animals) * 100) : 0;
   const approved = apps.filter(a => a.status === 'approved').length;
@@ -199,6 +225,37 @@ export default function Dashboard({ onOpenQuiz }) {
             </div>
           </div>
         </div>
+
+        {/* ── Notification Banner ───────────────────────── */}
+        {showNotifBanner && (
+          <div className="relative bg-gradient-to-r from-teal-600 to-teal-500 rounded-3xl px-6 py-4 flex items-center justify-between gap-4 shadow-glow-teal animate-fade-up overflow-hidden">
+            <div className="absolute inset-0 opacity-[0.06]"
+              style={{ backgroundImage: 'radial-gradient(circle, white 1.5px, transparent 1.5px)', backgroundSize: '24px 24px' }} />
+            <div className="relative z-10 flex items-center gap-3 flex-1 min-w-0">
+              <span className="text-2xl flex-shrink-0">🔔</span>
+              <div>
+                <p className="text-white font-black text-sm">
+                  {role === 'vet'
+                    ? `You have ${notifCount} unread ticket${notifCount > 1 ? 's' : ''}`
+                    : `You have ${notifCount} new update${notifCount > 1 ? 's' : ''} on your applications`}
+                </p>
+                <p className="text-white/70 text-xs">
+                  {role === 'vet' ? 'New support tickets assigned to you' : 'Check your application status or messages from your vet'}
+                </p>
+              </div>
+            </div>
+            <div className="relative z-10 flex items-center gap-2 flex-shrink-0">
+              <button
+                onClick={() => navigate(role === 'vet' ? '/vet-portal' : '/my-profile')}
+                className="bg-white text-teal-700 font-black text-xs px-4 py-2 rounded-xl border-0 cursor-pointer hover:shadow-lg transition-all whitespace-nowrap">
+                View Now →
+              </button>
+              <button
+                onClick={() => setShowNotifBanner(false)}
+                className="text-white/70 hover:text-white bg-transparent border-0 cursor-pointer text-lg leading-none p-1">✕</button>
+            </div>
+          </div>
+        )}
 
         {/* ── Merch Promo Banner ───────────────────────── */}
         {showMerchBanner && (

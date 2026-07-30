@@ -10,6 +10,8 @@ export default function VetPortal({ onLogout }) {
   const [tickets, setTickets] = useState([]);
   const [animals, setAnimals] = useState([]);
   const [unread, setUnread]   = useState(0);
+  const [msgUnread, setMsgUnread] = useState({}); // { [ticketId]: count }
+  const [msgPreview, setMsgPreview] = useState({}); // { [ticketId]: lastMessage }
   const [loading, setLoading] = useState(true);
 
   // Resolve modal state
@@ -23,7 +25,32 @@ export default function VetPortal({ onLogout }) {
     if (!id || isNaN(id)) return;
     fetch(`${API_BASE_URL}/vet/tickets?user_id=${id}`)
       .then(r => r.json())
-      .then(t => setTickets(Array.isArray(t) ? t : []))
+      .then(t => {
+        if (!Array.isArray(t)) return;
+        setTickets(t);
+        t.filter(tk => tk.status !== 'resolved').forEach(tk => {
+          fetch(`${API_BASE_URL}/tickets/${tk.id}/unread-count?reader_role=vet`)
+            .then(r => r.json())
+            .then(d => {
+              const count = d.count || 0;
+              setMsgUnread(prev => ({ ...prev, [tk.id]: count }));
+              if (count > 0) {
+                fetch(`${API_BASE_URL}/tickets/${tk.id}/messages`)
+                  .then(r => r.json())
+                  .then(msgs => {
+                    if (Array.isArray(msgs) && msgs.length > 0) {
+                      const last = msgs[msgs.length - 1];
+                      setMsgPreview(prev => ({ ...prev, [tk.id]: { text: last.message, sender: last.sender_name } }));
+                    }
+                  }).catch(() => {});
+              }
+            })
+            .catch(() => {});
+        });
+        // also update tab-level unread badge
+        fetch(`${API_BASE_URL}/vet/unread-count?user_id=${id}`)
+          .then(r => r.json()).then(u => setUnread(u?.count || 0)).catch(() => {});
+      })
       .catch(() => {});
   };
 
@@ -33,32 +60,20 @@ export default function VetPortal({ onLogout }) {
 
     Promise.all([
       fetch(`${API_BASE_URL}/vet/profile?user_id=${id}`).then(r => r.json()).catch(() => null),
-      fetch(`${API_BASE_URL}/vet/tickets?user_id=${id}`).then(r => r.json()).catch(() => []),
       fetch(`${API_BASE_URL}/vet/center-animals?user_id=${id}`).then(r => r.json()).catch(() => []),
-      fetch(`${API_BASE_URL}/vet/unread-count?user_id=${id}`).then(r => r.json()).catch(() => ({ count: 0 })),
-    ]).then(([p, t, a, u]) => {
+    ]).then(([p, a]) => {
       setProfile(p);
-      setTickets(Array.isArray(t) ? t : []);
       setAnimals(Array.isArray(a) ? a : []);
-      setUnread(u?.count || 0);
       setLoading(false);
     }).catch(() => setLoading(false));
 
-    // Poll unread every 30s
-    const interval = setInterval(() => {
-      fetch(`${API_BASE_URL}/vet/unread-count?user_id=${id}`)
-        .then(r => r.json()).then(u => setUnread(u?.count || 0)).catch(() => {});
-    }, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    // load tickets + msg counts immediately
+    loadTickets();
 
-  // Mark all read when vet opens tickets tab
-  useEffect(() => {
-    const id = userId();
-    if (!id || isNaN(id) || tab !== 'tickets' || unread === 0) return;
-    fetch(`${API_BASE_URL}/vet/mark-read?user_id=${id}`, { method: 'POST' })
-      .then(() => setUnread(0)).catch(() => {});
-  }, [tab, unread]);
+    // Poll every 15s
+    const interval = setInterval(loadTickets, 15000);
+    return () => clearInterval(interval);
+  }, []); // eslint-disable-line
 
   const updateTicket = async (ticketId, status) => {
     await fetch(`${API_BASE_URL}/support/${ticketId}`, {
@@ -124,16 +139,36 @@ export default function VetPortal({ onLogout }) {
       <div className="max-w-5xl mx-auto px-4 py-6">
 
         {/* Unread notification banner */}
-        {unread > 0 && (
-          <div className="mb-5 flex items-center gap-3 bg-teal-50 border border-teal-200 rounded-2xl px-5 py-3 animate-scale-in">
-            <span className="w-2.5 h-2.5 bg-teal-500 rounded-full animate-pulse flex-shrink-0" />
-            <p className="text-teal-700 font-semibold text-sm">
-              You have <span className="font-black">{unread}</span> new ticket{unread > 1 ? 's' : ''} assigned to you
-            </p>
-            <button onClick={() => setTab('tickets')}
-              className="ml-auto text-teal-600 text-xs font-black bg-transparent border-0 cursor-pointer hover:underline">
-              View →
-            </button>
+        {Object.keys(msgPreview).length > 0 && (
+          <div className="mb-5 bg-teal-50 border border-teal-200 rounded-2xl px-5 py-4 animate-scale-in">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="w-2.5 h-2.5 bg-teal-500 rounded-full animate-pulse flex-shrink-0" />
+              <p className="text-teal-700 font-black text-sm">🔔 New Messages</p>
+            </div>
+            <div className="flex flex-col gap-2">
+              {Object.entries(msgPreview).map(([ticketId, preview]) => {
+                const ticket = tickets.find(t => t.id === parseInt(ticketId));
+                if (!ticket) return null;
+                return (
+                  <button key={ticketId}
+                    onClick={() => {
+                      setThreadTicket(ticket);
+                      setMsgUnread(prev => ({ ...prev, [ticketId]: 0 }));
+                      setMsgPreview(prev => { const n = { ...prev }; delete n[ticketId]; return n; });
+                    }}
+                    className="bg-white rounded-xl px-4 py-3 border border-teal-100 text-left w-full cursor-pointer hover:border-teal-300 hover:shadow-sm transition-all">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs font-black text-teal-600">💬 {ticket.animal_name} — {ticket.adopter}</p>
+                      <span className="min-w-[18px] h-[18px] bg-coral-500 rounded-full flex items-center justify-center text-white text-[10px] font-black px-1">
+                        {msgUnread[ticketId]}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 truncate">"{preview.sender}: {preview.text}"</p>
+                    <p className="text-xs text-teal-500 font-semibold mt-1">Tap to open chat →</p>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
 
@@ -185,9 +220,19 @@ export default function VetPortal({ onLogout }) {
                       <p className="text-gray-600 text-sm">{t.issue}</p>
                     </div>
                     <div className="flex flex-col gap-2 flex-shrink-0">
-                      <button onClick={() => setThreadTicket(t)}
-                        className="px-3 py-1.5 bg-teal-50 text-teal-700 rounded-lg text-xs font-bold border-0 cursor-pointer hover:bg-teal-100">
+                      <button onClick={() => {
+                        setThreadTicket(t);
+                        setMsgUnread(prev => ({ ...prev, [t.id]: 0 }));
+                        setMsgPreview(prev => { const n = { ...prev }; delete n[t.id]; return n; });
+                      }}
+                        className="relative px-3 py-1.5 bg-teal-50 text-teal-700 rounded-lg text-xs font-bold border-0 cursor-pointer hover:bg-teal-100">
                         💬 Message
+                        {(msgUnread[t.id] || 0) > 0 && (
+                          <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] bg-coral-500 rounded-full
+                            flex items-center justify-center text-white text-[10px] font-black border-2 border-white px-1">
+                            {msgUnread[t.id]}
+                          </span>
+                        )}
                       </button>
                       {t.status === 'open' && (
                         <button onClick={() => updateTicket(t.id, 'in_progress')}

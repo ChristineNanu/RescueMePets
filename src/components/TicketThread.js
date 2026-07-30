@@ -13,12 +13,13 @@ export default function TicketThread({ ticket, senderId, senderRole, onClose }) 
   const [messages, setMessages] = useState([]);
   const [text, setText]         = useState('');
   const [sending, setSending]   = useState(false);
+  const [loaded, setLoaded]     = useState(false);
   const bottomRef               = useRef(null);
 
   const load = () => {
     fetch(`${API_BASE_URL}/tickets/${ticket.id}/messages`)
-      .then(r => r.json())
-      .then(d => setMessages(Array.isArray(d) ? d : []))
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      .then(d => { if (Array.isArray(d)) { setMessages(d); setLoaded(true); } })
       .catch(() => {});
   };
 
@@ -91,7 +92,12 @@ export default function TicketThread({ ticket, senderId, senderRole, onClose }) 
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
-          {messages.length === 0 && (
+          {!loaded && (
+            <div className="text-center py-10 text-gray-400">
+              <p className="text-sm">Loading messages...</p>
+            </div>
+          )}
+          {loaded && messages.length === 0 && (
             <div className="text-center py-10 text-gray-400">
               <p className="text-3xl mb-2">💬</p>
               <p className="text-sm font-semibold">No messages yet</p>
