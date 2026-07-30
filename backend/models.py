@@ -149,6 +149,18 @@ class VetMessage(Base):
     vet = relationship("Vet")
     user = relationship("User")
 
+class TicketMessage(Base):
+    __tablename__ = "ticket_messages"
+    id = Column(Integer, primary_key=True, index=True)
+    ticket_id = Column(Integer, ForeignKey("support_tickets.id"))
+    sender_id = Column(Integer, ForeignKey("users.id"))
+    sender_role = Column(String)  # vet | adopter
+    message = Column(Text)
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    sender = relationship("User")
+    ticket = relationship("SupportTicket")
+
 class SupportTicket(Base):
     __tablename__ = "support_tickets"
     id = Column(Integer, primary_key=True, index=True)

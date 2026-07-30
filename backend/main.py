@@ -835,6 +835,70 @@ def quiz_match(answers: schemas.QuizAnswers, db: Session = Depends(get_db)):
     top = scored[:6]
     return [animal_to_dict(a) for _, a in top]
 
+# ─── TICKET MESSAGING ───────────────────────────────────────────────────────
+
+@app.get("/tickets/{ticket_id}/messages")
+def get_ticket_messages(ticket_id: int, db: Session = Depends(get_db)):
+    msgs = db.query(models.TicketMessage).filter(
+        models.TicketMessage.ticket_id == ticket_id
+    ).order_by(models.TicketMessage.created_at.asc()).all()
+    return [{
+        "id": m.id,
+        "sender_id": m.sender_id,
+        "sender_name": m.sender.username,
+        "sender_role": m.sender_role,
+        "message": m.message,
+        "is_read": m.is_read,
+        "created_at": m.created_at.isoformat()
+    } for m in msgs]
+
+@app.post("/tickets/{ticket_id}/messages")
+def send_ticket_message(ticket_id: int, body: schemas.TicketMessageCreate, db: Session = Depends(get_db)):
+    ticket = db.query(models.SupportTicket).filter(models.SupportTicket.id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    msg = models.TicketMessage(
+        ticket_id=ticket_id,
+        sender_id=body.sender_id,
+        sender_role=body.sender_role,
+        message=body.message,
+        is_read=False
+    )
+    db.add(msg)
+    # Notify the other party
+    if body.sender_role == "vet":
+        # Vet sent message → notify adopter via adoption unread flag
+        if ticket.adoption:
+            ticket.adoption.read = False
+    else:
+        # Adopter sent message → notify vet via vet_read flag
+        ticket.vet_read = False
+    db.commit()
+    return {"message": "Message sent", "id": msg.id}
+
+@app.patch("/tickets/{ticket_id}/messages/read")
+def mark_messages_read(ticket_id: int, reader_role: str, db: Session = Depends(get_db)):
+    """Mark all messages on a ticket as read for the reader."""
+    # Only mark messages sent by the OTHER party as read
+    other_role = "vet" if reader_role == "adopter" else "adopter"
+    db.query(models.TicketMessage).filter(
+        models.TicketMessage.ticket_id == ticket_id,
+        models.TicketMessage.sender_role == other_role,
+        models.TicketMessage.is_read == False
+    ).update({"is_read": True})
+    db.commit()
+    return {"message": "Messages marked as read"}
+
+@app.get("/tickets/{ticket_id}/unread-count")
+def ticket_unread_count(ticket_id: int, reader_role: str, db: Session = Depends(get_db)):
+    other_role = "vet" if reader_role == "adopter" else "adopter"
+    count = db.query(models.TicketMessage).filter(
+        models.TicketMessage.ticket_id == ticket_id,
+        models.TicketMessage.sender_role == other_role,
+        models.TicketMessage.is_read == False
+    ).count()
+    return {"count": count}
+
 # ─── VET PORTAL ENDPOINTS ────────────────────────────────────────────────────
 
 @app.get("/vet/profile")

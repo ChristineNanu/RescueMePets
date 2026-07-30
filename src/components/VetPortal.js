@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../constants';
+import TicketThread from './TicketThread';
 
 const userId = () => parseInt(localStorage.getItem('user_id'));
 
@@ -15,6 +16,7 @@ export default function VetPortal({ onLogout }) {
   const [resolveTicket, setResolveTicket] = useState(null);
   const [resolveNote, setResolveNote]     = useState('');
   const [resolving, setResolving]         = useState(false);
+  const [threadTicket, setThreadTicket]   = useState(null);
 
   const loadTickets = () => {
     const id = userId();
@@ -183,6 +185,10 @@ export default function VetPortal({ onLogout }) {
                       <p className="text-gray-600 text-sm">{t.issue}</p>
                     </div>
                     <div className="flex flex-col gap-2 flex-shrink-0">
+                      <button onClick={() => setThreadTicket(t)}
+                        className="px-3 py-1.5 bg-teal-50 text-teal-700 rounded-lg text-xs font-bold border-0 cursor-pointer hover:bg-teal-100">
+                        💬 Message
+                      </button>
                       {t.status === 'open' && (
                         <button onClick={() => updateTicket(t.id, 'in_progress')}
                           className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold border-0 cursor-pointer hover:bg-blue-100">
@@ -214,9 +220,15 @@ export default function VetPortal({ onLogout }) {
             <div className="space-y-4">
               {resolvedTickets.map(t => (
                 <div key={t.id} className="bg-white rounded-2xl shadow-sm border border-teal-50 p-6">
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">resolved</span>
-                    <span className="text-xs text-gray-400">{new Date(t.created_at).toLocaleDateString()}</span>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <span className="px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">resolved</span>
+                      <span className="text-xs text-gray-400">{new Date(t.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <button onClick={() => setThreadTicket(t)}
+                      className="px-3 py-1.5 bg-teal-50 text-teal-700 rounded-lg text-xs font-bold border-0 cursor-pointer hover:bg-teal-100">
+                      💬 View Thread
+                    </button>
                   </div>
                   <p className="font-bold text-gray-800 mb-1">🐾 {t.animal_name} — adopted by {t.adopter}</p>
                   <p className="text-gray-500 text-sm mb-3">{t.issue}</p>
@@ -255,6 +267,16 @@ export default function VetPortal({ onLogout }) {
           </div>
         )}
       </div>
+
+      {/* Ticket Thread */}
+      {threadTicket && (
+        <TicketThread
+          ticket={threadTicket}
+          senderId={userId()}
+          senderRole="vet"
+          onClose={() => { setThreadTicket(null); loadTickets(); }}
+        />
+      )}
 
       {/* Resolve Modal */}
       {resolveTicket && (

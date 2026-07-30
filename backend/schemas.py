@@ -168,6 +168,11 @@ class TicketStatusUpdate(BaseModel):
     vet_id: Optional[int] = None
     resolution_note: Optional[str] = None
 
+class TicketMessageCreate(BaseModel):
+    sender_id: int
+    sender_role: str
+    message: str
+
 class VetMessageCreate(BaseModel):
     name: str
     email: str

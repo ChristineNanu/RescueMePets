@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../constants';
+import TicketThread from './TicketThread';
 
 const STATUS_MAP = {
   pending:  { bg: 'bg-cream-100',  text: 'text-cream-700',  icon: '⏳', label: 'Pending Review' },
@@ -30,6 +31,7 @@ function MyApplications() {
   const [topUpAmount, setTopUpAmount]   = useState(1000);
   const [walletMsg, setWalletMsg]       = useState('');
   const [supportModal, setSupportModal] = useState(null); // adoption object
+  const [threadTicket, setThreadTicket]  = useState(null);
   const [issueText, setIssueText]       = useState('');
   const [ticketMsg, setTicketMsg]       = useState('');
   const [ticketLoading, setTicketLoading] = useState(false);
@@ -173,6 +175,15 @@ function MyApplications() {
       </div>
 
       {/* Support Modal */}
+      {threadTicket && (
+        <TicketThread
+          ticket={threadTicket}
+          senderId={parseInt(userId)}
+          senderRole="adopter"
+          onClose={() => setThreadTicket(null)}
+        />
+      )}
+
       {supportModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-teal-50 modal-enter">
@@ -423,9 +434,25 @@ function MyApplications() {
                                 <p className="text-xs font-bold text-gray-700">🩺 Assigned Vet: {ticket.vet.name}</p>
                                 <p className="text-xs text-gray-400">{ticket.vet.clinic} · {ticket.vet.specialization}</p>
                                 <p className="text-xs text-teal-600 font-semibold mt-0.5">📞 {ticket.vet.phone}</p>
+                                <button
+                                  onClick={() => setThreadTicket(ticket)}
+                                  className="mt-2 w-full text-xs font-bold text-teal-600 bg-teal-50 border border-teal-200 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-teal-100 transition-all">
+                                  💬 Message Vet
+                                </button>
                               </div>
                             ) : (
                               <p className="text-xs text-gray-400 mt-1">⏳ A vet will be assigned shortly</p>
+                            )}
+                            {ticket.resolution_note && (
+                              <div className="mt-2 bg-green-50 border border-green-100 rounded-lg p-2">
+                                <p className="text-xs font-black text-green-600 uppercase tracking-widest mb-0.5">Resolved</p>
+                                <p className="text-xs text-gray-700">{ticket.resolution_note}</p>
+                                <button
+                                  onClick={() => setThreadTicket(ticket)}
+                                  className="mt-2 w-full text-xs font-bold text-teal-600 bg-teal-50 border border-teal-200 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-teal-100 transition-all">
+                                  💬 View Thread
+                                </button>
+                              </div>
                             )}
                           </div>
                         );

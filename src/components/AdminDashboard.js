@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../constants';
 import SQLInterface from './SQLInterface';
 
 const adminId = () => parseInt(localStorage.getItem('user_id'));
 
 export default function AdminDashboard({ onLogout }) {
-  const navigate = useNavigate();
   const [tab, setTab] = useState('animals');
   const [animals, setAnimals] = useState([]);
   const [centers, setCenters] = useState([]);
