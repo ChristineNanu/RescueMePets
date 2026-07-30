@@ -42,6 +42,7 @@ export default function LandingPage() {
             <span className="text-lg font-black text-gradient">RescueMePets</span>
           </button>
           <div className="flex items-center gap-2">
+            <button onClick={() => navigate('/register/vet')} className="text-teal-600 text-sm font-semibold bg-transparent border-0 cursor-pointer hover:underline px-3 py-2">Are you a vet?</button>
             <button onClick={() => navigate('/login')} className="btn-ghost px-5 py-2 text-sm">Login</button>
             <button onClick={() => navigate('/register')} className="btn-primary px-5 py-2 text-sm">Get Started</button>
           </div>
@@ -78,12 +79,12 @@ export default function LandingPage() {
                 className="px-8 py-4 rounded-2xl font-bold text-base bg-gradient-to-r from-coral-500 to-coral-600
                   text-white hover:from-coral-600 hover:to-coral-700 hover:shadow-2xl hover:shadow-coral-500/30
                   hover:-translate-y-1 transition-all duration-200 border-0 cursor-pointer">
-                🐾 Start Adopting
+                🐾 I Want to Adopt
               </button>
-              <button onClick={() => navigate('/login')}
+              <button onClick={() => navigate('/register/vet')}
                 className="px-8 py-4 rounded-2xl font-bold text-base glass text-white
                   hover:bg-white/20 transition-all duration-200 cursor-pointer border-0">
-                Sign In →
+                🏥 I'm a Vet
               </button>
             </div>
 

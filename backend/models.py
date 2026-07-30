@@ -11,7 +11,8 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     password = Column(String)
     avatar = Column(String, default="")
-    wallet_balance = Column(Integer, default=0)  
+    wallet_balance = Column(Integer, default=0)
+    role = Column(String, default="adopter")  # adopter | vet | admin
 
 class Animal(Base):
     __tablename__ = "animals"
@@ -133,6 +134,8 @@ class Vet(Base):
     specialization = Column(String, default="General")
     center_id = Column(Integer, ForeignKey("centers.id"))
     center = relationship("Center")
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, unique=True)
+    user = relationship("User")
 
 class VetMessage(Base):
     __tablename__ = "vet_messages"

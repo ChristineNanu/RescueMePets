@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../constants';
 
-const NAV_LINKS = [
+const ADOPTER_LINKS = [
   { to: '/dashboard', label: 'Home'    },
   { to: '/animals',   label: 'Animals' },
   { to: '/centers',   label: 'Centers' },
@@ -10,7 +10,8 @@ const NAV_LINKS = [
   { to: '/shop',      label: '🛒 Shop' },
 ];
 
-export default function Navbar({ isLoggedIn, onLogout }) {
+export default function Navbar({ isLoggedIn, role, onLogout }) {
+  const NAV_LINKS = ADOPTER_LINKS;
   const location = useLocation();
   const navigate  = useNavigate();
   const userId    = localStorage.getItem('user_id');

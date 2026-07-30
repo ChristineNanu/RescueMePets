@@ -11,11 +11,13 @@ import Chatbot from './components/Chatbot';
 import Quiz from './components/Quiz';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
+import VetRegister from './components/VetRegister';
+import AdminDashboard from './components/AdminDashboard';
+import VetPortal from './components/VetPortal';
 import Pricing from './components/Pricing';
 import Shop from './components/Shop';
 import './App.css';
 
-// Global paw particle on adopt button clicks
 function usePawParticles() {
   useEffect(() => {
     const handler = (e) => {
@@ -36,54 +38,87 @@ function usePawParticles() {
   }, []);
 }
 
-const HIDDEN_NAV = ['/', '/login', '/register'];
+const HIDDEN_NAV = ['/', '/login', '/register', '/register/vet', '/admin', '/vet-portal'];
 
-function AppContent({ isLoggedIn, handleLogin, handleLogout }) {
+function AppContent({ isLoggedIn, role, handleLogin, handleLogout }) {
   const location = useLocation();
   const showNav = isLoggedIn && !HIDDEN_NAV.includes(location.pathname);
   const [showQuiz, setShowQuiz] = useState(false);
   usePawParticles();
 
+  const homeRedirect = () => {
+    if (!isLoggedIn) return <Navigate to="/" replace />;
+    if (role === 'admin') return <Navigate to="/admin" replace />;
+    if (role === 'vet')   return <Navigate to="/vet-portal" replace />;
+    return <Navigate to="/dashboard" replace />;
+  };
+
   return (
     <div className="App">
-      {showNav && <Navbar isLoggedIn={isLoggedIn} onLogout={handleLogout} />}
+      {showNav && <Navbar isLoggedIn={isLoggedIn} role={role} onLogout={handleLogout} />}
       <Routes>
         {/* Public */}
-        <Route path="/" element={isLoggedIn ? <Navigate to="/dashboard" replace /> : <LandingPage />} />
-        <Route path="/login" element={isLoggedIn ? <Navigate to="/dashboard" replace /> : <Login onLogin={handleLogin} />} />
-        <Route path="/register" element={isLoggedIn ? <Navigate to="/dashboard" replace /> : <Register />} />
+        <Route path="/" element={isLoggedIn ? homeRedirect() : <LandingPage />} />
+        <Route path="/login"        element={isLoggedIn ? homeRedirect() : <Login onLogin={handleLogin} />} />
+        <Route path="/register"     element={isLoggedIn ? homeRedirect() : <Register />} />
+        <Route path="/register/vet" element={isLoggedIn ? homeRedirect() : <VetRegister />} />
 
-        {/* Protected */}
-        <Route path="/dashboard" element={isLoggedIn ? <Dashboard onOpenQuiz={() => setShowQuiz(true)} /> : <Navigate to="/" replace />} />
-        <Route path="/animals"   element={isLoggedIn ? <AnimalList onOpenQuiz={() => setShowQuiz(true)} /> : <Navigate to="/" replace />} />
-        <Route path="/centers"   element={isLoggedIn ? <Centers /> : <Navigate to="/" replace />} />
-        <Route path="/adoption"  element={isLoggedIn ? <AdoptionForm /> : <Navigate to="/" replace />} />
-        <Route path="/my-profile" element={isLoggedIn ? <MyApplications /> : <Navigate to="/" replace />} />
-        <Route path="/pricing" element={<Pricing />} />
-        <Route path="/shop" element={isLoggedIn ? <Shop /> : <Navigate to="/" replace />} />
+        {/* Adopter routes */}
+        <Route path="/dashboard"  element={isLoggedIn && role === 'adopter' ? <Dashboard onOpenQuiz={() => setShowQuiz(true)} /> : homeRedirect()} />
+        <Route path="/animals"    element={isLoggedIn && role !== 'vet'     ? <AnimalList onOpenQuiz={() => setShowQuiz(true)} /> : homeRedirect()} />
+        <Route path="/centers"    element={isLoggedIn && role !== 'vet'     ? <Centers /> : homeRedirect()} />
+        <Route path="/adoption"   element={isLoggedIn && role === 'adopter' ? <AdoptionForm /> : homeRedirect()} />
+        <Route path="/my-profile" element={isLoggedIn && role === 'adopter' ? <MyApplications /> : homeRedirect()} />
+        <Route path="/shop"       element={isLoggedIn && role === 'adopter' ? <Shop /> : homeRedirect()} />
+        <Route path="/pricing"    element={<Pricing />} />
+
+        {/* Admin routes */}
+        <Route path="/admin" element={isLoggedIn && role === 'admin' ? <AdminDashboard onLogout={handleLogout} /> : homeRedirect()} />
+
+        {/* Vet routes */}
+        <Route path="/vet-portal" element={isLoggedIn && role === 'vet' ? <VetPortal onLogout={handleLogout} /> : homeRedirect()} />
 
         {/* Fallback */}
-        <Route path="*" element={<Navigate to={isLoggedIn ? '/dashboard' : '/'} replace />} />
+        <Route path="*" element={homeRedirect()} />
       </Routes>
-      {isLoggedIn && <Chatbot />}
-      {isLoggedIn && showQuiz && <Quiz onClose={() => setShowQuiz(false)} />}
+      {isLoggedIn && role === 'adopter' && <Chatbot />}
+      {isLoggedIn && role === 'adopter' && showQuiz && <Quiz onClose={() => setShowQuiz(false)} />}
     </div>
   );
 }
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [role, setRole] = useState('adopter');
 
   useEffect(() => {
-    setIsLoggedIn(!!localStorage.getItem('user_id'));
+    const uid = localStorage.getItem('user_id');
+    const r   = localStorage.getItem('role') || 'adopter';
+    setIsLoggedIn(!!uid);
+    setRole(r);
   }, []);
+
+  const handleLogin = () => {
+    setIsLoggedIn(true);
+    setRole(localStorage.getItem('role') || 'adopter');
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('user_id');
+    localStorage.removeItem('username');
+    localStorage.removeItem('role');
+    localStorage.removeItem('vet_id');
+    setIsLoggedIn(false);
+    setRole('adopter');
+  };
 
   return (
     <Router>
       <AppContent
         isLoggedIn={isLoggedIn}
-        handleLogin={() => setIsLoggedIn(true)}
-        handleLogout={() => { localStorage.removeItem('user_id'); localStorage.removeItem('username'); setIsLoggedIn(false); }}
+        role={role}
+        handleLogin={handleLogin}
+        handleLogout={handleLogout}
       />
     </Router>
   );

@@ -10,6 +10,15 @@ from daraja import stk_push, query_stk_status, b2c_payout
 models.Base.metadata.create_all(bind=engine)
 db = SessionLocal()
 sample_data.create_sample_data(db)
+# Seed admin account if not exists
+if not db.query(models.User).filter(models.User.username == "admin").first():
+    db.add(models.User(
+        username="admin",
+        email="admin@rescuemepets.com",
+        password=hashlib.sha256("admin1234".encode()).hexdigest(),
+        role="admin"
+    ))
+    db.commit()
 db.close()
 
 app = FastAPI()
@@ -32,6 +41,16 @@ def get_password_hash(password: str) -> str:
 
 def verify_password(plain: str, hashed: str) -> bool:
     return get_password_hash(plain) == hashed
+
+def require_admin(admin_id: int, db: Session):
+    user = db.query(models.User).filter(models.User.id == admin_id).first()
+    if not user or user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+def require_vet_or_admin(user_id: int, db: Session):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user or user.role not in ("vet", "admin"):
+        raise HTTPException(status_code=403, detail="Vet or admin access required")
 
 def animal_to_dict(animal, favorites=None):
     return {
@@ -73,11 +92,28 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Username already registered")
     if db.query(models.User).filter(models.User.email == user.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
-    db_user = models.User(username=user.username, email=user.email, password=get_password_hash(user.password))
+    db_user = models.User(username=user.username, email=user.email, password=get_password_hash(user.password), role="adopter")
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
     return {"message": "User registered successfully"}
+
+@app.post("/register/vet")
+def register_vet(data: schemas.VetRegister, db: Session = Depends(get_db)):
+    if db.query(models.User).filter(models.User.username == data.username).first():
+        raise HTTPException(status_code=400, detail="Username already registered")
+    if db.query(models.User).filter(models.User.email == data.email).first():
+        raise HTTPException(status_code=400, detail="Email already registered")
+    center = db.query(models.Center).filter(models.Center.id == data.center_id).first()
+    if not center:
+        raise HTTPException(status_code=404, detail="Center not found")
+    user = models.User(username=data.username, email=data.email, password=get_password_hash(data.password), role="vet")
+    db.add(user)
+    db.flush()
+    vet = models.Vet(name=data.name, clinic=data.clinic, phone=data.phone, specialization=data.specialization, center_id=data.center_id, user_id=user.id)
+    db.add(vet)
+    db.commit()
+    return {"message": "Vet registered successfully"}
 
 @app.post("/login")
 def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
@@ -86,7 +122,14 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Username not found. Please check your username or register.")
     if not verify_password(user.password, db_user.password):
         raise HTTPException(status_code=400, detail="Incorrect password. Please try again.")
-    return {"message": "Login successful", "user_id": db_user.id, "username": db_user.username}
+    vet = db.query(models.Vet).filter(models.Vet.user_id == db_user.id).first()
+    return {
+        "message": "Login successful",
+        "user_id": db_user.id,
+        "username": db_user.username,
+        "role": db_user.role,
+        "vet_id": vet.id if vet else None
+    }
 
 @app.get("/animals")
 def get_animals(species: str = None, search: str = None, status: str = None, user_id: int = None, db: Session = Depends(get_db)):
@@ -117,6 +160,85 @@ def get_animal(animal_id: int, user_id: int = None, db: Session = Depends(get_db
         favs = db.query(models.Favorite).filter(models.Favorite.user_id == user_id).all()
         favorites = [f.animal_id for f in favs]
     return animal_to_dict(animal, favorites)
+
+@app.post("/animals")
+def create_animal(animal: schemas.AnimalBase, admin_id: int, db: Session = Depends(get_db)):
+    require_admin(admin_id, db)
+    db_animal = models.Animal(**animal.model_dump())
+    db.add(db_animal)
+    db.commit()
+    db.refresh(db_animal)
+    return animal_to_dict(db_animal)
+
+@app.put("/animals/{animal_id}")
+def update_animal(animal_id: int, animal: schemas.AnimalBase, admin_id: int, db: Session = Depends(get_db)):
+    require_admin(admin_id, db)
+    db_animal = db.query(models.Animal).filter(models.Animal.id == animal_id).first()
+    if not db_animal:
+        raise HTTPException(status_code=404, detail="Animal not found")
+    for k, v in animal.model_dump().items():
+        setattr(db_animal, k, v)
+    db.commit()
+    return animal_to_dict(db_animal)
+
+@app.delete("/animals/{animal_id}")
+def delete_animal(animal_id: int, admin_id: int, db: Session = Depends(get_db)):
+    require_admin(admin_id, db)
+    db_animal = db.query(models.Animal).filter(models.Animal.id == animal_id).first()
+    if not db_animal:
+        raise HTTPException(status_code=404, detail="Animal not found")
+    db.delete(db_animal)
+    db.commit()
+    return {"message": "Animal deleted"}
+
+@app.get("/admin/applications")
+def get_all_applications(admin_id: int, db: Session = Depends(get_db)):
+    require_admin(admin_id, db)
+    adoptions = db.query(models.Adoption).order_by(models.Adoption.created_at.desc()).all()
+    return [{
+        "id": a.id, "user_id": a.user_id, "username": a.user.username,
+        "animal_id": a.animal_id, "animal_name": a.animal.name,
+        "animal_image": a.animal.image, "animal_species": a.animal.species,
+        "message": a.message, "status": a.status,
+        "created_at": a.created_at.isoformat()
+    } for a in adoptions]
+
+@app.put("/applications/{adoption_id}/status")
+def update_application_status(adoption_id: int, admin_id: int, body: schemas.StatusUpdate, db: Session = Depends(get_db)):
+    require_admin(admin_id, db)
+    adoption = db.query(models.Adoption).filter(models.Adoption.id == adoption_id).first()
+    if not adoption:
+        raise HTTPException(status_code=404, detail="Application not found")
+    old_status = adoption.status
+    adoption.status = body.status
+    if body.status in ("approved", "rejected") and old_status == "pending":
+        adoption.read = False
+        if body.status == "approved":
+            adoption.animal.status = "adopted"
+        elif body.status == "rejected":
+            adoption.animal.status = "available"
+    db.commit()
+    return {"message": f"Status updated to {body.status}"}
+
+@app.get("/admin/users")
+def get_all_users(admin_id: int, db: Session = Depends(get_db)):
+    require_admin(admin_id, db)
+    users = db.query(models.User).all()
+    return [{"id": u.id, "username": u.username, "email": u.email, "role": u.role} for u in users]
+
+@app.get("/centers/{center_id}")
+def get_center(center_id: int, db: Session = Depends(get_db)):
+    c = db.query(models.Center).filter(models.Center.id == center_id).first()
+    if not c:
+        raise HTTPException(status_code=404, detail="Center not found")
+    animals = db.query(models.Animal).filter(models.Animal.center_id == center_id).all()
+    return {
+        "id": c.id, "name": c.name, "location": c.location, "contact": c.contact,
+        "phone": c.phone or "", "website": c.website or "",
+        "description": c.description or "", "opening_hours": c.opening_hours or "",
+        "map_query": c.map_query or "",
+        "animals": [animal_to_dict(a) for a in animals]
+    }
 
 @app.get("/centers/{center_id}/stories")
 def get_center_stories(center_id: int, db: Session = Depends(get_db)):
@@ -704,3 +826,78 @@ def quiz_match(answers: schemas.QuizAnswers, db: Session = Depends(get_db)):
     scored.sort(key=lambda x: x[0], reverse=True)
     top = scored[:6]
     return [animal_to_dict(a) for _, a in top]
+
+# ─── VET PORTAL ENDPOINTS ────────────────────────────────────────────────────
+
+@app.get("/vet/profile")
+def get_vet_profile(user_id: int, db: Session = Depends(get_db)):
+    require_vet_or_admin(user_id, db)
+    vet = db.query(models.Vet).filter(models.Vet.user_id == user_id).first()
+    if not vet:
+        raise HTTPException(status_code=404, detail="Vet profile not found")
+    return {
+        "id": vet.id, "name": vet.name, "clinic": vet.clinic,
+        "phone": vet.phone, "specialization": vet.specialization,
+        "center_id": vet.center_id,
+        "center_name": vet.center.name if vet.center else ""
+    }
+
+@app.get("/vet/tickets")
+def get_vet_tickets(user_id: int, db: Session = Depends(get_db)):
+    require_vet_or_admin(user_id, db)
+    vet = db.query(models.Vet).filter(models.Vet.user_id == user_id).first()
+    if not vet:
+        raise HTTPException(status_code=404, detail="Vet profile not found")
+    tickets = db.query(models.SupportTicket).filter(
+        models.SupportTicket.vet_id == vet.id
+    ).order_by(models.SupportTicket.created_at.desc()).all()
+    return [{
+        "id": t.id, "adoption_id": t.adoption_id,
+        "animal_name": t.adoption.animal.name,
+        "adopter": t.user.username,
+        "issue": t.issue, "status": t.status,
+        "created_at": t.created_at.isoformat()
+    } for t in tickets]
+
+@app.get("/vet/center-animals")
+def get_vet_center_animals(user_id: int, db: Session = Depends(get_db)):
+    require_vet_or_admin(user_id, db)
+    vet = db.query(models.Vet).filter(models.Vet.user_id == user_id).first()
+    if not vet:
+        raise HTTPException(status_code=404, detail="Vet profile not found")
+    animals = db.query(models.Animal).filter(models.Animal.center_id == vet.center_id).all()
+    return [animal_to_dict(a) for a in animals]
+
+# ─── SQL INTERFACE (ADMIN ONLY) ───────────────────────────────────────────────
+
+from sql_engine import SimpleSQL
+
+@app.post("/sql/query")
+async def run_sql_query(request: Request, admin_id: int, db: Session = Depends(get_db)):
+    require_admin(admin_id, db)
+    body = await request.json()
+    query = body.get("query", "").strip()
+    if not query:
+        raise HTTPException(status_code=400, detail="No query provided")
+    sql = SimpleSQL(db)
+    return sql.execute_query(query)
+
+@app.get("/tables")
+def get_tables(admin_id: int, db: Session = Depends(get_db)):
+    require_admin(admin_id, db)
+    sql = SimpleSQL(db)
+    return sql.execute_query("SHOW TABLES")
+
+@app.post("/reset-db")
+def reset_db(admin_id: int, db: Session = Depends(get_db)):
+    require_admin(admin_id, db)
+    for table in reversed(models.Base.metadata.sorted_tables):
+        db.execute(table.delete())
+    db.commit()
+    return {"message": "Database reset"}
+
+@app.post("/load-sample-data")
+def load_sample(admin_id: int, db: Session = Depends(get_db)):
+    require_admin(admin_id, db)
+    sample_data.create_sample_data(db)
+    return {"message": "Sample data loaded"}

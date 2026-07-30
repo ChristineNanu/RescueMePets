@@ -21,8 +21,12 @@ export const Login = ({ onLogin }) => {
       if (res.ok && data.user_id) {
         localStorage.setItem('user_id', data.user_id);
         localStorage.setItem('username', data.username);
+        localStorage.setItem('role', data.role);
+        if (data.vet_id) localStorage.setItem('vet_id', data.vet_id);
         if (onLogin) onLogin();
-        navigate('/dashboard');
+        if (data.role === 'admin')   navigate('/admin');
+        else if (data.role === 'vet') navigate('/vet-portal');
+        else navigate('/dashboard');
       } else setMessage(data.detail || 'Login failed');
     } catch { setMessage('Connection error. Is the server running?'); }
     finally { setLoading(false); }
@@ -75,7 +79,7 @@ export const Login = ({ onLogin }) => {
 
           <div className="mb-8">
             <h1 className="text-3xl font-black text-gray-900 mb-1">Welcome back!</h1>
-            <p className="text-gray-500 text-sm">Sign in to continue your adoption journey</p>
+            <p className="text-gray-500 text-sm">Sign in to continue your journey</p>
           </div>
 
           <div className="bg-white rounded-3xl shadow-card border border-teal-50 p-8">

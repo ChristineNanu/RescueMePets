@@ -7,6 +7,16 @@ class UserCreate(BaseModel):
     email: str
     password: str
 
+class VetRegister(BaseModel):
+    username: str
+    email: str
+    password: str
+    name: str
+    clinic: str
+    phone: str
+    specialization: str = "General"
+    center_id: int
+
 class UserLogin(BaseModel):
     username: str
     password: str
