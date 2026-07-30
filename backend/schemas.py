@@ -166,6 +166,7 @@ class SupportTicketCreate(BaseModel):
 class TicketStatusUpdate(BaseModel):
     status: str
     vet_id: Optional[int] = None
+    resolution_note: Optional[str] = None
 
 class VetMessageCreate(BaseModel):
     name: str

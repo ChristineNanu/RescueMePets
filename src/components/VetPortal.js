@@ -4,34 +4,79 @@ import { API_BASE_URL } from '../constants';
 const userId = () => parseInt(localStorage.getItem('user_id'));
 
 export default function VetPortal({ onLogout }) {
-  const [tab, setTab] = useState('tickets');
+  const [tab, setTab]         = useState('tickets');
   const [profile, setProfile] = useState(null);
   const [tickets, setTickets] = useState([]);
   const [animals, setAnimals] = useState([]);
+  const [unread, setUnread]   = useState(0);
   const [loading, setLoading] = useState(true);
+
+  // Resolve modal state
+  const [resolveTicket, setResolveTicket] = useState(null);
+  const [resolveNote, setResolveNote]     = useState('');
+  const [resolving, setResolving]         = useState(false);
+
+  const loadTickets = () => {
+    const id = userId();
+    if (!id || isNaN(id)) return;
+    fetch(`${API_BASE_URL}/vet/tickets?user_id=${id}`)
+      .then(r => r.json())
+      .then(t => setTickets(Array.isArray(t) ? t : []))
+      .catch(() => {});
+  };
 
   useEffect(() => {
     const id = userId();
     if (!id || isNaN(id)) { setLoading(false); return; }
+
     Promise.all([
       fetch(`${API_BASE_URL}/vet/profile?user_id=${id}`).then(r => r.json()).catch(() => null),
       fetch(`${API_BASE_URL}/vet/tickets?user_id=${id}`).then(r => r.json()).catch(() => []),
       fetch(`${API_BASE_URL}/vet/center-animals?user_id=${id}`).then(r => r.json()).catch(() => []),
-    ]).then(([p, t, a]) => {
+      fetch(`${API_BASE_URL}/vet/unread-count?user_id=${id}`).then(r => r.json()).catch(() => ({ count: 0 })),
+    ]).then(([p, t, a, u]) => {
       setProfile(p);
       setTickets(Array.isArray(t) ? t : []);
       setAnimals(Array.isArray(a) ? a : []);
+      setUnread(u?.count || 0);
       setLoading(false);
     }).catch(() => setLoading(false));
+
+    // Poll unread every 30s
+    const interval = setInterval(() => {
+      fetch(`${API_BASE_URL}/vet/unread-count?user_id=${id}`)
+        .then(r => r.json()).then(u => setUnread(u?.count || 0)).catch(() => {});
+    }, 30000);
+    return () => clearInterval(interval);
   }, []);
+
+  // Mark all read when vet opens tickets tab
+  useEffect(() => {
+    const id = userId();
+    if (!id || isNaN(id) || tab !== 'tickets' || unread === 0) return;
+    fetch(`${API_BASE_URL}/vet/mark-read?user_id=${id}`, { method: 'POST' })
+      .then(() => setUnread(0)).catch(() => {});
+  }, [tab, unread]);
 
   const updateTicket = async (ticketId, status) => {
     await fetch(`${API_BASE_URL}/support/${ticketId}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
     });
-    const id = userId();
-    fetch(`${API_BASE_URL}/vet/tickets?user_id=${id}`).then(r => r.json()).then(t => setTickets(Array.isArray(t) ? t : []));
+    loadTickets();
+  };
+
+  const handleResolve = async () => {
+    if (!resolveNote.trim()) return;
+    setResolving(true);
+    await fetch(`${API_BASE_URL}/support/${resolveTicket.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'resolved', resolution_note: resolveNote }),
+    });
+    setResolveTicket(null);
+    setResolveNote('');
+    setResolving(false);
+    loadTickets();
   };
 
   const statusBadge = (s) => ({
@@ -46,7 +91,14 @@ export default function VetPortal({ onLogout }) {
     adopted:   'bg-gray-100 text-gray-500',
   }[s] || 'bg-gray-100 text-gray-500');
 
-  if (loading) return <div className="min-h-screen page-bg flex items-center justify-center text-teal-600 font-semibold">Loading...</div>;
+  const activeTickets   = tickets.filter(t => t.status !== 'resolved');
+  const resolvedTickets = tickets.filter(t => t.status === 'resolved');
+
+  if (loading) return (
+    <div className="min-h-screen page-bg flex items-center justify-center text-teal-600 font-semibold">
+      Loading...
+    </div>
+  );
 
   return (
     <div className="min-h-screen page-bg">
@@ -56,7 +108,9 @@ export default function VetPortal({ onLogout }) {
           <div>
             <p className="text-teal-300 text-sm font-semibold mb-1">🏥 Vet Portal</p>
             <h1 className="text-3xl font-black">{profile?.name || 'Welcome'}</h1>
-            <p className="text-teal-200 text-sm mt-1">{profile?.specialization} · {profile?.clinic} · {profile?.center_name}</p>
+            <p className="text-teal-200 text-sm mt-1">
+              {profile?.specialization} · {profile?.clinic} · {profile?.center_name}
+            </p>
           </div>
           <button onClick={onLogout}
             className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-sm font-semibold border-0 cursor-pointer transition-all">
@@ -66,35 +120,63 @@ export default function VetPortal({ onLogout }) {
       </div>
 
       <div className="max-w-5xl mx-auto px-4 py-6">
+
+        {/* Unread notification banner */}
+        {unread > 0 && (
+          <div className="mb-5 flex items-center gap-3 bg-teal-50 border border-teal-200 rounded-2xl px-5 py-3 animate-scale-in">
+            <span className="w-2.5 h-2.5 bg-teal-500 rounded-full animate-pulse flex-shrink-0" />
+            <p className="text-teal-700 font-semibold text-sm">
+              You have <span className="font-black">{unread}</span> new ticket{unread > 1 ? 's' : ''} assigned to you
+            </p>
+            <button onClick={() => setTab('tickets')}
+              className="ml-auto text-teal-600 text-xs font-black bg-transparent border-0 cursor-pointer hover:underline">
+              View →
+            </button>
+          </div>
+        )}
+
         {/* Tabs */}
         <div className="flex gap-1 bg-white rounded-2xl p-1 shadow-sm border border-teal-100 mb-6 w-fit">
           {[
-            { key: 'tickets', label: `📋 My Tickets (${tickets.length})` },
+            { key: 'tickets', label: `📋 Active Tickets (${activeTickets.length})`, badge: unread },
+            { key: 'resolved', label: `✅ Resolved (${resolvedTickets.length})` },
             { key: 'animals', label: `🐾 Center Animals (${animals.length})` },
-          ].map(({ key, label }) => (
+          ].map(({ key, label, badge }) => (
             <button key={key} onClick={() => setTab(key)}
-              className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all border-0 cursor-pointer
+              className={`relative px-5 py-2.5 rounded-xl text-sm font-bold transition-all border-0 cursor-pointer
                 ${tab === key ? 'bg-teal-600 text-white shadow-sm' : 'text-gray-500 bg-transparent hover:text-teal-700'}`}>
               {label}
+              {badge > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-coral-500 rounded-full
+                  flex items-center justify-center text-white text-[10px] font-black border-2 border-white px-1">
+                  {badge}
+                </span>
+              )}
             </button>
           ))}
         </div>
 
-        {/* Tickets Tab */}
+        {/* Active Tickets */}
         {tab === 'tickets' && (
-          tickets.length === 0 ? (
+          activeTickets.length === 0 ? (
             <div className="text-center py-16 text-gray-400">
               <div className="text-5xl mb-4">📋</div>
-              <p className="font-semibold">No tickets assigned to you yet</p>
+              <p className="font-semibold">No active tickets assigned to you</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {tickets.map(t => (
-                <div key={t.id} className="bg-white rounded-2xl shadow-sm border border-teal-50 p-6">
+              {activeTickets.map(t => (
+                <div key={t.id} className={`bg-white rounded-2xl shadow-sm border p-6 transition-all
+                  ${!t.vet_read ? 'border-teal-300 shadow-teal-100' : 'border-teal-50'}`}>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${statusBadge(t.status)}`}>{t.status.replace('_', ' ')}</span>
+                        {!t.vet_read && (
+                          <span className="w-2 h-2 bg-teal-500 rounded-full flex-shrink-0" />
+                        )}
+                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${statusBadge(t.status)}`}>
+                          {t.status.replace('_', ' ')}
+                        </span>
                         <span className="text-xs text-gray-400">{new Date(t.created_at).toLocaleDateString()}</span>
                       </div>
                       <p className="font-bold text-gray-800 mb-1">🐾 {t.animal_name} — adopted by {t.adopter}</p>
@@ -108,13 +190,42 @@ export default function VetPortal({ onLogout }) {
                         </button>
                       )}
                       {t.status === 'in_progress' && (
-                        <button onClick={() => updateTicket(t.id, 'resolved')}
+                        <button onClick={() => { setResolveTicket(t); setResolveNote(''); }}
                           className="px-3 py-1.5 bg-green-50 text-green-700 rounded-lg text-xs font-bold border-0 cursor-pointer hover:bg-green-100">
                           Resolve
                         </button>
                       )}
                     </div>
                   </div>
+                </div>
+              ))}
+            </div>
+          )
+        )}
+
+        {/* Resolved Tickets */}
+        {tab === 'resolved' && (
+          resolvedTickets.length === 0 ? (
+            <div className="text-center py-16 text-gray-400">
+              <div className="text-5xl mb-4">✅</div>
+              <p className="font-semibold">No resolved tickets yet</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {resolvedTickets.map(t => (
+                <div key={t.id} className="bg-white rounded-2xl shadow-sm border border-teal-50 p-6">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">resolved</span>
+                    <span className="text-xs text-gray-400">{new Date(t.created_at).toLocaleDateString()}</span>
+                  </div>
+                  <p className="font-bold text-gray-800 mb-1">🐾 {t.animal_name} — adopted by {t.adopter}</p>
+                  <p className="text-gray-500 text-sm mb-3">{t.issue}</p>
+                  {t.resolution_note && (
+                    <div className="bg-green-50 border border-green-100 rounded-xl px-4 py-3">
+                      <p className="text-xs font-black text-green-600 uppercase tracking-widest mb-1">Resolution Note</p>
+                      <p className="text-gray-700 text-sm">{t.resolution_note}</p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -134,9 +245,9 @@ export default function VetPortal({ onLogout }) {
                   </div>
                   <p className="text-gray-500 text-sm">{a.species} · {a.breed} · {a.age}yr</p>
                   <div className="flex gap-1 mt-2 flex-wrap">
-                    {a.vaccinated    && <span className="px-2 py-0.5 bg-teal-50 text-teal-600 rounded-full text-xs font-semibold">💉 Vaccinated</span>}
-                    {a.neutered      && <span className="px-2 py-0.5 bg-teal-50 text-teal-600 rounded-full text-xs font-semibold">✂️ Neutered</span>}
-                    {a.microchipped  && <span className="px-2 py-0.5 bg-teal-50 text-teal-600 rounded-full text-xs font-semibold">📡 Chipped</span>}
+                    {a.vaccinated   && <span className="px-2 py-0.5 bg-teal-50 text-teal-600 rounded-full text-xs font-semibold">💉 Vaccinated</span>}
+                    {a.neutered     && <span className="px-2 py-0.5 bg-teal-50 text-teal-600 rounded-full text-xs font-semibold">✂️ Neutered</span>}
+                    {a.microchipped && <span className="px-2 py-0.5 bg-teal-50 text-teal-600 rounded-full text-xs font-semibold">📡 Chipped</span>}
                   </div>
                 </div>
               </div>
@@ -144,6 +255,53 @@ export default function VetPortal({ onLogout }) {
           </div>
         )}
       </div>
+
+      {/* Resolve Modal */}
+      {resolveTicket && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 animate-scale-in">
+            <h2 className="text-xl font-black text-gray-900 mb-1">Resolve Ticket</h2>
+            <p className="text-gray-500 text-sm mb-5">
+              🐾 {resolveTicket.animal_name} — {resolveTicket.adopter}
+            </p>
+
+            <div className="bg-gray-50 rounded-xl p-4 mb-5">
+              <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Issue</p>
+              <p className="text-gray-700 text-sm">{resolveTicket.issue}</p>
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">
+                Resolution Note <span className="text-coral-500">*</span>
+              </label>
+              <textarea
+                value={resolveNote}
+                onChange={e => setResolveNote(e.target.value)}
+                placeholder="Describe what was done to resolve this issue..."
+                rows={4}
+                className="input-field resize-none"
+              />
+              {!resolveNote.trim() && (
+                <p className="text-xs text-coral-500 mt-1">A resolution note is required</p>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={handleResolve} disabled={resolving || !resolveNote.trim()}
+                className={`flex-1 py-3 rounded-xl font-bold border-0 cursor-pointer transition-all
+                  ${resolving || !resolveNote.trim()
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-green-500 hover:bg-green-600 text-white'}`}>
+                {resolving ? '⏳ Resolving...' : '✅ Mark as Resolved'}
+              </button>
+              <button onClick={() => setResolveTicket(null)}
+                className="flex-1 py-3 rounded-xl font-bold border border-gray-200 text-gray-600 bg-transparent cursor-pointer hover:bg-gray-50">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

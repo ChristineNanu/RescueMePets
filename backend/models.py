@@ -156,6 +156,8 @@ class SupportTicket(Base):
     adoption_id = Column(Integer, ForeignKey("adoptions.id"))
     issue = Column(Text)
     status = Column(String, default="open")  # open, in_progress, resolved
+    resolution_note = Column(Text, nullable=True)
+    vet_read = Column(Boolean, default=True)  # False = new unread ticket for vet
     vet_id = Column(Integer, ForeignKey("vets.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     user = relationship("User")

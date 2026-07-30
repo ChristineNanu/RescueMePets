@@ -739,6 +739,7 @@ def get_tickets(user_id: int, db: Session = Depends(get_db)):
         "animal_name": t.adoption.animal.name,
         "issue": t.issue,
         "status": t.status,
+        "resolution_note": t.resolution_note,
         "created_at": t.created_at.isoformat(),
         "vet": {"name": t.vet.name, "clinic": t.vet.clinic, "phone": t.vet.phone, "specialization": t.vet.specialization} if t.vet else None
     } for t in tickets]
@@ -765,6 +766,13 @@ def update_ticket(ticket_id: int, body: schemas.TicketStatusUpdate, db: Session 
     ticket.status = body.status
     if body.vet_id:
         ticket.vet_id = body.vet_id
+        ticket.vet_read = False  # mark unread for vet when assigned
+    if body.resolution_note is not None:
+        ticket.resolution_note = body.resolution_note
+    if body.status == "resolved":
+        # notify adopter by marking adoption unread
+        if ticket.adoption:
+            ticket.adoption.read = False
     db.commit()
     return {"message": "Ticket updated"}
 
@@ -856,8 +864,35 @@ def get_vet_tickets(user_id: int, db: Session = Depends(get_db)):
         "animal_name": t.adoption.animal.name,
         "adopter": t.user.username,
         "issue": t.issue, "status": t.status,
+        "resolution_note": t.resolution_note,
+        "vet_read": t.vet_read if t.vet_read is not None else True,
         "created_at": t.created_at.isoformat()
     } for t in tickets]
+
+@app.get("/vet/unread-count")
+def get_vet_unread(user_id: int, db: Session = Depends(get_db)):
+    require_vet_or_admin(user_id, db)
+    vet = db.query(models.Vet).filter(models.Vet.user_id == user_id).first()
+    if not vet:
+        return {"count": 0}
+    count = db.query(models.SupportTicket).filter(
+        models.SupportTicket.vet_id == vet.id,
+        models.SupportTicket.vet_read == False
+    ).count()
+    return {"count": count}
+
+@app.post("/vet/mark-read")
+def vet_mark_read(user_id: int, db: Session = Depends(get_db)):
+    require_vet_or_admin(user_id, db)
+    vet = db.query(models.Vet).filter(models.Vet.user_id == user_id).first()
+    if not vet:
+        return {"message": "ok"}
+    db.query(models.SupportTicket).filter(
+        models.SupportTicket.vet_id == vet.id,
+        models.SupportTicket.vet_read == False
+    ).update({"vet_read": True})
+    db.commit()
+    return {"message": "Marked as read"}
 
 @app.get("/vet/center-animals")
 def get_vet_center_animals(user_id: int, db: Session = Depends(get_db)):
