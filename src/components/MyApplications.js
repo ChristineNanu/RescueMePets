@@ -42,6 +42,8 @@ function MyApplications() {
   const handleLogout = () => {
     localStorage.removeItem('user_id');
     localStorage.removeItem('username');
+    localStorage.removeItem('role');
+    localStorage.removeItem('vet_id');
     navigate('/');
     window.location.reload();
   };

@@ -73,6 +73,7 @@ export default function Dashboard({ onOpenQuiz }) {
   const greetIcon = hour < 12 ? '☀️' : hour < 17 ? '🌤️' : '🌙';
 
   useEffect(() => {
+    if (!userId) return;
     Promise.all([
       fetch(`${API_BASE_URL}/stats`).then(r => r.ok ? r.json() : Promise.reject()),
       fetch(`${API_BASE_URL}/animals?user_id=${userId}`).then(r => r.ok ? r.json() : Promise.reject()),
