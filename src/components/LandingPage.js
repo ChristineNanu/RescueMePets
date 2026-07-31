@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../constants';
+import { apiFetch } from '../api';
 
 const PREVIEW = [
   { name: 'Buddy',    breed: 'Golden Retriever', img: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=600&q=80',    tag: 'Dog' },
@@ -26,7 +27,7 @@ export default function LandingPage() {
   const [stats, setStats] = useState({ total_animals: 21, available: 19, adopted: 1, centers: 4 });
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/stats`).then(r => r.json()).then(setStats).catch(() => {});
+    apiFetch(`${API_BASE_URL}/stats`).then(r => r.json()).then(setStats).catch(() => {});
   }, []);
 
   return (

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../constants';
+import { apiFetch } from '../api';
 
 const STEPS = [
   {
@@ -79,7 +80,7 @@ export default function Quiz({ onClose }) {
     } else {
       setLoading(true);
       try {
-        const res = await fetch(`${API_BASE_URL}/quiz/match`, {
+        const res = await apiFetch(`${API_BASE_URL}/quiz/match`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newAnswers),
         });

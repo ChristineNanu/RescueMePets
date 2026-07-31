@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../constants';
+import { setTokens } from '../api';
 
 export const Login = ({ onLogin }) => {
   const [username, setUsername] = useState('');
@@ -23,6 +24,7 @@ export const Login = ({ onLogin }) => {
         localStorage.setItem('username', data.username);
         localStorage.setItem('role', data.role);
         if (data.vet_id) localStorage.setItem('vet_id', data.vet_id);
+        setTokens(data);
         if (onLogin) onLogin();
         if (data.role === 'admin')   navigate('/admin');
         else if (data.role === 'vet') navigate('/vet-portal');

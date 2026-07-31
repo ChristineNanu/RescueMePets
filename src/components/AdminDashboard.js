@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../constants';
+import { apiFetch } from '../api';
 import SQLInterface from './SQLInterface';
 
 const adminId = () => parseInt(localStorage.getItem('user_id'));
@@ -24,10 +25,10 @@ export default function AdminDashboard({ onLogout }) {
     setLoading(true);
     const id = adminId();
     const [a, c, apps, u] = await Promise.all([
-      fetch(`${API_BASE_URL}/animals`).then(r => r.json()),
-      fetch(`${API_BASE_URL}/centers`).then(r => r.json()),
-      fetch(`${API_BASE_URL}/admin/applications?admin_id=${id}`).then(r => r.json()),
-      fetch(`${API_BASE_URL}/admin/users?admin_id=${id}`).then(r => r.json()),
+      apiFetch(`${API_BASE_URL}/animals`).then(r => r.json()),
+      apiFetch(`${API_BASE_URL}/centers`).then(r => r.json()),
+      apiFetch(`${API_BASE_URL}/admin/applications?admin_id=${id}`).then(r => r.json()),
+      apiFetch(`${API_BASE_URL}/admin/users?admin_id=${id}`).then(r => r.json()),
     ]);
     setAnimals(a); setCenters(c); setApplications(apps); setUsers(u);
     setLoading(false);
@@ -54,18 +55,18 @@ export default function AdminDashboard({ onLogout }) {
     const payload = { ...form, age: parseInt(form.age), center_id: parseInt(form.center_id) };
     const url = editAnimal ? `${API_BASE_URL}/animals/${editAnimal.id}?admin_id=${id}` : `${API_BASE_URL}/animals?admin_id=${id}`;
     const method = editAnimal ? 'PUT' : 'POST';
-    await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    await apiFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     setShowForm(false); load();
   };
 
   const deleteAnimal = async (animalId) => {
     if (!window.confirm('Delete this animal?')) return;
-    await fetch(`${API_BASE_URL}/animals/${animalId}?admin_id=${adminId()}`, { method: 'DELETE' });
+    await apiFetch(`${API_BASE_URL}/animals/${animalId}?admin_id=${adminId()}`, { method: 'DELETE' });
     load();
   };
 
   const updateStatus = async (adoptionId, status) => {
-    await fetch(`${API_BASE_URL}/applications/${adoptionId}/status?admin_id=${adminId()}`, {
+    await apiFetch(`${API_BASE_URL}/applications/${adoptionId}/status?admin_id=${adminId()}`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
     });

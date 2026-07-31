@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../constants';
+import { apiFetch } from '../api';
 import TicketThread from './TicketThread';
 
 const STATUS_MAP = {
@@ -54,11 +55,11 @@ function MyApplications() {
   const loadData = useCallback(() => {
     if (!userId) { navigate('/login'); return; }
     Promise.all([
-      fetch(`${API_BASE_URL}/my-applications?user_id=${userId}`).then(r => r.json()),
-      fetch(`${API_BASE_URL}/favorites?user_id=${userId}`).then(r => r.json()),
-      fetch(`${API_BASE_URL}/my-sponsorships?user_id=${userId}`).then(r => r.json()),
-      fetch(`${API_BASE_URL}/profile?user_id=${userId}`).then(r => r.json()),
-      fetch(`${API_BASE_URL}/support?user_id=${userId}`).then(r => r.json()),
+      apiFetch(`${API_BASE_URL}/my-applications?user_id=${userId}`).then(r => r.json()),
+      apiFetch(`${API_BASE_URL}/favorites?user_id=${userId}`).then(r => r.json()),
+      apiFetch(`${API_BASE_URL}/my-sponsorships?user_id=${userId}`).then(r => r.json()),
+      apiFetch(`${API_BASE_URL}/profile?user_id=${userId}`).then(r => r.json()),
+      apiFetch(`${API_BASE_URL}/support?user_id=${userId}`).then(r => r.json()),
     ]).then(([apps, favs, sponsors, prof, tix]) => {
       setApplications(Array.isArray(apps) ? apps : []);
       setFavorites(Array.isArray(favs) ? favs : []);
@@ -68,7 +69,7 @@ function MyApplications() {
       // fetch last message preview for tickets with assigned vets
       if (Array.isArray(tix)) {
         tix.filter(t => t.vet && t.status !== 'resolved').forEach(t => {
-          fetch(`${API_BASE_URL}/tickets/${t.id}/messages`)
+          apiFetch(`${API_BASE_URL}/tickets/${t.id}/messages`)
             .then(r => r.json())
             .then(msgs => {
               if (Array.isArray(msgs) && msgs.length > 0) {
@@ -89,12 +90,12 @@ function MyApplications() {
 
   useEffect(() => {
     if (!userId) return;
-    fetch(`${API_BASE_URL}/notifications/mark-read?user_id=${userId}`, { method: 'POST' }).catch(() => {});
+    apiFetch(`${API_BASE_URL}/notifications/mark-read?user_id=${userId}`, { method: 'POST' }).catch(() => {});
   }, [userId]);
 
   const saveProfile = async () => {
     setEditMsg('');
-    const res = await fetch(`${API_BASE_URL}/profile?user_id=${userId}`, {
+    const res = await apiFetch(`${API_BASE_URL}/profile?user_id=${userId}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(editForm),
     });
@@ -105,7 +106,7 @@ function MyApplications() {
 
   const handleTopUp = async () => {
     setWalletMsg('');
-    const res = await fetch(`${API_BASE_URL}/wallet/topup?user_id=${userId}`, {
+    const res = await apiFetch(`${API_BASE_URL}/wallet/topup?user_id=${userId}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ amount: topUpAmount }),
     });
@@ -117,13 +118,13 @@ function MyApplications() {
   const submitTicket = async () => {
     if (!issueText.trim()) return;
     setTicketLoading(true); setTicketMsg('');
-    const res = await fetch(`${API_BASE_URL}/support`, {
+    const res = await apiFetch(`${API_BASE_URL}/support`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: parseInt(userId), adoption_id: supportModal.id, issue: issueText }),
     });
     const data = await res.json();
     if (res.ok) {
-      fetch(`${API_BASE_URL}/support?user_id=${userId}`).then(r => r.json()).then(tix => setTickets(Array.isArray(tix) ? tix : []));
+      apiFetch(`${API_BASE_URL}/support?user_id=${userId}`).then(r => r.json()).then(tix => setTickets(Array.isArray(tix) ? tix : []));
       setSupportModal(null);
       setIssueText('');
       setTicketMsg('');
@@ -135,14 +136,14 @@ function MyApplications() {
 
   const deleteApplication = async (appId) => {
     if (!window.confirm('Are you sure you want to withdraw this application?')) return;
-    const res = await fetch(`${API_BASE_URL}/applications/${appId}?user_id=${userId}`, { method: 'DELETE' });
+    const res = await apiFetch(`${API_BASE_URL}/applications/${appId}?user_id=${userId}`, { method: 'DELETE' });
     if (res.ok) setApplications(prev => prev.filter(a => a.id !== appId));
   };
 
   const saveEditApp = async () => {
     if (!editAppText.trim()) return;
     setEditAppMsg('');
-    const res = await fetch(`${API_BASE_URL}/applications/${editAppModal.id}?user_id=${userId}`, {
+    const res = await apiFetch(`${API_BASE_URL}/applications/${editAppModal.id}?user_id=${userId}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: editAppText }),
     });
@@ -460,7 +461,7 @@ function MyApplications() {
                                     <button
                                       onClick={async () => {
                                         if (!window.confirm('Withdraw this support request?')) return;
-                                        const res = await fetch(`${API_BASE_URL}/support/${ticket.id}?user_id=${userId}`, { method: 'DELETE' });
+                                        const res = await apiFetch(`${API_BASE_URL}/support/${ticket.id}?user_id=${userId}`, { method: 'DELETE' });
                                         if (res.ok) setTickets(prev => prev.filter(t => t.id !== ticket.id));
                                       }}
                                       className="text-xs font-bold text-coral-600 bg-white border border-coral-200 px-2 py-0.5 rounded-lg cursor-pointer hover:bg-coral-50 transition-all">🗑️</button>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../constants';
+import { apiFetch } from '../api';
 import MpesaPayment from './MpesaPayment';
 
 const STEPS = ['Choose Animal', 'Your Details', 'Review & Submit'];
@@ -23,7 +24,7 @@ function AdoptionForm() {
   const userId = localStorage.getItem('user_id');
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/animals`)
+    apiFetch(`${API_BASE_URL}/animals`)
       .then(r => { if (!r.ok) throw new Error(); return r.json(); })
       .then(data => setAnimals(data.filter(a => a.status !== 'adopted')))
       .catch(() => setError('Failed to load animals'));
@@ -38,7 +39,7 @@ function AdoptionForm() {
     setIsLoading(true); setError('');
     try {
       const fullMessage = `${message}\n\nHome type: ${homeType} | Children: ${hasChildren} | Other pets: ${hasPets}`;
-      const res = await fetch(`${API_BASE_URL}/adopt`, {
+      const res = await apiFetch(`${API_BASE_URL}/adopt`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: parseInt(userId), animal_id: parseInt(animalId), message: fullMessage }),
       });

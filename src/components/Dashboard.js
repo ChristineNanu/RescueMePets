@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API_BASE_URL, WS_BASE_URL } from '../constants';
+import { API_BASE_URL } from '../constants';
+import { apiFetch, wsURL } from '../api';
 
 function useCountUp(target, delay = 0) {
   const [n, setN] = useState(0);
@@ -78,10 +79,10 @@ export default function Dashboard({ onOpenQuiz }) {
   useEffect(() => {
     if (!userId) return;
     Promise.all([
-      fetch(`${API_BASE_URL}/stats`).then(r => r.ok ? r.json() : Promise.reject()),
-      fetch(`${API_BASE_URL}/animals?user_id=${userId}`).then(r => r.ok ? r.json() : Promise.reject()),
-      userId ? fetch(`${API_BASE_URL}/my-applications?user_id=${userId}`).then(r => r.ok ? r.json() : []) : Promise.resolve([]),
-      fetch(`${API_BASE_URL}/vets`).then(r => r.ok ? r.json() : []),
+      apiFetch(`${API_BASE_URL}/stats`).then(r => r.ok ? r.json() : Promise.reject()),
+      apiFetch(`${API_BASE_URL}/animals?user_id=${userId}`).then(r => r.ok ? r.json() : Promise.reject()),
+      userId ? apiFetch(`${API_BASE_URL}/my-applications?user_id=${userId}`).then(r => r.ok ? r.json() : []) : Promise.resolve([]),
+      apiFetch(`${API_BASE_URL}/vets`).then(r => r.ok ? r.json() : []),
     ]).then(([s, a, ap, v]) => {
       setStats(s);
       setAnimals(a.filter(x => x.status === 'available').slice(0, 4));
@@ -90,26 +91,29 @@ export default function Dashboard({ onOpenQuiz }) {
     }).catch(() => setError('Failed to load dashboard'))
       .finally(() => setLoading(false));
 
-    // Load all support tickets (admin view)
-    fetch(`${API_BASE_URL}/support/all`)
-      .then(r => r.ok ? r.json() : [])
-      .then(t => setTickets(Array.isArray(t) ? t : []))
-      .catch(() => {});
+    // Load all support tickets (admin view) — /dashboard is adopter-only, but
+    // guard by role too since /support/all is admin-only server-side.
+    if (role === 'admin') {
+      apiFetch(`${API_BASE_URL}/support/all`)
+        .then(r => r.ok ? r.json() : [])
+        .then(t => setTickets(Array.isArray(t) ? t : []))
+        .catch(() => {});
+    }
 
     loadNotifications();
   }, [userId, role]); // eslint-disable-line
 
   const loadNotifications = () => {
     if (role === 'vet') {
-      fetch(`${API_BASE_URL}/vet/unread-count?user_id=${userId}`)
+      apiFetch(`${API_BASE_URL}/vet/unread-count?user_id=${userId}`)
         .then(r => r.ok ? r.json() : { count: 0 })
         .then(d => { if (d.count > 0) { setNotifCount(d.count); setShowNotifBanner(true); } })
         .catch(() => {});
     } else {
       // adopter: check status updates + unread ticket messages
       Promise.all([
-        fetch(`${API_BASE_URL}/notifications/unread-count?user_id=${userId}`).then(r => r.ok ? r.json() : { count: 0 }),
-        fetch(`${API_BASE_URL}/support?user_id=${userId}`).then(r => r.ok ? r.json() : []),
+        apiFetch(`${API_BASE_URL}/notifications/unread-count?user_id=${userId}`).then(r => r.ok ? r.json() : { count: 0 }),
+        apiFetch(`${API_BASE_URL}/support?user_id=${userId}`).then(r => r.ok ? r.json() : []),
       ]).then(([notif, tix]) => {
         const ticketMsgUnread = Array.isArray(tix)
           ? tix.filter(t => t.vet && t.status !== 'resolved').length  // tickets with vet assigned = potential messages
@@ -132,7 +136,7 @@ export default function Dashboard({ onOpenQuiz }) {
     let closedByEffect = false;
 
     const connect = () => {
-      ws = new WebSocket(`${WS_BASE_URL}/ws/notifications/${userId}`);
+      ws = new WebSocket(wsURL(`/ws/notifications/${userId}`));
       ws.onmessage = (e) => {
         const data = JSON.parse(e.data);
         if (data.type === 'notification') loadNotifications();
@@ -160,7 +164,7 @@ export default function Dashboard({ onOpenQuiz }) {
 
   const assignVet = async (ticketId) => {
     if (!assignVetId) return;
-    await fetch(`${API_BASE_URL}/support/${ticketId}`, {
+    await apiFetch(`${API_BASE_URL}/support/${ticketId}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'in_progress', vet_id: parseInt(assignVetId) }),
     });
@@ -173,7 +177,7 @@ export default function Dashboard({ onOpenQuiz }) {
   };
 
   const resolveTicket = async (ticketId) => {
-    await fetch(`${API_BASE_URL}/support/${ticketId}`, {
+    await apiFetch(`${API_BASE_URL}/support/${ticketId}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'resolved' }),
     });

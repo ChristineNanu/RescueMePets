@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../constants';
+import { apiFetch } from '../api';
 
 const ADOPTER_LINKS = [
   { to: '/dashboard', label: 'Home'    },
@@ -28,7 +29,7 @@ export default function Navbar({ isLoggedIn, role, onLogout }) {
   useEffect(() => {
     if (!userId || isNaN(parseInt(userId))) return;
     const load = () =>
-      fetch(`${API_BASE_URL}/notifications/unread-count?user_id=${parseInt(userId)}`)
+      apiFetch(`${API_BASE_URL}/notifications/unread-count?user_id=${parseInt(userId)}`)
         .then(r => r.ok ? r.json() : null)
         .then(d => d && setUnread(d.count || 0))
         .catch(() => {});
@@ -39,7 +40,7 @@ export default function Navbar({ isLoggedIn, role, onLogout }) {
 
   useEffect(() => {
     if (location.pathname === '/my-profile' && userId && unread > 0) {
-      fetch(`${API_BASE_URL}/notifications/mark-read?user_id=${parseInt(userId)}`, { method: 'POST' })
+      apiFetch(`${API_BASE_URL}/notifications/mark-read?user_id=${parseInt(userId)}`, { method: 'POST' })
         .then(() => setUnread(0)).catch(() => {});
     }
   }, [location.pathname, userId, unread]);

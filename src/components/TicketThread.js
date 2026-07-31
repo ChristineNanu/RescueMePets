@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { API_BASE_URL, WS_BASE_URL } from '../constants';
+import { API_BASE_URL } from '../constants';
+import { apiFetch, wsURL } from '../api';
 
 export default function TicketThread({ ticket, senderId, senderRole, onClose }) {
   const [messages, setMessages] = useState([]);
@@ -11,18 +12,18 @@ export default function TicketThread({ ticket, senderId, senderRole, onClose }) 
 
   useEffect(() => {
     // Initial load
-    fetch(`${API_BASE_URL}/tickets/${ticket.id}/messages`)
+    apiFetch(`${API_BASE_URL}/tickets/${ticket.id}/messages`)
       .then(r => r.json())
       .then(d => { if (Array.isArray(d)) { setMessages(d); setLoaded(true); } })
       .catch(() => setLoaded(true));
 
     // Mark as read
-    fetch(`${API_BASE_URL}/tickets/${ticket.id}/messages/read?reader_role=${senderRole}`, {
+    apiFetch(`${API_BASE_URL}/tickets/${ticket.id}/messages/read?reader_role=${senderRole}`, {
       method: 'PATCH'
     }).catch(() => {});
 
     // WebSocket for real-time messages
-    const ws = new WebSocket(`${WS_BASE_URL}/ws/ticket/${ticket.id}`);
+    const ws = new WebSocket(wsURL(`/ws/ticket/${ticket.id}`));
     wsRef.current = ws;
 
     ws.onmessage = (e) => {
@@ -34,7 +35,7 @@ export default function TicketThread({ ticket, senderId, senderRole, onClose }) 
         });
         // Mark read immediately if thread is open
         if (data.sender_id !== senderId) {
-          fetch(`${API_BASE_URL}/tickets/${ticket.id}/messages/read?reader_role=${senderRole}`, {
+          apiFetch(`${API_BASE_URL}/tickets/${ticket.id}/messages/read?reader_role=${senderRole}`, {
             method: 'PATCH'
           }).catch(() => {});
         }
@@ -59,7 +60,7 @@ export default function TicketThread({ ticket, senderId, senderRole, onClose }) 
   const send = async () => {
     if (!text.trim() || sending) return;
     setSending(true);
-    await fetch(`${API_BASE_URL}/tickets/${ticket.id}/messages`, {
+    await apiFetch(`${API_BASE_URL}/tickets/${ticket.id}/messages`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sender_id: senderId, sender_role: senderRole, message: text.trim() }),

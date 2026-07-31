@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../constants';
+import { apiFetch } from '../api';
 
 function MpesaPayment({ adoptionId, animalName, onSuccess, onCancel }) {
   const [phone, setPhone] = useState('');
@@ -31,7 +32,7 @@ function MpesaPayment({ adoptionId, animalName, onSuccess, onCancel }) {
 
     // Keep Render awake during payment so callback isn't missed
     keepAliveRef.current = setInterval(() => {
-      fetch(`${API_BASE_URL}/health`).catch(() => {});
+      apiFetch(`${API_BASE_URL}/health`).catch(() => {});
     }, 20000);
 
     countRef.current = setInterval(() => {
@@ -50,7 +51,7 @@ function MpesaPayment({ adoptionId, animalName, onSuccess, onCancel }) {
 
     pollRef.current = setInterval(async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/pay/status/${pid}`);
+        const res = await apiFetch(`${API_BASE_URL}/pay/status/${pid}`);
         const data = await res.json();
         console.debug('PAYMENT POLL', pid, data);
         if (data.status === 'completed') {
@@ -72,7 +73,7 @@ function MpesaPayment({ adoptionId, animalName, onSuccess, onCancel }) {
     setIsLoading(true);
     setError('');
     try {
-      const res = await fetch(`${API_BASE_URL}/pay/stk-push`, {
+      const res = await apiFetch(`${API_BASE_URL}/pay/stk-push`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -195,7 +196,7 @@ function MpesaPayment({ adoptionId, animalName, onSuccess, onCancel }) {
               onClick={async () => {
                 setManualConfirming(true);
                 try {
-                  const res = await fetch(`${API_BASE_URL}/pay/test-complete/${paymentId}`, { method: 'POST' });
+                  const res = await apiFetch(`${API_BASE_URL}/pay/test-complete/${paymentId}`, { method: 'POST' });
                   if (res.ok) {
                     clearInterval(pollRef.current);
                     clearInterval(countRef.current);

@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { API_BASE_URL } from '../constants';
+import { apiFetch } from '../api';
 
 function SQLInterface() {
   const [query, setQuery] = useState('');
@@ -25,7 +26,7 @@ function SQLInterface() {
     
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/sql`, {
+      const response = await apiFetch(`${API_BASE_URL}/sql/query`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -246,13 +247,13 @@ function SQLInterface() {
               onClick={async () => {
                 if (window.confirm('This will delete ALL data. Are you sure?')) {
                   try {
-                    const response = await fetch(`${API_BASE_URL}/reset-db`, { method: 'POST' });
+                    const response = await apiFetch(`${API_BASE_URL}/reset-db`, { method: 'POST' });
                     const result = await response.json();
-                    if (result.success) {
+                    if (response.ok) {
                       alert('Database reset successfully!');
                       setResults([]);
                     } else {
-                      alert(`Error: ${result.error}`);
+                      alert(`Error: ${result.detail || 'Unknown error'}`);
                     }
                   } catch (error) {
                     alert(`Network error: ${error.message}`);
@@ -275,12 +276,12 @@ function SQLInterface() {
             <button
               onClick={async () => {
                 try {
-                  const response = await fetch(`${API_BASE_URL}/load-sample-data`, { method: 'POST' });
+                  const response = await apiFetch(`${API_BASE_URL}/load-sample-data`, { method: 'POST' });
                   const result = await response.json();
-                  if (result.success) {
+                  if (response.ok) {
                     alert('Sample data loaded successfully!');
                   } else {
-                    alert(`Error: ${result.error}`);
+                    alert(`Error: ${result.detail || 'Unknown error'}`);
                   }
                 } catch (error) {
                   alert(`Network error: ${error.message}`);

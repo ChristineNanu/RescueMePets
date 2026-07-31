@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { API_BASE_URL, WS_BASE_URL } from '../constants';
+import { API_BASE_URL } from '../constants';
+import { apiFetch, wsURL } from '../api';
 import TicketThread from './TicketThread';
 
 const userId = () => parseInt(localStorage.getItem('user_id'));
@@ -23,19 +24,19 @@ export default function VetPortal({ onLogout }) {
   const loadTickets = () => {
     const id = userId();
     if (!id || isNaN(id)) return;
-    fetch(`${API_BASE_URL}/vet/tickets?user_id=${id}`)
+    apiFetch(`${API_BASE_URL}/vet/tickets?user_id=${id}`)
       .then(r => r.json())
       .then(t => {
         if (!Array.isArray(t)) return;
         setTickets(t);
         t.filter(tk => tk.status !== 'resolved').forEach(tk => {
-          fetch(`${API_BASE_URL}/tickets/${tk.id}/unread-count?reader_role=vet`)
+          apiFetch(`${API_BASE_URL}/tickets/${tk.id}/unread-count?reader_role=vet`)
             .then(r => r.json())
             .then(d => {
               const count = d.count || 0;
               setMsgUnread(prev => ({ ...prev, [tk.id]: count }));
               if (count > 0) {
-                fetch(`${API_BASE_URL}/tickets/${tk.id}/messages`)
+                apiFetch(`${API_BASE_URL}/tickets/${tk.id}/messages`)
                   .then(r => r.json())
                   .then(msgs => {
                     if (Array.isArray(msgs) && msgs.length > 0) {
@@ -48,7 +49,7 @@ export default function VetPortal({ onLogout }) {
             .catch(() => {});
         });
         // also update tab-level unread badge
-        fetch(`${API_BASE_URL}/vet/unread-count?user_id=${id}`)
+        apiFetch(`${API_BASE_URL}/vet/unread-count?user_id=${id}`)
           .then(r => r.json()).then(u => setUnread(u?.count || 0)).catch(() => {});
       })
       .catch(() => {});
@@ -59,8 +60,8 @@ export default function VetPortal({ onLogout }) {
     if (!id || isNaN(id)) { setLoading(false); return; }
 
     Promise.all([
-      fetch(`${API_BASE_URL}/vet/profile?user_id=${id}`).then(r => r.json()).catch(() => null),
-      fetch(`${API_BASE_URL}/vet/center-animals?user_id=${id}`).then(r => r.json()).catch(() => []),
+      apiFetch(`${API_BASE_URL}/vet/profile?user_id=${id}`).then(r => r.json()).catch(() => null),
+      apiFetch(`${API_BASE_URL}/vet/center-animals?user_id=${id}`).then(r => r.json()).catch(() => []),
     ]).then(([p, a]) => {
       setProfile(p);
       setAnimals(Array.isArray(a) ? a : []);
@@ -86,7 +87,7 @@ export default function VetPortal({ onLogout }) {
     let closedByEffect = false;
 
     const connect = () => {
-      ws = new WebSocket(`${WS_BASE_URL}/ws/notifications/${id}`);
+      ws = new WebSocket(wsURL(`/ws/notifications/${id}`));
       ws.onmessage = (e) => {
         const data = JSON.parse(e.data);
         if (data.type === 'notification') loadTickets();
@@ -109,7 +110,7 @@ export default function VetPortal({ onLogout }) {
   }, []); // eslint-disable-line
 
   const updateTicket = async (ticketId, status) => {
-    await fetch(`${API_BASE_URL}/support/${ticketId}`, {
+    await apiFetch(`${API_BASE_URL}/support/${ticketId}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
     });
@@ -119,13 +120,13 @@ export default function VetPortal({ onLogout }) {
   const handleResolve = async () => {
     if (!resolveNote.trim()) return;
     setResolving(true);
-    await fetch(`${API_BASE_URL}/support/${resolveTicket.id}`, {
+    await apiFetch(`${API_BASE_URL}/support/${resolveTicket.id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'resolved', resolution_note: resolveNote }),
     });
     // clear unread flag for this ticket
     const id = userId();
-    await fetch(`${API_BASE_URL}/vet/mark-read?user_id=${id}`, { method: 'POST' }).catch(() => {});
+    await apiFetch(`${API_BASE_URL}/vet/mark-read?user_id=${id}`, { method: 'POST' }).catch(() => {});
     setUnread(0);
     setResolveTicket(null);
     setResolveNote('');

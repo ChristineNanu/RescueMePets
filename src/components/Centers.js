@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../constants';
+import { apiFetch } from '../api';
 
 const CENTER_IMAGES = [
   'https://images.unsplash.com/photo-1601758124510-52d02ddb7cbd?w=800&q=80',
@@ -60,7 +61,7 @@ function VetCard({ vet, userId }) {
   const send = async () => {
     if (!msg.trim() || !name.trim() || !email.trim()) { setStatus('Please fill all fields.'); return; }
     setSending(true);
-    const res = await fetch(`${API_BASE_URL}/vets/${vet.id}/message`, {
+    const res = await apiFetch(`${API_BASE_URL}/vets/${vet.id}/message`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, message: msg, user_id: userId ? parseInt(userId) : null }),
     });
@@ -126,7 +127,7 @@ function Centers() {
   const userId = localStorage.getItem('user_id');
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/centers`)
+    apiFetch(`${API_BASE_URL}/centers`)
       .then(r => r.json())
       .then(data => { setCenters(data); setLoading(false); })
       .catch(() => setLoading(false));
@@ -138,14 +139,14 @@ function Centers() {
     setStories([]);
     setCenterVets([]);
     const params = userId ? `?user_id=${userId}` : '';
-    fetch(`${API_BASE_URL}/animals${params}`)
+    apiFetch(`${API_BASE_URL}/animals${params}`)
       .then(r => r.json())
       .then(animals => { setCenterAnimals(animals.filter(a => a.center?.id === center.id)); setAnimalsLoading(false); });
-    fetch(`${API_BASE_URL}/centers/${center.id}/stories`)
+    apiFetch(`${API_BASE_URL}/centers/${center.id}/stories`)
       .then(r => r.json())
       .then(setStories)
       .catch(() => {});
-    fetch(`${API_BASE_URL}/vets?center_id=${center.id}`)
+    apiFetch(`${API_BASE_URL}/vets?center_id=${center.id}`)
       .then(r => r.json())
       .then(data => setCenterVets(Array.isArray(data) ? data.filter(v => v.center_id === center.id) : []))
       .catch(() => {});
@@ -154,7 +155,7 @@ function Centers() {
   const toggleFavorite = async (e, animalId) => {
     e.stopPropagation();
     if (!userId) { navigate('/login'); return; }
-    const res = await fetch(`${API_BASE_URL}/favorites`, {
+    const res = await apiFetch(`${API_BASE_URL}/favorites`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: parseInt(userId), animal_id: animalId }),
     });

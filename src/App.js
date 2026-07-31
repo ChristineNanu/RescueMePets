@@ -16,6 +16,8 @@ import AdminDashboard from './components/AdminDashboard';
 import VetPortal from './components/VetPortal';
 import Pricing from './components/Pricing';
 import Shop from './components/Shop';
+import { API_BASE_URL } from './constants';
+import { getRefreshToken, clearAuth } from './api';
 import './App.css';
 
 function usePawParticles() {
@@ -97,10 +99,14 @@ function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('user_id');
-    localStorage.removeItem('username');
-    localStorage.removeItem('role');
-    localStorage.removeItem('vet_id');
+    const refresh_token = getRefreshToken();
+    if (refresh_token) {
+      fetch(`${API_BASE_URL}/auth/logout`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token }),
+      }).catch(() => {});
+    }
+    clearAuth();
     setIsLoggedIn(false);
     setRole('adopter');
   };

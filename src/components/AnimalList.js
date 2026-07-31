@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../constants';
+import { apiFetch } from '../api';
 
 const STATUS = {
   available: { pill: 'bg-teal-100 text-teal-700',   dot: '🟢', label: 'Available' },
@@ -36,15 +37,15 @@ function AnimalModal({ animal, onClose, onAdopt, userId }) {
   useEffect(() => {
     if (!animal) return;
     setSponsorMsg('');
-    fetch(`${API_BASE_URL}/waitlist/${animal.id}${userId ? `?user_id=${userId}` : ''}`)
+    apiFetch(`${API_BASE_URL}/waitlist/${animal.id}${userId ? `?user_id=${userId}` : ''}`)
       .then(r => r.json()).then(setWaitlist).catch(() => {});
-    fetch(`${API_BASE_URL}/sponsor/${animal.id}${userId ? `?user_id=${userId}` : ''}`)
+    apiFetch(`${API_BASE_URL}/sponsor/${animal.id}${userId ? `?user_id=${userId}` : ''}`)
       .then(r => r.json()).then(setSponsor).catch(() => {});
   }, [animal, userId]);
 
   const joinWaitlist = async () => {
     if (!userId) return;
-    const res = await fetch(`${API_BASE_URL}/waitlist`, {
+    const res = await apiFetch(`${API_BASE_URL}/waitlist`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: parseInt(userId), animal_id: animal.id })
     });
@@ -55,7 +56,7 @@ function AnimalModal({ animal, onClose, onAdopt, userId }) {
   const handleSponsor = async () => {
     if (!userId) return;
     setSponsorMsg('');
-    const res = await fetch(`${API_BASE_URL}/sponsor`, {
+    const res = await apiFetch(`${API_BASE_URL}/sponsor`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: parseInt(userId), animal_id: animal.id, amount: sponsorAmount })
     });
@@ -226,7 +227,7 @@ function AnimalList({ onOpenQuiz }) {
       if (search) params.append('search', search);
       if (statusFilter !== 'all') params.append('status', statusFilter);
       if (userId) params.append('user_id', userId);
-      const res = await fetch(`${API_BASE_URL}/animals?${params}`);
+      const res = await apiFetch(`${API_BASE_URL}/animals?${params}`);
       if (!res.ok) throw new Error();
       setAnimals(await res.json());
     } catch (e) { console.error(e); }
@@ -238,7 +239,7 @@ function AnimalList({ onOpenQuiz }) {
   const toggleFavorite = async (e, animalId) => {
     e.stopPropagation();
     if (!userId) { navigate('/login'); return; }
-    const res = await fetch(`${API_BASE_URL}/favorites`, {
+    const res = await apiFetch(`${API_BASE_URL}/favorites`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: parseInt(userId), animal_id: animalId })
     });

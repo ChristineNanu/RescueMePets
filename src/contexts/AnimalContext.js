@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { API_BASE_URL } from '../constants';
+import { apiFetch } from '../api';
 
 const AnimalContext = createContext();
 
@@ -20,7 +21,7 @@ export const AnimalProvider = ({ children }) => {
   const fetchAnimals = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/animals`);
+      const response = await apiFetch(`${API_BASE_URL}/animals`);
       const data = await response.json();
       setAnimals(data);
     } catch (error) {
@@ -32,7 +33,7 @@ export const AnimalProvider = ({ children }) => {
 
   const addAnimal = useCallback(async (animalData) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/animals`, {
+      const response = await apiFetch(`${API_BASE_URL}/animals`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -54,7 +55,7 @@ export const AnimalProvider = ({ children }) => {
 
   const updateAnimal = useCallback(async (animalId, animalData) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/animals/${animalId}`, {
+      const response = await apiFetch(`${API_BASE_URL}/animals/${animalId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -76,7 +77,7 @@ export const AnimalProvider = ({ children }) => {
 
   const deleteAnimal = useCallback(async (animalId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/animals/${animalId}`, {
+      const response = await apiFetch(`${API_BASE_URL}/animals/${animalId}`, {
         method: 'DELETE',
       });
 
