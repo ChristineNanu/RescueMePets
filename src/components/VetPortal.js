@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { API_BASE_URL } from '../constants';
+import { API_BASE_URL, WS_BASE_URL } from '../constants';
 import TicketThread from './TicketThread';
 
 const userId = () => parseInt(localStorage.getItem('user_id'));
@@ -70,9 +70,42 @@ export default function VetPortal({ onLogout }) {
     // load tickets + msg counts immediately
     loadTickets();
 
-    // Poll every 15s
-    const interval = setInterval(loadTickets, 15000);
+    // Safety-net poll in case the WebSocket connection drops
+    const interval = setInterval(loadTickets, 60000);
     return () => clearInterval(interval);
+  }, []); // eslint-disable-line
+
+  // Real-time notifications: refresh tickets/messages the moment a new one arrives
+  useEffect(() => {
+    const id = userId();
+    if (!id || isNaN(id)) return;
+
+    let ws;
+    let ping;
+    let reconnectTimer;
+    let closedByEffect = false;
+
+    const connect = () => {
+      ws = new WebSocket(`${WS_BASE_URL}/ws/notifications/${id}`);
+      ws.onmessage = (e) => {
+        const data = JSON.parse(e.data);
+        if (data.type === 'notification') loadTickets();
+      };
+      ws.onclose = () => {
+        if (!closedByEffect) reconnectTimer = setTimeout(connect, 3000);
+      };
+      ping = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) ws.send('ping');
+      }, 30000);
+    };
+    connect();
+
+    return () => {
+      closedByEffect = true;
+      clearInterval(ping);
+      clearTimeout(reconnectTimer);
+      ws?.close();
+    };
   }, []); // eslint-disable-line
 
   const updateTicket = async (ticketId, status) => {

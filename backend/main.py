@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi import FastAPI, Depends, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
@@ -856,7 +856,7 @@ def get_ticket_messages(ticket_id: int, db: Session = Depends(get_db)):
     } for m in msgs]
 
 @app.post("/tickets/{ticket_id}/messages")
-def send_ticket_message(ticket_id: int, body: schemas.TicketMessageCreate, db: Session = Depends(get_db)):
+async def send_ticket_message(ticket_id: int, body: schemas.TicketMessageCreate, db: Session = Depends(get_db)):
     ticket = db.query(models.SupportTicket).filter(models.SupportTicket.id == ticket_id).first()
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
@@ -868,15 +868,31 @@ def send_ticket_message(ticket_id: int, body: schemas.TicketMessageCreate, db: S
         is_read=False
     )
     db.add(msg)
-    # Notify the other party
     if body.sender_role == "vet":
-        # Vet sent message → notify adopter via adoption unread flag
         if ticket.adoption:
             ticket.adoption.read = False
     else:
-        # Adopter sent message → notify vet via vet_read flag
         ticket.vet_read = False
     db.commit()
+    db.refresh(msg)
+    sender = db.query(models.User).filter(models.User.id == body.sender_id).first()
+    payload = {
+        "type": "new_message",
+        "id": msg.id,
+        "sender_id": msg.sender_id,
+        "sender_name": sender.username if sender else "",
+        "sender_role": msg.sender_role,
+        "message": msg.message,
+        "is_read": False,
+        "created_at": msg.created_at.isoformat()
+    }
+    # Broadcast to everyone in the ticket room
+    await manager.broadcast_ticket(ticket_id, payload)
+    # Push notification to the other party
+    if body.sender_role == "vet" and ticket.user_id:
+        await manager.notify_user(ticket.user_id, {"type": "notification", "ticket_id": ticket_id, "preview": body.message[:80]})
+    elif body.sender_role == "adopter" and ticket.vet and ticket.vet.user_id:
+        await manager.notify_user(ticket.vet.user_id, {"type": "notification", "ticket_id": ticket_id, "preview": body.message[:80]})
     return {"message": "Message sent", "id": msg.id}
 
 @app.patch("/tickets/{ticket_id}/messages/read")
@@ -969,6 +985,140 @@ def get_vet_center_animals(user_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Vet profile not found")
     animals = db.query(models.Animal).filter(models.Animal.center_id == vet.center_id).all()
     return [animal_to_dict(a) for a in animals]
+
+# ─── WEBSOCKET CONNECTION MANAGER ───────────────────────────────────────────
+
+from typing import Dict, List
+
+class ConnectionManager:
+    def __init__(self):
+        # ticket_id → list of active WebSocket connections
+        self.rooms: Dict[int, List[WebSocket]] = {}
+        # user_id → list of active WebSocket connections (for notifications)
+        self.users: Dict[int, List[WebSocket]] = {}
+
+    async def connect_ticket(self, ticket_id: int, ws: WebSocket):
+        await ws.accept()
+        self.rooms.setdefault(ticket_id, []).append(ws)
+
+    async def connect_user(self, user_id: int, ws: WebSocket):
+        await ws.accept()
+        self.users.setdefault(user_id, []).append(ws)
+
+    def disconnect_ticket(self, ticket_id: int, ws: WebSocket):
+        if ticket_id in self.rooms:
+            self.rooms[ticket_id] = [c for c in self.rooms[ticket_id] if c != ws]
+
+    def disconnect_user(self, user_id: int, ws: WebSocket):
+        if user_id in self.users:
+            self.users[user_id] = [c for c in self.users[user_id] if c != ws]
+
+    async def broadcast_ticket(self, ticket_id: int, data: dict):
+        for ws in list(self.rooms.get(ticket_id, [])):
+            try:
+                await ws.send_json(data)
+            except Exception:
+                pass
+
+    async def notify_user(self, user_id: int, data: dict):
+        for ws in list(self.users.get(user_id, [])):
+            try:
+                await ws.send_json(data)
+            except Exception:
+                pass
+
+manager = ConnectionManager()
+
+@app.websocket("/ws/ticket/{ticket_id}")
+async def ticket_ws(ticket_id: int, websocket: WebSocket):
+    """Real-time chat channel for a support ticket."""
+    await manager.connect_ticket(ticket_id, websocket)
+    try:
+        while True:
+            await websocket.receive_text()  # keep-alive ping from client
+    except WebSocketDisconnect:
+        manager.disconnect_ticket(ticket_id, websocket)
+
+@app.websocket("/ws/notifications/{user_id}")
+async def notifications_ws(user_id: int, websocket: WebSocket):
+    """Real-time notification channel for a user."""
+    await manager.connect_user(user_id, websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect_user(user_id, websocket)
+
+# ─── MEDICAL RECORDS ─────────────────────────────────────────────────────────
+
+@app.get("/animals/{animal_id}/medical-records")
+def get_medical_records(animal_id: int, db: Session = Depends(get_db)):
+    records = db.query(models.MedicalRecord).filter(
+        models.MedicalRecord.animal_id == animal_id
+    ).order_by(models.MedicalRecord.date.desc()).all()
+    return [{
+        "id": r.id,
+        "record_type": r.record_type,
+        "title": r.title,
+        "description": r.description,
+        "weight_kg": r.weight_kg,
+        "date": r.date,
+        "vet_name": r.vet.name if r.vet else None,
+        "created_at": r.created_at.isoformat()
+    } for r in records]
+
+@app.post("/animals/{animal_id}/medical-records")
+def add_medical_record(animal_id: int, user_id: int, body: schemas.MedicalRecordCreate, db: Session = Depends(get_db)):
+    require_vet_or_admin(user_id, db)
+    vet = db.query(models.Vet).filter(models.Vet.user_id == user_id).first()
+    record = models.MedicalRecord(
+        animal_id=animal_id,
+        vet_id=vet.id if vet else None,
+        record_type=body.record_type,
+        title=body.title,
+        description=body.description,
+        weight_kg=body.weight_kg,
+        date=body.date,
+    )
+    db.add(record)
+    db.commit()
+    db.refresh(record)
+    return {"id": record.id, "message": "Medical record added"}
+
+@app.delete("/medical-records/{record_id}")
+def delete_medical_record(record_id: int, user_id: int, db: Session = Depends(get_db)):
+    require_vet_or_admin(user_id, db)
+    record = db.query(models.MedicalRecord).filter(models.MedicalRecord.id == record_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Record not found")
+    db.delete(record)
+    db.commit()
+    return {"message": "Record deleted"}
+
+# ─── POST-ADOPTION CHECK-INS ─────────────────────────────────────────────────
+
+@app.post("/checkins")
+def submit_checkin(body: schemas.PostAdoptionCheckinCreate, db: Session = Depends(get_db)):
+    checkin = models.PostAdoptionCheckin(**body.model_dump())
+    db.add(checkin)
+    db.commit()
+    return {"message": "Check-in submitted"}
+
+@app.get("/checkins")
+def get_checkins(user_id: int, db: Session = Depends(get_db)):
+    checkins = db.query(models.PostAdoptionCheckin).filter(
+        models.PostAdoptionCheckin.user_id == user_id
+    ).order_by(models.PostAdoptionCheckin.created_at.desc()).all()
+    return [{
+        "id": c.id,
+        "adoption_id": c.adoption_id,
+        "checkin_type": c.checkin_type,
+        "wellbeing": c.wellbeing,
+        "notes": c.notes,
+        "photo_url": c.photo_url,
+        "animal_name": c.adoption.animal.name if c.adoption else None,
+        "created_at": c.created_at.isoformat()
+    } for c in checkins]
 
 # ─── SQL INTERFACE (ADMIN ONLY) ───────────────────────────────────────────────
 

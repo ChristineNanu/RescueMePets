@@ -1,38 +1,56 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { API_BASE_URL } from '../constants';
+import { API_BASE_URL, WS_BASE_URL } from '../constants';
 
-/**
- * TicketThread — chat-style message thread for a support ticket
- * Props:
- *   ticket      — the ticket object { id, animal_name, issue, status, resolution_note }
- *   senderId    — current user's user_id
- *   senderRole  — 'vet' | 'adopter'
- *   onClose     — close the thread panel
- */
 export default function TicketThread({ ticket, senderId, senderRole, onClose }) {
   const [messages, setMessages] = useState([]);
   const [text, setText]         = useState('');
   const [sending, setSending]   = useState(false);
   const [loaded, setLoaded]     = useState(false);
   const bottomRef               = useRef(null);
-
-  const load = () => {
-    fetch(`${API_BASE_URL}/tickets/${ticket.id}/messages`)
-      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-      .then(d => { if (Array.isArray(d)) { setMessages(d); setLoaded(true); } })
-      .catch(() => {});
-  };
+  const wsRef                   = useRef(null);
 
   useEffect(() => {
-    load();
-    // Mark messages as read when thread opens
+    // Initial load
+    fetch(`${API_BASE_URL}/tickets/${ticket.id}/messages`)
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d)) { setMessages(d); setLoaded(true); } })
+      .catch(() => setLoaded(true));
+
+    // Mark as read
     fetch(`${API_BASE_URL}/tickets/${ticket.id}/messages/read?reader_role=${senderRole}`, {
       method: 'PATCH'
     }).catch(() => {});
-    // Poll every 10s for new messages
-    const interval = setInterval(load, 10000);
-    return () => clearInterval(interval);
-  }, [ticket.id, senderRole]); // eslint-disable-line
+
+    // WebSocket for real-time messages
+    const ws = new WebSocket(`${WS_BASE_URL}/ws/ticket/${ticket.id}`);
+    wsRef.current = ws;
+
+    ws.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+      if (data.type === 'new_message') {
+        setMessages(prev => {
+          if (prev.find(m => m.id === data.id)) return prev;
+          return [...prev, data];
+        });
+        // Mark read immediately if thread is open
+        if (data.sender_id !== senderId) {
+          fetch(`${API_BASE_URL}/tickets/${ticket.id}/messages/read?reader_role=${senderRole}`, {
+            method: 'PATCH'
+          }).catch(() => {});
+        }
+      }
+    };
+
+    // Ping every 30s to keep connection alive
+    const ping = setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) ws.send('ping');
+    }, 30000);
+
+    return () => {
+      clearInterval(ping);
+      ws.close();
+    };
+  }, [ticket.id, senderRole, senderId]); // eslint-disable-line
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -48,7 +66,6 @@ export default function TicketThread({ ticket, senderId, senderRole, onClose }) 
     }).catch(() => {});
     setText('');
     setSending(false);
-    load();
   };
 
   const handleKey = (e) => {
@@ -68,6 +85,9 @@ export default function TicketThread({ ticket, senderId, senderRole, onClose }) 
             <p className="text-teal-200 text-xs mt-0.5 truncate max-w-xs">{ticket.issue}</p>
           </div>
           <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1 text-teal-200 text-xs">
+              <span className="w-1.5 h-1.5 bg-teal-300 rounded-full animate-pulse" /> Live
+            </span>
             <span className={`px-2 py-1 rounded-full text-xs font-bold ${
               ticket.status === 'resolved'    ? 'bg-green-100 text-green-700' :
               ticket.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
@@ -82,7 +102,7 @@ export default function TicketThread({ ticket, senderId, senderRole, onClose }) 
           </div>
         </div>
 
-        {/* Resolution note banner */}
+        {/* Resolution note */}
         {ticket.resolution_note && (
           <div className="bg-green-50 border-b border-green-100 px-5 py-3 flex-shrink-0">
             <p className="text-xs font-black text-green-600 uppercase tracking-widest mb-0.5">Resolved</p>

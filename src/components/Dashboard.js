@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from '../constants';
+import { API_BASE_URL, WS_BASE_URL } from '../constants';
 
 function useCountUp(target, delay = 0) {
   const [n, setN] = useState(0);
@@ -96,7 +96,10 @@ export default function Dashboard({ onOpenQuiz }) {
       .then(t => setTickets(Array.isArray(t) ? t : []))
       .catch(() => {});
 
-    // Notification count
+    loadNotifications();
+  }, [userId, role]); // eslint-disable-line
+
+  const loadNotifications = () => {
     if (role === 'vet') {
       fetch(`${API_BASE_URL}/vet/unread-count?user_id=${userId}`)
         .then(r => r.ok ? r.json() : { count: 0 })
@@ -118,7 +121,38 @@ export default function Dashboard({ onOpenQuiz }) {
         }
       }).catch(() => {});
     }
-  }, [userId, role]);
+  };
+
+  // Real-time: refresh the notification banner the instant a new message arrives
+  useEffect(() => {
+    if (!userId) return;
+    let ws;
+    let ping;
+    let reconnectTimer;
+    let closedByEffect = false;
+
+    const connect = () => {
+      ws = new WebSocket(`${WS_BASE_URL}/ws/notifications/${userId}`);
+      ws.onmessage = (e) => {
+        const data = JSON.parse(e.data);
+        if (data.type === 'notification') loadNotifications();
+      };
+      ws.onclose = () => {
+        if (!closedByEffect) reconnectTimer = setTimeout(connect, 3000);
+      };
+      ping = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) ws.send('ping');
+      }, 30000);
+    };
+    connect();
+
+    return () => {
+      closedByEffect = true;
+      clearInterval(ping);
+      clearTimeout(reconnectTimer);
+      ws?.close();
+    };
+  }, [userId]); // eslint-disable-line
 
   const rate     = stats.total_animals > 0 ? Math.round((stats.adopted / stats.total_animals) * 100) : 0;
   const approved = apps.filter(a => a.status === 'approved').length;

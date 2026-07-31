@@ -168,6 +168,33 @@ class TicketMessage(Base):
     sender = relationship("User")
     ticket = relationship("SupportTicket")
 
+class MedicalRecord(Base):
+    __tablename__ = "medical_records"
+    id          = Column(Integer, primary_key=True, index=True)
+    animal_id   = Column(Integer, ForeignKey("animals.id"))
+    vet_id      = Column(Integer, ForeignKey("vets.id"), nullable=True)
+    record_type = Column(String)   # vaccination | treatment | checkup | medication | weight
+    title       = Column(String)
+    description = Column(Text, default="")
+    weight_kg   = Column(Float, nullable=True)
+    date        = Column(String)   # ISO date string
+    created_at  = Column(DateTime(timezone=True), server_default=func.now())
+    animal      = relationship("Animal")
+    vet         = relationship("Vet")
+
+class PostAdoptionCheckin(Base):
+    __tablename__ = "post_adoption_checkins"
+    id           = Column(Integer, primary_key=True, index=True)
+    adoption_id  = Column(Integer, ForeignKey("adoptions.id"))
+    user_id      = Column(Integer, ForeignKey("users.id"))
+    checkin_type = Column(String)   # 1_week | 1_month | 6_months
+    wellbeing    = Column(String)   # great | good | okay | struggling
+    notes        = Column(Text, default="")
+    photo_url    = Column(String, default="")
+    created_at   = Column(DateTime(timezone=True), server_default=func.now())
+    adoption     = relationship("Adoption")
+    user         = relationship("User")
+
 class AuditLog(Base):
     __tablename__ = "audit_logs"
     id = Column(Integer, primary_key=True, index=True)

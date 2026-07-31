@@ -178,3 +178,19 @@ class VetMessageCreate(BaseModel):
     email: str
     message: str
     user_id: Optional[int] = None
+
+class MedicalRecordCreate(BaseModel):
+    animal_id: int
+    record_type: str  # vaccination | treatment | checkup | medication | weight
+    title: str
+    description: Optional[str] = ""
+    weight_kg: Optional[float] = None
+    date: str  # ISO date string e.g. "2025-01-15"
+
+class PostAdoptionCheckinCreate(BaseModel):
+    adoption_id: int
+    user_id: int
+    checkin_type: str   # 1_week | 1_month | 6_months
+    wellbeing: str      # great | good | okay | struggling
+    notes: Optional[str] = ""
+    photo_url: Optional[str] = ""
