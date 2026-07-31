@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../constants';
 import { apiFetch, wsURL } from '../api';
 import TicketThread from './TicketThread';
+import MedicalRecordsPanel from './MedicalRecordsPanel';
 
 const userId = () => parseInt(localStorage.getItem('user_id'));
 
@@ -20,6 +21,7 @@ export default function VetPortal({ onLogout }) {
   const [resolveNote, setResolveNote]     = useState('');
   const [resolving, setResolving]         = useState(false);
   const [threadTicket, setThreadTicket]   = useState(null);
+  const [recordsAnimal, setRecordsAnimal] = useState(null);
 
   const loadTickets = () => {
     const id = userId();
@@ -344,6 +346,10 @@ export default function VetPortal({ onLogout }) {
                     {a.neutered     && <span className="px-2 py-0.5 bg-teal-50 text-teal-600 rounded-full text-xs font-semibold">✂️ Neutered</span>}
                     {a.microchipped && <span className="px-2 py-0.5 bg-teal-50 text-teal-600 rounded-full text-xs font-semibold">📡 Chipped</span>}
                   </div>
+                  <button onClick={() => setRecordsAnimal(a)}
+                    className="w-full mt-3 px-3 py-2 bg-teal-50 hover:bg-teal-100 text-teal-700 rounded-xl text-xs font-bold border-0 cursor-pointer transition-all">
+                    🩺 Medical Records
+                  </button>
                 </div>
               </div>
             ))}
@@ -358,6 +364,14 @@ export default function VetPortal({ onLogout }) {
           senderId={userId()}
           senderRole="vet"
           onClose={() => { setThreadTicket(null); loadTickets(); }}
+        />
+      )}
+
+      {/* Medical Records */}
+      {recordsAnimal && (
+        <MedicalRecordsPanel
+          animal={recordsAnimal}
+          onClose={() => setRecordsAnimal(null)}
         />
       )}
 
