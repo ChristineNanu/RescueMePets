@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, Request, WebSocket, WebSock
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
-import models, schemas, sample_data
+import models, schemas, sample_data, auth
 from database import SessionLocal, engine, get_db
 import hashlib, traceback, bcrypt
 from daraja import stk_push, query_stk_status, b2c_payout
@@ -57,15 +57,14 @@ def audit(db: Session, user_id, action: str, entity: str, entity_id=None, detail
     db.add(models.AuditLog(user_id=user_id, action=action, entity=entity, entity_id=entity_id, detail=detail))
     # don't commit here — caller commits
 
-def require_admin(admin_id: int, db: Session):
-    user = db.query(models.User).filter(models.User.id == admin_id).first()
-    if not user or user.role != "admin":
-        raise HTTPException(status_code=403, detail="Admin access required")
-
-def require_vet_or_admin(user_id: int, db: Session):
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user or user.role not in ("vet", "admin"):
-        raise HTTPException(status_code=403, detail="Vet or admin access required")
+def require_ticket_participant(ticket, current_user: models.User, db: Session):
+    if current_user.role == "admin" or ticket.user_id == current_user.id:
+        return
+    if current_user.role == "vet":
+        vet = db.query(models.Vet).filter(models.Vet.user_id == current_user.id).first()
+        if vet and ticket.vet_id == vet.id:
+            return
+    raise HTTPException(status_code=403, detail="You don't have access to this ticket")
 
 def require_dev_env():
     import os
@@ -143,16 +142,28 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
     if not verify_password(user.password, db_user.password):
         raise HTTPException(status_code=400, detail="Incorrect password. Please try again.")
     vet = db.query(models.Vet).filter(models.Vet.user_id == db_user.id).first()
+    tokens = auth.create_token_pair(db_user, db)
     return {
         "message": "Login successful",
         "user_id": db_user.id,
         "username": db_user.username,
         "role": db_user.role,
-        "vet_id": vet.id if vet else None
+        "vet_id": vet.id if vet else None,
+        **tokens,
     }
 
+@app.post("/auth/refresh", response_model=schemas.TokenPair)
+def refresh_token(body: schemas.RefreshRequest, db: Session = Depends(get_db)):
+    user = auth.verify_refresh_token(body.refresh_token, db)
+    return auth.create_token_pair(user, db)
+
+@app.post("/auth/logout")
+def logout(body: schemas.RefreshRequest, db: Session = Depends(get_db)):
+    auth.revoke_refresh_token(body.refresh_token, db)
+    return {"message": "Logged out"}
+
 @app.get("/animals")
-def get_animals(species: str = None, search: str = None, status: str = None, user_id: int = None, db: Session = Depends(get_db)):
+def get_animals(species: str = None, search: str = None, status: str = None, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user_optional)):
     query = db.query(models.Animal).filter(models.Animal.deleted_at == None)
     if species and species != "all":
         query = query.filter(models.Animal.species == species)
@@ -165,25 +176,24 @@ def get_animals(species: str = None, search: str = None, status: str = None, use
         )
     animals = query.all()
     favorites = []
-    if user_id:
-        favs = db.query(models.Favorite).filter(models.Favorite.user_id == user_id).all()
+    if current_user:
+        favs = db.query(models.Favorite).filter(models.Favorite.user_id == current_user.id).all()
         favorites = [f.animal_id for f in favs]
     return [animal_to_dict(a, favorites) for a in animals]
 
 @app.get("/animals/{animal_id}")
-def get_animal(animal_id: int, user_id: int = None, db: Session = Depends(get_db)):
+def get_animal(animal_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user_optional)):
     animal = db.query(models.Animal).filter(models.Animal.id == animal_id).first()
     if not animal:
         raise HTTPException(status_code=404, detail="Animal not found")
     favorites = []
-    if user_id:
-        favs = db.query(models.Favorite).filter(models.Favorite.user_id == user_id).all()
+    if current_user:
+        favs = db.query(models.Favorite).filter(models.Favorite.user_id == current_user.id).all()
         favorites = [f.animal_id for f in favs]
     return animal_to_dict(animal, favorites)
 
 @app.post("/animals")
-def create_animal(animal: schemas.AnimalBase, admin_id: int, db: Session = Depends(get_db)):
-    require_admin(admin_id, db)
+def create_animal(animal: schemas.AnimalBase, current_user: models.User = Depends(auth.require_admin), db: Session = Depends(get_db)):
     db_animal = models.Animal(**animal.model_dump())
     db.add(db_animal)
     db.commit()
@@ -191,8 +201,7 @@ def create_animal(animal: schemas.AnimalBase, admin_id: int, db: Session = Depen
     return animal_to_dict(db_animal)
 
 @app.put("/animals/{animal_id}")
-def update_animal(animal_id: int, animal: schemas.AnimalBase, admin_id: int, db: Session = Depends(get_db)):
-    require_admin(admin_id, db)
+def update_animal(animal_id: int, animal: schemas.AnimalBase, current_user: models.User = Depends(auth.require_admin), db: Session = Depends(get_db)):
     db_animal = db.query(models.Animal).filter(models.Animal.id == animal_id).first()
     if not db_animal:
         raise HTTPException(status_code=404, detail="Animal not found")
@@ -202,20 +211,18 @@ def update_animal(animal_id: int, animal: schemas.AnimalBase, admin_id: int, db:
     return animal_to_dict(db_animal)
 
 @app.delete("/animals/{animal_id}")
-def delete_animal(animal_id: int, admin_id: int, db: Session = Depends(get_db)):
-    require_admin(admin_id, db)
+def delete_animal(animal_id: int, current_user: models.User = Depends(auth.require_admin), db: Session = Depends(get_db)):
     db_animal = db.query(models.Animal).filter(models.Animal.id == animal_id).first()
     if not db_animal:
         raise HTTPException(status_code=404, detail="Animal not found")
     from datetime import datetime, timezone
     db_animal.deleted_at = datetime.now(timezone.utc)
-    audit(db, admin_id, "delete_animal", "animal", animal_id, db_animal.name)
+    audit(db, current_user.id, "delete_animal", "animal", animal_id, db_animal.name)
     db.commit()
     return {"message": "Animal deleted"}
 
 @app.get("/admin/applications")
-def get_all_applications(admin_id: int, db: Session = Depends(get_db)):
-    require_admin(admin_id, db)
+def get_all_applications(current_user: models.User = Depends(auth.require_admin), db: Session = Depends(get_db)):
     adoptions = db.query(models.Adoption).order_by(models.Adoption.created_at.desc()).all()
     return [{
         "id": a.id, "user_id": a.user_id, "username": a.user.username,
@@ -226,8 +233,7 @@ def get_all_applications(admin_id: int, db: Session = Depends(get_db)):
     } for a in adoptions]
 
 @app.put("/applications/{adoption_id}/status")
-def update_application_status(adoption_id: int, admin_id: int, body: schemas.StatusUpdate, db: Session = Depends(get_db)):
-    require_admin(admin_id, db)
+def update_application_status(adoption_id: int, body: schemas.StatusUpdate, current_user: models.User = Depends(auth.require_admin), db: Session = Depends(get_db)):
     adoption = db.query(models.Adoption).filter(models.Adoption.id == adoption_id).first()
     if not adoption:
         raise HTTPException(status_code=404, detail="Application not found")
@@ -239,14 +245,13 @@ def update_application_status(adoption_id: int, admin_id: int, body: schemas.Sta
             adoption.animal.status = "adopted"
         elif body.status == "rejected":
             adoption.animal.status = "available"
-    audit(db, admin_id, f"{body.status}_application", "adoption", adoption_id,
+    audit(db, current_user.id, f"{body.status}_application", "adoption", adoption_id,
           f"animal={adoption.animal.name}")
     db.commit()
     return {"message": f"Status updated to {body.status}"}
 
 @app.get("/admin/users")
-def get_all_users(admin_id: int, db: Session = Depends(get_db)):
-    require_admin(admin_id, db)
+def get_all_users(current_user: models.User = Depends(auth.require_admin), db: Session = Depends(get_db)):
     users = db.query(models.User).all()
     return [{"id": u.id, "username": u.username, "email": u.email, "role": u.role} for u in users]
 
@@ -298,24 +303,24 @@ def get_centers(db: Session = Depends(get_db)):
     return result
 
 @app.post("/adopt")
-def adopt(adoption: schemas.AdoptionCreate, db: Session = Depends(get_db)):
+def adopt(adoption: schemas.AdoptionCreate, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
     animal = db.query(models.Animal).filter(models.Animal.id == adoption.animal_id).first()
     if not animal:
         raise HTTPException(status_code=404, detail="Animal not found")
     if animal.status == "adopted":
         raise HTTPException(status_code=400, detail="Animal already adopted")
     existing = db.query(models.Adoption).filter(
-        models.Adoption.user_id == adoption.user_id,
+        models.Adoption.user_id == current_user.id,
         models.Adoption.animal_id == adoption.animal_id,
         models.Adoption.status == "pending"
     ).first()
     if existing:
         raise HTTPException(status_code=400, detail="You already have a pending application for this animal")
     db_adoption = models.Adoption(
-        user_id=adoption.user_id,
+        user_id=current_user.id,
         animal_id=adoption.animal_id,
         message=adoption.message,
-        read=False  
+        read=False
     )
     db.add(db_adoption)
     animal.status = "pending"
@@ -323,9 +328,9 @@ def adopt(adoption: schemas.AdoptionCreate, db: Session = Depends(get_db)):
     return {"message": "Adoption request submitted successfully", "adoption_id": db_adoption.id}
 
 @app.get("/my-applications")
-def get_my_applications(user_id: int, db: Session = Depends(get_db)):
+def get_my_applications(current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
     adoptions = db.query(models.Adoption).filter(
-        models.Adoption.user_id == user_id
+        models.Adoption.user_id == current_user.id
     ).order_by(models.Adoption.created_at.desc()).all()
     return [{
         "id": a.id,
@@ -340,31 +345,27 @@ def get_my_applications(user_id: int, db: Session = Depends(get_db)):
     } for a in adoptions]
 
 @app.get("/notifications/unread-count")
-def get_unread_count(user_id: int, db: Session = Depends(get_db)):
-    if user_id <= 0:
-        raise HTTPException(status_code=400, detail="Invalid user_id")
+def get_unread_count(current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
     count = db.query(models.Adoption).filter(
-        models.Adoption.user_id == user_id,
+        models.Adoption.user_id == current_user.id,
         models.Adoption.read == False
     ).count()
     return {"count": count}
 
 @app.post("/notifications/mark-read")
-def mark_notifications_read(user_id: int, db: Session = Depends(get_db)):
-    if user_id <= 0:
-        raise HTTPException(status_code=400, detail="Invalid user_id")
+def mark_notifications_read(current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
     db.query(models.Adoption).filter(
-        models.Adoption.user_id == user_id,
+        models.Adoption.user_id == current_user.id,
         models.Adoption.read == False
     ).update({"read": True})
     db.commit()
     return {"message": "Marked as read"}
 
 @app.patch("/applications/{adoption_id}")
-def edit_application(adoption_id: int, user_id: int, body: schemas.ApplicationEdit, db: Session = Depends(get_db)):
+def edit_application(adoption_id: int, body: schemas.ApplicationEdit, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
     adoption = db.query(models.Adoption).filter(
         models.Adoption.id == adoption_id,
-        models.Adoption.user_id == user_id,
+        models.Adoption.user_id == current_user.id,
         models.Adoption.status == "pending"
     ).first()
     if not adoption:
@@ -374,10 +375,10 @@ def edit_application(adoption_id: int, user_id: int, body: schemas.ApplicationEd
     return {"message": "Application updated"}
 
 @app.delete("/applications/{adoption_id}")
-def delete_application(adoption_id: int, user_id: int, db: Session = Depends(get_db)):
+def delete_application(adoption_id: int, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
     adoption = db.query(models.Adoption).filter(
         models.Adoption.id == adoption_id,
-        models.Adoption.user_id == user_id,
+        models.Adoption.user_id == current_user.id,
         models.Adoption.status == "pending"
     ).first()
     if not adoption:
@@ -389,63 +390,58 @@ def delete_application(adoption_id: int, user_id: int, db: Session = Depends(get
 
 
 @app.post("/favorites")
-def toggle_favorite(req: schemas.FavoriteRequest, db: Session = Depends(get_db)):
+def toggle_favorite(req: schemas.FavoriteRequest, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
     existing = db.query(models.Favorite).filter(
-        models.Favorite.user_id == req.user_id,
+        models.Favorite.user_id == current_user.id,
         models.Favorite.animal_id == req.animal_id
     ).first()
     if existing:
         db.delete(existing)
         db.commit()
         return {"favorited": False}
-    fav = models.Favorite(user_id=req.user_id, animal_id=req.animal_id)
+    fav = models.Favorite(user_id=current_user.id, animal_id=req.animal_id)
     db.add(fav)
     db.commit()
     return {"favorited": True}
 
 @app.get("/favorites")
-def get_favorites(user_id: int, db: Session = Depends(get_db)):
-    favs = db.query(models.Favorite).filter(models.Favorite.user_id == user_id).all()
+def get_favorites(current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    favs = db.query(models.Favorite).filter(models.Favorite.user_id == current_user.id).all()
     favorites = [f.animal_id for f in favs]
     animals = db.query(models.Animal).filter(models.Animal.id.in_(favorites)).all()
     return [animal_to_dict(a, favorites) for a in animals]
 
 @app.post("/waitlist")
-def join_waitlist(req: schemas.WaitlistRequest, db: Session = Depends(get_db)):
+def join_waitlist(req: schemas.WaitlistRequest, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
     existing = db.query(models.Waitlist).filter(
-        models.Waitlist.user_id == req.user_id,
+        models.Waitlist.user_id == current_user.id,
         models.Waitlist.animal_id == req.animal_id
     ).first()
     if existing:
         raise HTTPException(status_code=400, detail="Already on waitlist")
-    db.add(models.Waitlist(user_id=req.user_id, animal_id=req.animal_id))
+    db.add(models.Waitlist(user_id=current_user.id, animal_id=req.animal_id))
     db.commit()
     count = db.query(models.Waitlist).filter(models.Waitlist.animal_id == req.animal_id).count()
     return {"message": "Added to waitlist", "count": count}
 
 @app.get("/waitlist/{animal_id}")
-def get_waitlist(animal_id: int, user_id: int = None, db: Session = Depends(get_db)):
+def get_waitlist(animal_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user_optional)):
     count = db.query(models.Waitlist).filter(models.Waitlist.animal_id == animal_id).count()
     on_list = False
-    if user_id:
+    if current_user:
         on_list = db.query(models.Waitlist).filter(
             models.Waitlist.animal_id == animal_id,
-            models.Waitlist.user_id == user_id
+            models.Waitlist.user_id == current_user.id
         ).first() is not None
     return {"count": count, "on_waitlist": on_list}
 
 @app.get("/profile")
-def get_profile(user_id: int, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return {"id": user.id, "username": user.username, "email": user.email, "avatar": user.avatar or "", "wallet_balance": user.wallet_balance or 0}
+def get_profile(current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    return {"id": current_user.id, "username": current_user.username, "email": current_user.email, "avatar": current_user.avatar or "", "wallet_balance": current_user.wallet_balance or 0}
 
 @app.patch("/profile")
-def update_profile(user_id: int, body: schemas.ProfileUpdate, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+def update_profile(body: schemas.ProfileUpdate, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    user = current_user
     if body.username and body.username != user.username:
         if db.query(models.User).filter(models.User.username == body.username).first():
             raise HTTPException(status_code=400, detail="Username already taken")
@@ -460,43 +456,37 @@ def update_profile(user_id: int, body: schemas.ProfileUpdate, db: Session = Depe
     return {"message": "Profile updated", "username": user.username, "email": user.email, "avatar": user.avatar}
 
 @app.post("/wallet/topup")
-def topup_wallet(user_id: int, body: schemas.WalletTopUp, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    user.wallet_balance = (user.wallet_balance or 0) + body.amount
+def topup_wallet(body: schemas.WalletTopUp, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    current_user.wallet_balance = (current_user.wallet_balance or 0) + body.amount
     db.commit()
-    return {"wallet_balance": user.wallet_balance}
+    return {"wallet_balance": current_user.wallet_balance}
 
 @app.post("/sponsor")
-def sponsor_animal(req: schemas.SponsorRequest, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.id == req.user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    if (user.wallet_balance or 0) < req.amount:
+def sponsor_animal(req: schemas.SponsorRequest, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    if (current_user.wallet_balance or 0) < req.amount:
         raise HTTPException(status_code=400, detail="Insufficient wallet balance")
     existing = db.query(models.Sponsor).filter(
-        models.Sponsor.user_id == req.user_id, models.Sponsor.animal_id == req.animal_id
+        models.Sponsor.user_id == current_user.id, models.Sponsor.animal_id == req.animal_id
     ).first()
     if existing:
         existing.amount = req.amount
     else:
-        db.add(models.Sponsor(user_id=req.user_id, animal_id=req.animal_id, amount=req.amount))
-    user.wallet_balance -= req.amount
+        db.add(models.Sponsor(user_id=current_user.id, animal_id=req.animal_id, amount=req.amount))
+    current_user.wallet_balance -= req.amount
     db.commit()
     total = sum(s.amount for s in db.query(models.Sponsor).filter(models.Sponsor.animal_id == req.animal_id).all())
-    return {"message": "Sponsorship confirmed", "wallet_balance": user.wallet_balance, "total_sponsored": total}
+    return {"message": "Sponsorship confirmed", "wallet_balance": current_user.wallet_balance, "total_sponsored": total}
 
 @app.get("/sponsor/{animal_id}")
-def get_sponsors(animal_id: int, user_id: int = None, db: Session = Depends(get_db)):
+def get_sponsors(animal_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user_optional)):
     sponsors = db.query(models.Sponsor).filter(models.Sponsor.animal_id == animal_id).all()
     total = sum(s.amount for s in sponsors)
-    user_amount = next((s.amount for s in sponsors if s.user_id == user_id), 0) if user_id else 0
+    user_amount = next((s.amount for s in sponsors if current_user and s.user_id == current_user.id), 0)
     return {"total": total, "count": len(sponsors), "user_amount": user_amount, "goal": 5000}
 
 @app.get("/my-sponsorships")
-def get_my_sponsorships(user_id: int, db: Session = Depends(get_db)):
-    sponsors = db.query(models.Sponsor).filter(models.Sponsor.user_id == user_id).all()
+def get_my_sponsorships(current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    sponsors = db.query(models.Sponsor).filter(models.Sponsor.user_id == current_user.id).all()
     return [{"id": s.id, "animal_id": s.animal_id, "animal_name": s.animal.name, "animal_image": s.animal.image, "animal_species": s.animal.species, "amount": s.amount, "created_at": s.created_at.isoformat()} for s in sponsors]
 
 @app.get("/stats")
@@ -512,10 +502,12 @@ def get_stats(db: Session = Depends(get_db)):
 # ─── M-PESA PAYMENT ENDPOINTS ───────────────────────────────────────────────
 
 @app.post("/pay/stk-push")
-def initiate_stk_push(req: schemas.PaymentRequest, db: Session = Depends(get_db)):
+def initiate_stk_push(req: schemas.PaymentRequest, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
     adoption = db.query(models.Adoption).filter(models.Adoption.id == req.adoption_id).first()
     if not adoption:
         raise HTTPException(status_code=404, detail="Adoption not found")
+    if adoption.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="This adoption doesn't belong to you")
     if req.amount < 1 or req.amount > 100000:
         raise HTTPException(status_code=400, detail="Invalid payment amount")
 
@@ -537,7 +529,7 @@ def initiate_stk_push(req: schemas.PaymentRequest, db: Session = Depends(get_db)
         raise HTTPException(status_code=400, detail=result.get("errorMessage", "STK Push failed"))
 
     payment = models.Payment(
-        user_id=req.user_id,
+        user_id=current_user.id,
         adoption_id=req.adoption_id,
         phone=req.phone,
         amount=req.amount,
@@ -556,10 +548,12 @@ def initiate_stk_push(req: schemas.PaymentRequest, db: Session = Depends(get_db)
     }
 
 @app.get("/pay/status/{payment_id}")
-def check_payment_status(payment_id: int, db: Session = Depends(get_db)):
+def check_payment_status(payment_id: int, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
     payment = db.query(models.Payment).filter(models.Payment.id == payment_id).first()
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
+    if payment.user_id != current_user.id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="This payment doesn't belong to you")
 
     # If adoption is already approved, sync payment to completed
     if payment.status == "pending" and payment.adoption and payment.adoption.status == "approved":
@@ -592,7 +586,8 @@ def check_payment_status(payment_id: int, db: Session = Depends(get_db)):
 # TEST ENDPOINT - For local testing without M-PESA callback
 @app.post("/pay/test-complete/{payment_id}")
 def test_complete_payment(payment_id: int, db: Session = Depends(get_db)):
-    """Complete a payment manually for testing. Remove in production."""
+    """Complete a payment manually for testing. Disabled in production."""
+    require_dev_env()
     payment = db.query(models.Payment).filter(models.Payment.id == payment_id).first()
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
@@ -643,9 +638,9 @@ async def mpesa_callback(request: Request, db: Session = Depends(get_db)):
     return {"ResultCode": 0, "ResultDesc": "Accepted"}
 
 @app.get("/my-payments")
-def get_my_payments(user_id: int, db: Session = Depends(get_db)):
+def get_my_payments(current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
     payments = db.query(models.Payment).filter(
-        models.Payment.user_id == user_id
+        models.Payment.user_id == current_user.id
     ).order_by(models.Payment.created_at.desc()).all()
     return [{
         "id": p.id,
@@ -660,8 +655,8 @@ def get_my_payments(user_id: int, db: Session = Depends(get_db)):
 # ─── B2C PAYOUT ENDPOINT ─────────────────────────────────────────────────────
 
 @app.post("/pay/b2c")
-def initiate_b2c(req: schemas.B2CRequest, db: Session = Depends(get_db)):
-    """B2C - Send money FROM business TO user phone (refunds/payouts)."""
+def initiate_b2c(req: schemas.B2CRequest, current_user: models.User = Depends(auth.require_admin), db: Session = Depends(get_db)):
+    """B2C - Send money FROM business TO user phone (refunds/payouts). Admin-only: moves real money."""
     user = db.query(models.User).filter(models.User.id == req.user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -677,6 +672,9 @@ def initiate_b2c(req: schemas.B2CRequest, db: Session = Depends(get_db)):
 
     if result.get("ResponseCode") != "0":
         raise HTTPException(status_code=400, detail=result.get("errorMessage", "B2C payout failed"))
+
+    audit(db, current_user.id, "b2c_payout", "user", user.id, f"KES {req.amount} to {req.phone}")
+    db.commit()
 
     return {
         "message": f"Payout of KES {req.amount} initiated to {req.phone}",
@@ -708,7 +706,10 @@ async def b2c_callback(request: Request, db: Session = Depends(get_db)):
 # ─── SUPPORT TICKETS ────────────────────────────────────────────────────────
 
 @app.post("/support")
-def create_ticket(req: schemas.SupportTicketCreate, db: Session = Depends(get_db)):
+def create_ticket(req: schemas.SupportTicketCreate, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    adoption = db.query(models.Adoption).filter(models.Adoption.id == req.adoption_id).first()
+    if not adoption or adoption.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="This adoption doesn't belong to you")
     existing = db.query(models.SupportTicket).filter(
         models.SupportTicket.adoption_id == req.adoption_id,
         models.SupportTicket.status != "resolved"
@@ -717,17 +718,17 @@ def create_ticket(req: schemas.SupportTicketCreate, db: Session = Depends(get_db
         existing.issue = req.issue
         db.commit()
         return {"message": "Support ticket updated", "ticket_id": existing.id}
-    ticket = models.SupportTicket(user_id=req.user_id, adoption_id=req.adoption_id, issue=req.issue)
+    ticket = models.SupportTicket(user_id=current_user.id, adoption_id=req.adoption_id, issue=req.issue)
     db.add(ticket)
     db.commit()
     db.refresh(ticket)
     return {"message": "Support ticket created", "ticket_id": ticket.id}
 
 @app.delete("/support/{ticket_id}")
-def delete_ticket(ticket_id: int, user_id: int, db: Session = Depends(get_db)):
+def delete_ticket(ticket_id: int, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
     ticket = db.query(models.SupportTicket).filter(
         models.SupportTicket.id == ticket_id,
-        models.SupportTicket.user_id == user_id,
+        models.SupportTicket.user_id == current_user.id,
         models.SupportTicket.status == "open"
     ).first()
     if not ticket:
@@ -737,9 +738,9 @@ def delete_ticket(ticket_id: int, user_id: int, db: Session = Depends(get_db)):
     return {"message": "Ticket withdrawn"}
 
 @app.get("/support")
-def get_tickets(user_id: int, db: Session = Depends(get_db)):
+def get_tickets(current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
     tickets = db.query(models.SupportTicket).filter(
-        models.SupportTicket.user_id == user_id
+        models.SupportTicket.user_id == current_user.id
     ).order_by(models.SupportTicket.created_at.desc()).all()
     return [{
         "id": t.id,
@@ -753,7 +754,7 @@ def get_tickets(user_id: int, db: Session = Depends(get_db)):
     } for t in tickets]
 
 @app.get("/support/all")
-def get_all_tickets(db: Session = Depends(get_db)):
+def get_all_tickets(current_user: models.User = Depends(auth.require_admin), db: Session = Depends(get_db)):
     tickets = db.query(models.SupportTicket).order_by(models.SupportTicket.created_at.desc()).all()
     return [{
         "id": t.id,
@@ -767,10 +768,16 @@ def get_all_tickets(db: Session = Depends(get_db)):
     } for t in tickets]
 
 @app.patch("/support/{ticket_id}")
-def update_ticket(ticket_id: int, body: schemas.TicketStatusUpdate, db: Session = Depends(get_db)):
+def update_ticket(ticket_id: int, body: schemas.TicketStatusUpdate, current_user: models.User = Depends(auth.require_vet_or_admin), db: Session = Depends(get_db)):
     ticket = db.query(models.SupportTicket).filter(models.SupportTicket.id == ticket_id).first()
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
+    if body.vet_id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only an admin can assign a vet to a ticket")
+    if current_user.role == "vet":
+        vet = db.query(models.Vet).filter(models.Vet.user_id == current_user.id).first()
+        if not vet or ticket.vet_id != vet.id:
+            raise HTTPException(status_code=403, detail="You can only update tickets assigned to you")
     ticket.status = body.status
     if body.vet_id:
         ticket.vet_id = body.vet_id
@@ -846,7 +853,11 @@ def quiz_match(answers: schemas.QuizAnswers, db: Session = Depends(get_db)):
 # ─── TICKET MESSAGING ───────────────────────────────────────────────────────
 
 @app.get("/tickets/{ticket_id}/messages")
-def get_ticket_messages(ticket_id: int, db: Session = Depends(get_db)):
+def get_ticket_messages(ticket_id: int, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    ticket = db.query(models.SupportTicket).filter(models.SupportTicket.id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    require_ticket_participant(ticket, current_user, db)
     msgs = db.query(models.TicketMessage).filter(
         models.TicketMessage.ticket_id == ticket_id
     ).order_by(models.TicketMessage.created_at.asc()).all()
@@ -861,31 +872,32 @@ def get_ticket_messages(ticket_id: int, db: Session = Depends(get_db)):
     } for m in msgs]
 
 @app.post("/tickets/{ticket_id}/messages")
-async def send_ticket_message(ticket_id: int, body: schemas.TicketMessageCreate, db: Session = Depends(get_db)):
+async def send_ticket_message(ticket_id: int, body: schemas.TicketMessageCreate, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
     ticket = db.query(models.SupportTicket).filter(models.SupportTicket.id == ticket_id).first()
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
+    require_ticket_participant(ticket, current_user, db)
+    sender_role = "vet" if current_user.role in ("vet", "admin") else "adopter"
     msg = models.TicketMessage(
         ticket_id=ticket_id,
-        sender_id=body.sender_id,
-        sender_role=body.sender_role,
+        sender_id=current_user.id,
+        sender_role=sender_role,
         message=body.message,
         is_read=False
     )
     db.add(msg)
-    if body.sender_role == "vet":
+    if sender_role == "vet":
         if ticket.adoption:
             ticket.adoption.read = False
     else:
         ticket.vet_read = False
     db.commit()
     db.refresh(msg)
-    sender = db.query(models.User).filter(models.User.id == body.sender_id).first()
     payload = {
         "type": "new_message",
         "id": msg.id,
         "sender_id": msg.sender_id,
-        "sender_name": sender.username if sender else "",
+        "sender_name": current_user.username,
         "sender_role": msg.sender_role,
         "message": msg.message,
         "is_read": False,
@@ -894,15 +906,20 @@ async def send_ticket_message(ticket_id: int, body: schemas.TicketMessageCreate,
     # Broadcast to everyone in the ticket room
     await manager.broadcast_ticket(ticket_id, payload)
     # Push notification to the other party
-    if body.sender_role == "vet" and ticket.user_id:
+    if sender_role == "vet" and ticket.user_id:
         await manager.notify_user(ticket.user_id, {"type": "notification", "ticket_id": ticket_id, "preview": body.message[:80]})
-    elif body.sender_role == "adopter" and ticket.vet and ticket.vet.user_id:
+    elif sender_role == "adopter" and ticket.vet and ticket.vet.user_id:
         await manager.notify_user(ticket.vet.user_id, {"type": "notification", "ticket_id": ticket_id, "preview": body.message[:80]})
     return {"message": "Message sent", "id": msg.id}
 
 @app.patch("/tickets/{ticket_id}/messages/read")
-def mark_messages_read(ticket_id: int, reader_role: str, db: Session = Depends(get_db)):
+def mark_messages_read(ticket_id: int, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
     """Mark all messages on a ticket as read for the reader."""
+    ticket = db.query(models.SupportTicket).filter(models.SupportTicket.id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    require_ticket_participant(ticket, current_user, db)
+    reader_role = "vet" if current_user.role in ("vet", "admin") else "adopter"
     # Only mark messages sent by the OTHER party as read
     other_role = "vet" if reader_role == "adopter" else "adopter"
     db.query(models.TicketMessage).filter(
@@ -914,7 +931,12 @@ def mark_messages_read(ticket_id: int, reader_role: str, db: Session = Depends(g
     return {"message": "Messages marked as read"}
 
 @app.get("/tickets/{ticket_id}/unread-count")
-def ticket_unread_count(ticket_id: int, reader_role: str, db: Session = Depends(get_db)):
+def ticket_unread_count(ticket_id: int, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    ticket = db.query(models.SupportTicket).filter(models.SupportTicket.id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    require_ticket_participant(ticket, current_user, db)
+    reader_role = "vet" if current_user.role in ("vet", "admin") else "adopter"
     other_role = "vet" if reader_role == "adopter" else "adopter"
     count = db.query(models.TicketMessage).filter(
         models.TicketMessage.ticket_id == ticket_id,
@@ -926,9 +948,8 @@ def ticket_unread_count(ticket_id: int, reader_role: str, db: Session = Depends(
 # ─── VET PORTAL ENDPOINTS ────────────────────────────────────────────────────
 
 @app.get("/vet/profile")
-def get_vet_profile(user_id: int, db: Session = Depends(get_db)):
-    require_vet_or_admin(user_id, db)
-    vet = db.query(models.Vet).filter(models.Vet.user_id == user_id).first()
+def get_vet_profile(current_user: models.User = Depends(auth.require_vet_or_admin), db: Session = Depends(get_db)):
+    vet = db.query(models.Vet).filter(models.Vet.user_id == current_user.id).first()
     if not vet:
         raise HTTPException(status_code=404, detail="Vet profile not found")
     return {
@@ -939,9 +960,8 @@ def get_vet_profile(user_id: int, db: Session = Depends(get_db)):
     }
 
 @app.get("/vet/tickets")
-def get_vet_tickets(user_id: int, db: Session = Depends(get_db)):
-    require_vet_or_admin(user_id, db)
-    vet = db.query(models.Vet).filter(models.Vet.user_id == user_id).first()
+def get_vet_tickets(current_user: models.User = Depends(auth.require_vet_or_admin), db: Session = Depends(get_db)):
+    vet = db.query(models.Vet).filter(models.Vet.user_id == current_user.id).first()
     if not vet:
         raise HTTPException(status_code=404, detail="Vet profile not found")
     tickets = db.query(models.SupportTicket).filter(
@@ -958,9 +978,8 @@ def get_vet_tickets(user_id: int, db: Session = Depends(get_db)):
     } for t in tickets]
 
 @app.get("/vet/unread-count")
-def get_vet_unread(user_id: int, db: Session = Depends(get_db)):
-    require_vet_or_admin(user_id, db)
-    vet = db.query(models.Vet).filter(models.Vet.user_id == user_id).first()
+def get_vet_unread(current_user: models.User = Depends(auth.require_vet_or_admin), db: Session = Depends(get_db)):
+    vet = db.query(models.Vet).filter(models.Vet.user_id == current_user.id).first()
     if not vet:
         return {"count": 0}
     count = db.query(models.SupportTicket).filter(
@@ -970,9 +989,8 @@ def get_vet_unread(user_id: int, db: Session = Depends(get_db)):
     return {"count": count}
 
 @app.post("/vet/mark-read")
-def vet_mark_read(user_id: int, db: Session = Depends(get_db)):
-    require_vet_or_admin(user_id, db)
-    vet = db.query(models.Vet).filter(models.Vet.user_id == user_id).first()
+def vet_mark_read(current_user: models.User = Depends(auth.require_vet_or_admin), db: Session = Depends(get_db)):
+    vet = db.query(models.Vet).filter(models.Vet.user_id == current_user.id).first()
     if not vet:
         return {"message": "ok"}
     db.query(models.SupportTicket).filter(
@@ -983,9 +1001,8 @@ def vet_mark_read(user_id: int, db: Session = Depends(get_db)):
     return {"message": "Marked as read"}
 
 @app.get("/vet/center-animals")
-def get_vet_center_animals(user_id: int, db: Session = Depends(get_db)):
-    require_vet_or_admin(user_id, db)
-    vet = db.query(models.Vet).filter(models.Vet.user_id == user_id).first()
+def get_vet_center_animals(current_user: models.User = Depends(auth.require_vet_or_admin), db: Session = Depends(get_db)):
+    vet = db.query(models.Vet).filter(models.Vet.user_id == current_user.id).first()
     if not vet:
         raise HTTPException(status_code=404, detail="Vet profile not found")
     animals = db.query(models.Animal).filter(models.Animal.center_id == vet.center_id).all()
@@ -1035,8 +1052,19 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 @app.websocket("/ws/ticket/{ticket_id}")
-async def ticket_ws(ticket_id: int, websocket: WebSocket):
-    """Real-time chat channel for a support ticket."""
+async def ticket_ws(ticket_id: int, websocket: WebSocket, token: str = None, db: Session = Depends(get_db)):
+    """Real-time chat channel for a support ticket. Browsers can't set headers on a
+    ws:// handshake, so the access token travels as ?token=..."""
+    user = auth.user_from_ws_token(token, db)
+    ticket = db.query(models.SupportTicket).filter(models.SupportTicket.id == ticket_id).first() if user else None
+    if not user or not ticket:
+        await websocket.close(code=1008)
+        return
+    try:
+        require_ticket_participant(ticket, user, db)
+    except HTTPException:
+        await websocket.close(code=1008)
+        return
     await manager.connect_ticket(ticket_id, websocket)
     try:
         while True:
@@ -1045,8 +1073,12 @@ async def ticket_ws(ticket_id: int, websocket: WebSocket):
         manager.disconnect_ticket(ticket_id, websocket)
 
 @app.websocket("/ws/notifications/{user_id}")
-async def notifications_ws(user_id: int, websocket: WebSocket):
-    """Real-time notification channel for a user."""
+async def notifications_ws(user_id: int, websocket: WebSocket, token: str = None, db: Session = Depends(get_db)):
+    """Real-time notification channel for a user. Token travels as ?token=..."""
+    user = auth.user_from_ws_token(token, db)
+    if not user or (user.id != user_id and user.role != "admin"):
+        await websocket.close(code=1008)
+        return
     await manager.connect_user(user_id, websocket)
     try:
         while True:
@@ -1073,9 +1105,8 @@ def get_medical_records(animal_id: int, db: Session = Depends(get_db)):
     } for r in records]
 
 @app.post("/animals/{animal_id}/medical-records")
-def add_medical_record(animal_id: int, user_id: int, body: schemas.MedicalRecordCreate, db: Session = Depends(get_db)):
-    require_vet_or_admin(user_id, db)
-    vet = db.query(models.Vet).filter(models.Vet.user_id == user_id).first()
+def add_medical_record(animal_id: int, body: schemas.MedicalRecordCreate, current_user: models.User = Depends(auth.require_vet_or_admin), db: Session = Depends(get_db)):
+    vet = db.query(models.Vet).filter(models.Vet.user_id == current_user.id).first()
     record = models.MedicalRecord(
         animal_id=animal_id,
         vet_id=vet.id if vet else None,
@@ -1091,8 +1122,7 @@ def add_medical_record(animal_id: int, user_id: int, body: schemas.MedicalRecord
     return {"id": record.id, "message": "Medical record added"}
 
 @app.delete("/medical-records/{record_id}")
-def delete_medical_record(record_id: int, user_id: int, db: Session = Depends(get_db)):
-    require_vet_or_admin(user_id, db)
+def delete_medical_record(record_id: int, current_user: models.User = Depends(auth.require_vet_or_admin), db: Session = Depends(get_db)):
     record = db.query(models.MedicalRecord).filter(models.MedicalRecord.id == record_id).first()
     if not record:
         raise HTTPException(status_code=404, detail="Record not found")
@@ -1103,16 +1133,19 @@ def delete_medical_record(record_id: int, user_id: int, db: Session = Depends(ge
 # ─── POST-ADOPTION CHECK-INS ─────────────────────────────────────────────────
 
 @app.post("/checkins")
-def submit_checkin(body: schemas.PostAdoptionCheckinCreate, db: Session = Depends(get_db)):
-    checkin = models.PostAdoptionCheckin(**body.model_dump())
+def submit_checkin(body: schemas.PostAdoptionCheckinCreate, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    adoption = db.query(models.Adoption).filter(models.Adoption.id == body.adoption_id).first()
+    if not adoption or adoption.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="This adoption doesn't belong to you")
+    checkin = models.PostAdoptionCheckin(**body.model_dump(), user_id=current_user.id)
     db.add(checkin)
     db.commit()
     return {"message": "Check-in submitted"}
 
 @app.get("/checkins")
-def get_checkins(user_id: int, db: Session = Depends(get_db)):
+def get_checkins(current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
     checkins = db.query(models.PostAdoptionCheckin).filter(
-        models.PostAdoptionCheckin.user_id == user_id
+        models.PostAdoptionCheckin.user_id == current_user.id
     ).order_by(models.PostAdoptionCheckin.created_at.desc()).all()
     return [{
         "id": c.id,
@@ -1130,36 +1163,33 @@ def get_checkins(user_id: int, db: Session = Depends(get_db)):
 from sql_engine import SimpleSQL
 
 @app.post("/sql/query")
-async def run_sql_query(request: Request, admin_id: int, db: Session = Depends(get_db)):
+async def run_sql_query(request: Request, current_user: models.User = Depends(auth.require_admin), db: Session = Depends(get_db)):
     require_dev_env()
-    require_admin(admin_id, db)
     body = await request.json()
     query = body.get("query", "").strip()
     if not query:
         raise HTTPException(status_code=400, detail="No query provided")
-    audit(db, admin_id, "sql_query", "database", None, query[:200])
+    audit(db, current_user.id, "sql_query", "database", None, query[:200])
     db.commit()
     sql = SimpleSQL(db)
     return sql.execute_query(query)
 
 @app.get("/tables")
-def get_tables(admin_id: int, db: Session = Depends(get_db)):
+def get_tables(current_user: models.User = Depends(auth.require_admin), db: Session = Depends(get_db)):
     require_dev_env()
-    require_admin(admin_id, db)
     sql = SimpleSQL(db)
     return sql.execute_query("SHOW TABLES")
 
 @app.post("/reset-db")
-def reset_db(admin_id: int, db: Session = Depends(get_db)):
+def reset_db(current_user: models.User = Depends(auth.require_admin), db: Session = Depends(get_db)):
     require_dev_env()
-    require_admin(admin_id, db)
     for table in reversed(models.Base.metadata.sorted_tables):
         db.execute(table.delete())
     db.commit()
     return {"message": "Database reset"}
 
 @app.post("/load-sample-data")
-def load_sample(admin_id: int, db: Session = Depends(get_db)):
-    require_admin(admin_id, db)
+def load_sample(current_user: models.User = Depends(auth.require_admin), db: Session = Depends(get_db)):
+    require_dev_env()
     sample_data.create_sample_data(db)
     return {"message": "Sample data loaded"}

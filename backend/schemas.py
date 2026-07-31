@@ -21,6 +21,14 @@ class UserLogin(BaseModel):
     username: str
     password: str
 
+class TokenPair(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
 class AnimalBase(BaseModel):
     name: str
     species: str
@@ -57,7 +65,6 @@ class Center(CenterBase):
         from_attributes = True
 
 class AdoptionCreate(BaseModel):
-    user_id: int
     animal_id: int
     message: str
 
@@ -74,11 +81,9 @@ class AdoptionOut(BaseModel):
         from_attributes = True
 
 class FavoriteRequest(BaseModel):
-    user_id: int
     animal_id: int
 
 class PaymentRequest(BaseModel):
-    user_id: int
     adoption_id: int
     phone: str
     amount: int
@@ -105,7 +110,7 @@ class PaymentRequest(BaseModel):
         return v
 
 class B2CRequest(BaseModel):
-    user_id: int
+    user_id: int  # recipient of the payout, not the caller
     phone: str
     amount: int
     occasion: str = "Adoption Refund"
@@ -133,11 +138,9 @@ class StatusUpdate(BaseModel):
     status: str  # approved, rejected
 
 class WaitlistRequest(BaseModel):
-    user_id: int
     animal_id: int
 
 class SponsorRequest(BaseModel):
-    user_id: int
     animal_id: int
     amount: int  # in cents e.g. 500 = $5
 
@@ -159,7 +162,6 @@ class QuizAnswers(BaseModel):
     species_pref: str
 
 class SupportTicketCreate(BaseModel):
-    user_id: int
     adoption_id: int
     issue: str
 
@@ -169,8 +171,6 @@ class TicketStatusUpdate(BaseModel):
     resolution_note: Optional[str] = None
 
 class TicketMessageCreate(BaseModel):
-    sender_id: int
-    sender_role: str
     message: str
 
 class VetMessageCreate(BaseModel):
@@ -189,7 +189,6 @@ class MedicalRecordCreate(BaseModel):
 
 class PostAdoptionCheckinCreate(BaseModel):
     adoption_id: int
-    user_id: int
     checkin_type: str   # 1_week | 1_month | 6_months
     wellbeing: str      # great | good | okay | struggling
     notes: Optional[str] = ""
