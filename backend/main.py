@@ -67,6 +67,11 @@ def require_vet_or_admin(user_id: int, db: Session):
     if not user or user.role not in ("vet", "admin"):
         raise HTTPException(status_code=403, detail="Vet or admin access required")
 
+def require_dev_env():
+    import os
+    if os.getenv("ENV", "development") == "production":
+        raise HTTPException(status_code=403, detail="This endpoint is disabled in production")
+
 def animal_to_dict(animal, favorites=None):
     return {
         "id": animal.id,
@@ -1126,17 +1131,12 @@ from sql_engine import SimpleSQL
 
 @app.post("/sql/query")
 async def run_sql_query(request: Request, admin_id: int, db: Session = Depends(get_db)):
+    require_dev_env()
     require_admin(admin_id, db)
     body = await request.json()
     query = body.get("query", "").strip()
     if not query:
         raise HTTPException(status_code=400, detail="No query provided")
-    # Block destructive operations in production
-    import os
-    if os.getenv("ENV", "development") == "production":
-        blocked = ["drop table", "drop index", "truncate", "delete from users", "delete from payments"]
-        if any(b in query.lower() for b in blocked):
-            raise HTTPException(status_code=403, detail="This operation is blocked in production")
     audit(db, admin_id, "sql_query", "database", None, query[:200])
     db.commit()
     sql = SimpleSQL(db)
@@ -1144,12 +1144,14 @@ async def run_sql_query(request: Request, admin_id: int, db: Session = Depends(g
 
 @app.get("/tables")
 def get_tables(admin_id: int, db: Session = Depends(get_db)):
+    require_dev_env()
     require_admin(admin_id, db)
     sql = SimpleSQL(db)
     return sql.execute_query("SHOW TABLES")
 
 @app.post("/reset-db")
 def reset_db(admin_id: int, db: Session = Depends(get_db)):
+    require_dev_env()
     require_admin(admin_id, db)
     for table in reversed(models.Base.metadata.sorted_tables):
         db.execute(table.delete())

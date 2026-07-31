@@ -7,6 +7,8 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.4"
+      - key: ENV
+        value: production
       - key: DATABASE_URL
         fromDatabase:
           name: rescueme_pets_db
