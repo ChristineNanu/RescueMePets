@@ -416,10 +416,10 @@ MPESA_ENV=sandbox
 > Get credentials from the [Safaricom Daraja Portal](https://developer.safaricom.co.ke)
 
 ```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8002
+uvicorn main:app --reload
 ```
 
-Backend runs at `http://localhost:8002` — Swagger docs at `http://localhost:8002/docs`
+Backend runs at `http://localhost:8000` — Swagger docs at `http://localhost:8000/docs`
 
 > On first startup, the admin account is automatically seeded: **username:** `admin` **password:** `admin1234`
 
