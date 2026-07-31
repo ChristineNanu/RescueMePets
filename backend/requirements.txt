@@ -2,6 +2,7 @@ fastapi
 uvicorn[standard]
 sqlalchemy
 passlib[bcrypt]
+bcrypt
 python-multipart
 psycopg2-binary
 requests

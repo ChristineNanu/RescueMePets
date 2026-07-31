@@ -88,15 +88,8 @@ function AppContent({ isLoggedIn, role, handleLogin, handleLogout }) {
 }
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [role, setRole] = useState('adopter');
-
-  useEffect(() => {
-    const uid = localStorage.getItem('user_id');
-    const r   = localStorage.getItem('role') || 'adopter';
-    setIsLoggedIn(!!uid);
-    setRole(r);
-  }, []);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('user_id'));
+  const [role, setRole] = useState(() => localStorage.getItem('role') || 'adopter');
 
   const handleLogin = () => {
     setIsLoggedIn(true);

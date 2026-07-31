@@ -4,20 +4,25 @@ from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
 import models, schemas, sample_data
 from database import SessionLocal, engine, get_db
-import hashlib, traceback
+import hashlib, traceback, bcrypt
 from daraja import stk_push, query_stk_status, b2c_payout
 
 models.Base.metadata.create_all(bind=engine)
 db = SessionLocal()
 sample_data.create_sample_data(db)
 # Seed admin account if not exists
-if not db.query(models.User).filter(models.User.username == "admin").first():
+admin_user = db.query(models.User).filter(models.User.username == "admin").first()
+if not admin_user:
     db.add(models.User(
         username="admin",
         email="admin@rescuemepets.com",
-        password=hashlib.sha256("admin1234".encode()).hexdigest(),
+        password=bcrypt.hashpw("admin1234".encode(), bcrypt.gensalt()).decode(),
         role="admin"
     ))
+    db.commit()
+elif len(admin_user.password) == 64 and all(c in '0123456789abcdef' for c in admin_user.password):
+    # Migrate legacy SHA-256 admin hash to bcrypt
+    admin_user.password = bcrypt.hashpw("admin1234".encode(), bcrypt.gensalt()).decode()
     db.commit()
 db.close()
 
@@ -37,10 +42,20 @@ async def global_exception_handler(request: Request, exc: Exception):
     return JSONResponse(status_code=500, content={"detail": str(exc)})
 
 def get_password_hash(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return get_password_hash(plain) == hashed
+    # support legacy SHA-256 hashes during transition
+    if len(hashed) == 64 and all(c in '0123456789abcdef' for c in hashed):
+        return hashlib.sha256(plain.encode()).hexdigest() == hashed
+    try:
+        return bcrypt.checkpw(plain.encode(), hashed.encode())
+    except Exception:
+        return False
+
+def audit(db: Session, user_id, action: str, entity: str, entity_id=None, detail=""):
+    db.add(models.AuditLog(user_id=user_id, action=action, entity=entity, entity_id=entity_id, detail=detail))
+    # don't commit here — caller commits
 
 def require_admin(admin_id: int, db: Session):
     user = db.query(models.User).filter(models.User.id == admin_id).first()
@@ -133,7 +148,7 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
 
 @app.get("/animals")
 def get_animals(species: str = None, search: str = None, status: str = None, user_id: int = None, db: Session = Depends(get_db)):
-    query = db.query(models.Animal)
+    query = db.query(models.Animal).filter(models.Animal.deleted_at == None)
     if species and species != "all":
         query = query.filter(models.Animal.species == species)
     if status and status != "all":
@@ -187,7 +202,9 @@ def delete_animal(animal_id: int, admin_id: int, db: Session = Depends(get_db)):
     db_animal = db.query(models.Animal).filter(models.Animal.id == animal_id).first()
     if not db_animal:
         raise HTTPException(status_code=404, detail="Animal not found")
-    db.delete(db_animal)
+    from datetime import datetime, timezone
+    db_animal.deleted_at = datetime.now(timezone.utc)
+    audit(db, admin_id, "delete_animal", "animal", animal_id, db_animal.name)
     db.commit()
     return {"message": "Animal deleted"}
 
@@ -217,6 +234,8 @@ def update_application_status(adoption_id: int, admin_id: int, body: schemas.Sta
             adoption.animal.status = "adopted"
         elif body.status == "rejected":
             adoption.animal.status = "available"
+    audit(db, admin_id, f"{body.status}_application", "adoption", adoption_id,
+          f"animal={adoption.animal.name}")
     db.commit()
     return {"message": f"Status updated to {body.status}"}
 
@@ -363,22 +382,6 @@ def delete_application(adoption_id: int, user_id: int, db: Session = Depends(get
     db.commit()
     return {"message": "Application withdrawn"}
 
-
-def update_application_status(adoption_id: int, body: schemas.StatusUpdate, db: Session = Depends(get_db)):
-    adoption = db.query(models.Adoption).filter(models.Adoption.id == adoption_id).first()
-    if not adoption:
-        raise HTTPException(status_code=404, detail="Application not found")
-    old_status = adoption.status
-    adoption.status = body.status
-    # Mark as unread so user gets notified
-    if body.status in ("approved", "rejected") and old_status == "pending":
-        adoption.read = False
-        if body.status == "approved":
-            adoption.animal.status = "adopted"
-        elif body.status == "rejected":
-            adoption.animal.status = "available"
-    db.commit()
-    return {"message": f"Status updated to {body.status}"}
 
 @app.post("/favorites")
 def toggle_favorite(req: schemas.FavoriteRequest, db: Session = Depends(get_db)):
@@ -978,6 +981,14 @@ async def run_sql_query(request: Request, admin_id: int, db: Session = Depends(g
     query = body.get("query", "").strip()
     if not query:
         raise HTTPException(status_code=400, detail="No query provided")
+    # Block destructive operations in production
+    import os
+    if os.getenv("ENV", "development") == "production":
+        blocked = ["drop table", "drop index", "truncate", "delete from users", "delete from payments"]
+        if any(b in query.lower() for b in blocked):
+            raise HTTPException(status_code=403, detail="This operation is blocked in production")
+    audit(db, admin_id, "sql_query", "database", None, query[:200])
+    db.commit()
     sql = SimpleSQL(db)
     return sql.execute_query(query)
 

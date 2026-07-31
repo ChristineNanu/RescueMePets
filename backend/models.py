@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean, Float, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import database
@@ -13,9 +13,15 @@ class User(Base):
     avatar = Column(String, default="")
     wallet_balance = Column(Integer, default=0)
     role = Column(String, default="adopter")  # adopter | vet | admin
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
 
 class Animal(Base):
     __tablename__ = "animals"
+    __table_args__ = (
+        Index("ix_animals_species", "species"),
+        Index("ix_animals_status", "status"),
+        Index("ix_animals_center_id", "center_id"),
+    )
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     species = Column(String)
@@ -36,6 +42,7 @@ class Animal(Base):
     personality_badges = Column(String, default="")
     photos = Column(String, default="")  # comma-separated extra photo URLs
     sponsored = Column(Boolean, default=False)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
 
 class CenterSubscription(Base):
     __tablename__ = "center_subscriptions"
@@ -160,6 +167,17 @@ class TicketMessage(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     sender = relationship("User")
     ticket = relationship("SupportTicket")
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    action = Column(String)          # e.g. delete_animal, approved_application, sql_query
+    entity = Column(String)          # e.g. animal, adoption, database
+    entity_id = Column(Integer, nullable=True)
+    detail = Column(Text, default="")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    user = relationship("User")
 
 class SupportTicket(Base):
     __tablename__ = "support_tickets"
