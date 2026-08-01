@@ -17,6 +17,14 @@ const SPECIES = [
   { key: 'Bird', icon: '🦜' },
 ];
 
+const RECORD_TYPE_META = {
+  vaccination: { icon: '💉', label: 'Vaccination' },
+  treatment:   { icon: '🩹', label: 'Treatment' },
+  checkup:     { icon: '🩺', label: 'Checkup' },
+  medication:  { icon: '💊', label: 'Medication' },
+  weight:      { icon: '⚖️', label: 'Weight Log' },
+};
+
 const PERSONALITY_BADGES = {
   'Couch Potato':     { icon: '🛋️', bg: 'bg-slate-50 text-slate-600 border-slate-200' },
   'Adventure Buddy':  { icon: '🏃', bg: 'bg-teal-50 text-teal-700 border-teal-200' },
@@ -33,14 +41,21 @@ function AnimalModal({ animal, onClose, onAdopt, userId }) {
   const [sponsor, setSponsor]   = useState({ total: 0, count: 0, user_amount: 0, goal: 5000 });
   const [sponsorAmount, setSponsorAmount] = useState(500);
   const [sponsorMsg, setSponsorMsg]       = useState('');
+  const [medicalRecords, setMedicalRecords] = useState([]);
+  const [showAllRecords, setShowAllRecords] = useState(false);
 
   useEffect(() => {
     if (!animal) return;
     setSponsorMsg('');
+    setShowAllRecords(false);
     apiFetch(`${API_BASE_URL}/waitlist/${animal.id}${userId ? `?user_id=${userId}` : ''}`)
       .then(r => r.json()).then(setWaitlist).catch(() => {});
     apiFetch(`${API_BASE_URL}/sponsor/${animal.id}${userId ? `?user_id=${userId}` : ''}`)
       .then(r => r.json()).then(setSponsor).catch(() => {});
+    apiFetch(`${API_BASE_URL}/animals/${animal.id}/medical-records`)
+      .then(r => r.ok ? r.json() : [])
+      .then(d => setMedicalRecords(Array.isArray(d) ? d : []))
+      .catch(() => setMedicalRecords([]));
   }, [animal, userId]);
 
   const joinWaitlist = async () => {
@@ -134,6 +149,32 @@ function AnimalModal({ animal, onClose, onAdopt, userId }) {
                   </span>
                 ))}
               </div>
+            </div>
+          )}
+
+          {medicalRecords.length > 0 && (
+            <div className="mb-4">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">🩺 Medical History</p>
+              <div className="space-y-2">
+                {(showAllRecords ? medicalRecords : medicalRecords.slice(0, 3)).map(r => {
+                  const meta = RECORD_TYPE_META[r.record_type] || { icon: '📋', label: r.record_type };
+                  return (
+                    <div key={r.id} className="bg-gray-50 rounded-xl px-3 py-2 text-sm">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-gray-700">{meta.icon} {r.title}</span>
+                        <span className="text-xs text-gray-400 flex-shrink-0">{new Date(r.date).toLocaleDateString()}</span>
+                      </div>
+                      {r.description && <p className="text-xs text-gray-500 mt-0.5">{r.description}</p>}
+                    </div>
+                  );
+                })}
+              </div>
+              {medicalRecords.length > 3 && (
+                <button onClick={() => setShowAllRecords(v => !v)}
+                  className="text-xs font-bold text-teal-600 bg-transparent border-0 cursor-pointer mt-2 hover:text-teal-700">
+                  {showAllRecords ? 'Show less' : `Show all ${medicalRecords.length} records →`}
+                </button>
+              )}
             </div>
           )}
 
