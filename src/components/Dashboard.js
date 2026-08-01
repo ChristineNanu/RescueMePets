@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../constants';
 import { apiFetch, wsURL } from '../api';
+import EnableNotificationsBanner from './EnableNotificationsBanner';
 
 function useCountUp(target, delay = 0) {
   const [n, setN] = useState(0);
@@ -223,6 +224,8 @@ export default function Dashboard({ onOpenQuiz }) {
   return (
     <div className="page-bg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+
+        <EnableNotificationsBanner />
 
         {/* ── Hero Banner ─────────────────────────────────── */}
         <div className="relative bg-gradient-to-r from-teal-600 to-teal-500 rounded-3xl overflow-hidden animate-fade-up shadow-glow-teal">

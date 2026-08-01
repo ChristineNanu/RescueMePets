@@ -230,3 +230,13 @@ class RefreshToken(Base):
     revoked_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     user = relationship("User")
+
+class PushSubscription(Base):
+    __tablename__ = "push_subscriptions"
+    id         = Column(Integer, primary_key=True, index=True)
+    user_id    = Column(Integer, ForeignKey("users.id"), index=True)
+    endpoint   = Column(String, unique=True, index=True)
+    p256dh     = Column(String)
+    auth       = Column(String)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    user       = relationship("User")

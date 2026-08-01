@@ -3,6 +3,7 @@ import { API_BASE_URL } from '../constants';
 import { apiFetch, wsURL } from '../api';
 import TicketThread from './TicketThread';
 import MedicalRecordsPanel from './MedicalRecordsPanel';
+import EnableNotificationsBanner from './EnableNotificationsBanner';
 
 const userId = () => parseInt(localStorage.getItem('user_id'));
 
@@ -177,6 +178,8 @@ export default function VetPortal({ onLogout }) {
       </div>
 
       <div className="max-w-5xl mx-auto px-4 py-6">
+
+        <EnableNotificationsBanner />
 
         {/* Unread notification banner */}
         {Object.keys(msgPreview).length > 0 && (

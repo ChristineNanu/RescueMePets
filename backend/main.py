@@ -2,10 +2,11 @@ from fastapi import FastAPI, Depends, HTTPException, Request, WebSocket, WebSock
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
-import models, schemas, sample_data, auth
+import models, schemas, sample_data, auth, push
 from database import SessionLocal, engine, get_db
 import hashlib, traceback, bcrypt
 from daraja import stk_push, query_stk_status, b2c_payout
+from starlette.concurrency import run_in_threadpool
 
 models.Base.metadata.create_all(bind=engine)
 db = SessionLocal()
@@ -248,6 +249,11 @@ def update_application_status(adoption_id: int, body: schemas.StatusUpdate, curr
     audit(db, current_user.id, f"{body.status}_application", "adoption", adoption_id,
           f"animal={adoption.animal.name}")
     db.commit()
+    if body.status in ("approved", "rejected") and old_status == "pending":
+        verb = "approved! 🎉" if body.status == "approved" else "updated"
+        push.send_push_to_user(db, adoption.user_id,
+            f"Your application for {adoption.animal.name} was {verb}",
+            "Tap to see the details.", "/my-profile")
     return {"message": f"Status updated to {body.status}"}
 
 @app.get("/admin/users")
@@ -789,6 +795,11 @@ def update_ticket(ticket_id: int, body: schemas.TicketStatusUpdate, current_user
         if ticket.adoption:
             ticket.adoption.read = False
     db.commit()
+    if body.status == "resolved" and ticket.user_id:
+        animal_name = ticket.adoption.animal.name if ticket.adoption else "your pet"
+        push.send_push_to_user(db, ticket.user_id,
+            f"Your ticket about {animal_name} was resolved",
+            ticket.resolution_note or "Tap to see the resolution.", "/my-profile")
     return {"message": "Ticket updated"}
 
 @app.get("/vets")
@@ -905,11 +916,16 @@ async def send_ticket_message(ticket_id: int, body: schemas.TicketMessageCreate,
     }
     # Broadcast to everyone in the ticket room
     await manager.broadcast_ticket(ticket_id, payload)
-    # Push notification to the other party
+    # Notify the other party: live WS banner (if tab open) + push (even if closed)
+    animal_name = ticket.adoption.animal.name if ticket.adoption else "your pet"
     if sender_role == "vet" and ticket.user_id:
         await manager.notify_user(ticket.user_id, {"type": "notification", "ticket_id": ticket_id, "preview": body.message[:80]})
+        await run_in_threadpool(push.send_push_to_user, db, ticket.user_id,
+            f"New message about {animal_name}", body.message[:120], f"/my-profile")
     elif sender_role == "adopter" and ticket.vet and ticket.vet.user_id:
         await manager.notify_user(ticket.vet.user_id, {"type": "notification", "ticket_id": ticket_id, "preview": body.message[:80]})
+        await run_in_threadpool(push.send_push_to_user, db, ticket.vet.user_id,
+            f"New message about {animal_name}", body.message[:120], f"/vet-portal")
     return {"message": "Message sent", "id": msg.id}
 
 @app.patch("/tickets/{ticket_id}/messages/read")
@@ -1157,6 +1173,36 @@ def get_checkins(current_user: models.User = Depends(auth.get_current_user), db:
         "animal_name": c.adoption.animal.name if c.adoption else None,
         "created_at": c.created_at.isoformat()
     } for c in checkins]
+
+# ─── PUSH NOTIFICATIONS ──────────────────────────────────────────────────────
+
+@app.get("/push/vapid-public-key")
+def get_vapid_public_key():
+    return {"public_key": push.VAPID_PUBLIC_KEY}
+
+@app.post("/push/subscribe")
+def push_subscribe(body: schemas.PushSubscriptionCreate, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    existing = db.query(models.PushSubscription).filter(models.PushSubscription.endpoint == body.endpoint).first()
+    if existing:
+        existing.user_id = current_user.id
+        existing.p256dh = body.keys.p256dh
+        existing.auth = body.keys.auth
+    else:
+        db.add(models.PushSubscription(
+            user_id=current_user.id, endpoint=body.endpoint,
+            p256dh=body.keys.p256dh, auth=body.keys.auth,
+        ))
+    db.commit()
+    return {"message": "Subscribed"}
+
+@app.post("/push/unsubscribe")
+def push_unsubscribe(body: schemas.PushUnsubscribeRequest, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    db.query(models.PushSubscription).filter(
+        models.PushSubscription.endpoint == body.endpoint,
+        models.PushSubscription.user_id == current_user.id,
+    ).delete()
+    db.commit()
+    return {"message": "Unsubscribed"}
 
 # ─── SQL INTERFACE (ADMIN ONLY) ───────────────────────────────────────────────
 

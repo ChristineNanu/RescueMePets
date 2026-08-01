@@ -193,3 +193,14 @@ class PostAdoptionCheckinCreate(BaseModel):
     wellbeing: str      # great | good | okay | struggling
     notes: Optional[str] = ""
     photo_url: Optional[str] = ""
+
+class PushSubscriptionKeys(BaseModel):
+    p256dh: str
+    auth: str
+
+class PushSubscriptionCreate(BaseModel):
+    endpoint: str
+    keys: PushSubscriptionKeys
+
+class PushUnsubscribeRequest(BaseModel):
+    endpoint: str
