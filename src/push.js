@@ -22,6 +22,14 @@ async function registerServiceWorker() {
   return navigator.serviceWorker.register('/sw.js');
 }
 
+/** Whether this browser currently has an active push subscription. */
+export async function hasActiveSubscription() {
+  if (!isPushSupported()) return false;
+  const registration = await navigator.serviceWorker.getRegistration();
+  const subscription = await registration?.pushManager.getSubscription();
+  return !!subscription;
+}
+
 /** Requests notification permission and subscribes this browser to push.
  * Returns true on success, false if permission was denied or unsupported. */
 export async function subscribeToPush() {

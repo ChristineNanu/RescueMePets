@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../constants';
 import { apiFetch } from '../api';
 import TicketThread from './TicketThread';
+import NotificationSettings from './NotificationSettings';
 
 const STATUS_MAP = {
   pending:  { bg: 'bg-cream-100',  text: 'text-cream-700',  icon: '⏳', label: 'Pending Review' },
@@ -300,6 +301,8 @@ function MyApplications() {
       </div>
 
       <div className="max-w-3xl mx-auto px-4 pb-6">
+
+        <NotificationSettings />
 
         {/* Wallet Card */}
         <div className="bg-gradient-to-r from-teal-600 to-teal-500 rounded-3xl p-5 mb-5 text-white shadow-glow-teal">
