@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { isPushSupported, getPushPermissionState, subscribeToPush } from '../push';
 
+// Note: re-syncing an already-granted subscription (e.g. returning visit, or
+// a different account on a shared browser) is NotificationSettings' job, not
+// this component's — keeping that logic in one place avoids both components
+// racing to subscribe on mount and showing stale state to each other.
 export default function EnableNotificationsBanner() {
   const [visible, setVisible] = useState(false);
   const [enabling, setEnabling] = useState(false);
@@ -8,12 +12,6 @@ export default function EnableNotificationsBanner() {
   useEffect(() => {
     if (!isPushSupported()) return;
     const state = getPushPermissionState();
-    if (state === 'granted') {
-      // Already permitted (e.g. returning visit, or a different account on a
-      // shared browser) — silently re-sync the subscription to this user.
-      subscribeToPush().catch(() => {});
-      return;
-    }
     if (state === 'default' && !sessionStorage.getItem('push_prompt_dismissed')) setVisible(true);
   }, []);
 

@@ -18,6 +18,7 @@ import Pricing from './components/Pricing';
 import Shop from './components/Shop';
 import { API_BASE_URL } from './constants';
 import { getRefreshToken, clearAuth } from './api';
+import { syncPushSubscription } from './push';
 import './App.css';
 
 function usePawParticles() {
@@ -97,6 +98,10 @@ function App() {
     setIsLoggedIn(true);
     setRole(localStorage.getItem('role') || 'adopter');
   };
+
+  useEffect(() => {
+    if (isLoggedIn) syncPushSubscription();
+  }, [isLoggedIn]);
 
   const handleLogout = () => {
     const refresh_token = getRefreshToken();

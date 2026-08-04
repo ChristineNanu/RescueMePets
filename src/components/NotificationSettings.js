@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { isPushSupported, getPushPermissionState, hasActiveSubscription, subscribeToPush, unsubscribeFromPush } from '../push';
+import { isPushSupported, getPushPermissionState, hasActiveSubscription, subscribeToPush, unsubscribeFromPush, syncPushSubscription } from '../push';
 
 export default function NotificationSettings() {
   const [supported, setSupported] = useState(true);
@@ -15,7 +15,17 @@ export default function NotificationSettings() {
     setLoading(false);
   };
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => {
+    (async () => {
+      if (!isPushSupported()) { setSupported(false); setLoading(false); return; }
+      // Resync first (no-op if already subscribed or permission isn't
+      // granted yet) so the toggle never shows stale "Off" on mount.
+      await syncPushSubscription();
+      setPermission(getPushPermissionState());
+      setEnabled(await hasActiveSubscription());
+      setLoading(false);
+    })();
+  }, []);
 
   const toggle = async () => {
     setBusy(true);

@@ -30,6 +30,19 @@ export async function hasActiveSubscription() {
   return !!subscription;
 }
 
+/** Headless resync: if permission was already granted (returning visit, or a
+ * different account on a shared browser) but nothing's actively subscribed,
+ * silently subscribe. Safe to call on every login regardless of which page
+ * the user lands on — this is the single owner of that resync behavior so
+ * UI components (EnableNotificationsBanner, NotificationSettings) don't
+ * race each other doing it independently. */
+export async function syncPushSubscription() {
+  if (!isPushSupported()) return;
+  if (getPushPermissionState() !== 'granted') return;
+  if (await hasActiveSubscription()) return;
+  await subscribeToPush().catch(() => {});
+}
+
 /** Requests notification permission and subscribes this browser to push.
  * Returns true on success, false if permission was denied or unsupported. */
 export async function subscribeToPush() {
