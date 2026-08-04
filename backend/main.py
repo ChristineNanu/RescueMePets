@@ -794,6 +794,10 @@ def update_ticket(ticket_id: int, body: schemas.TicketStatusUpdate, current_user
         # notify adopter by marking adoption unread
         if ticket.adoption:
             ticket.adoption.read = False
+        # a resolved ticket is no longer actionable — clear the vet's unread
+        # flag regardless of who resolved it, so it stops inflating their
+        # Active Tickets badge forever
+        ticket.vet_read = True
     db.commit()
     if body.status == "resolved" and ticket.user_id:
         animal_name = ticket.adoption.animal.name if ticket.adoption else "your pet"
