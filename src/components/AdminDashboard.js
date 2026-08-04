@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../constants';
 import { apiFetch } from '../api';
 import SQLInterface from './SQLInterface';
+import AnalyticsDashboard from './AnalyticsDashboard';
 
 const adminId = () => parseInt(localStorage.getItem('user_id'));
 
@@ -77,6 +78,7 @@ export default function AdminDashboard({ onLogout }) {
     { key: 'animals',      label: '🐾 Animals'      },
     { key: 'applications', label: '📋 Applications' },
     { key: 'users',        label: '👥 Users'         },
+    { key: 'analytics',    label: '📊 Analytics'     },
     { key: 'sql',          label: '🗄️ SQL'           },
   ];
 
@@ -217,6 +219,9 @@ export default function AdminDashboard({ onLogout }) {
             </table>
           </div>
         )}
+
+        {/* Analytics Tab */}
+        {!loading && tab === 'analytics' && <AnalyticsDashboard />}
 
         {/* SQL Tab */}
         {tab === 'sql' && <SQLInterface />}

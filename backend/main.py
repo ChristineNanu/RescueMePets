@@ -261,6 +261,96 @@ def get_all_users(current_user: models.User = Depends(auth.require_admin), db: S
     users = db.query(models.User).all()
     return [{"id": u.id, "username": u.username, "email": u.email, "role": u.role} for u in users]
 
+@app.get("/admin/analytics")
+def get_analytics(current_user: models.User = Depends(auth.require_admin), db: Session = Depends(get_db)):
+    from datetime import datetime, timezone
+    from sqlalchemy import func as sqlfunc
+
+    def as_aware(dt):
+        return dt if dt.tzinfo is not None else dt.replace(tzinfo=timezone.utc)
+
+    # ── Funnel ──────────────────────────────────────────────
+    total_apps = db.query(models.Adoption).count()
+    pending = db.query(models.Adoption).filter(models.Adoption.status == "pending").count()
+    approved = db.query(models.Adoption).filter(models.Adoption.status == "approved").count()
+    rejected = db.query(models.Adoption).filter(models.Adoption.status == "rejected").count()
+    decided = approved + rejected
+    approval_rate = round((approved / decided) * 100, 1) if decided else None
+
+    # ── Avg time to decision, in hours (application submitted -> admin decision) ──
+    decisions = db.query(models.AuditLog).filter(
+        models.AuditLog.entity == "adoption",
+        models.AuditLog.action.in_(["approved_application", "rejected_application"])
+    ).all()
+    diffs_hours = []
+    for d in decisions:
+        adoption = db.query(models.Adoption).filter(models.Adoption.id == d.entity_id).first()
+        if adoption:
+            hours = (as_aware(d.created_at) - as_aware(adoption.created_at)).total_seconds() / 3600
+            diffs_hours.append(hours)
+    avg_decision_hours = round(sum(diffs_hours) / len(diffs_hours), 1) if diffs_hours else None
+
+    # ── Most favorited animals ──────────────────────────────
+    top_favs = db.query(models.Favorite.animal_id, sqlfunc.count(models.Favorite.id).label("cnt")) \
+        .group_by(models.Favorite.animal_id) \
+        .order_by(sqlfunc.count(models.Favorite.id).desc()) \
+        .limit(5).all()
+    most_favorited = []
+    for animal_id, cnt in top_favs:
+        a = db.query(models.Animal).filter(models.Animal.id == animal_id).first()
+        if a:
+            most_favorited.append({"id": a.id, "name": a.name, "image": a.image, "species": a.species, "favorite_count": cnt})
+
+    # ── Revenue ─────────────────────────────────────────────
+    completed_payments = db.query(models.Payment).filter(models.Payment.status == "completed").all()
+    sponsors = db.query(models.Sponsor).all()
+
+    # ── Adoptions by center ─────────────────────────────────
+    by_center = []
+    for c in db.query(models.Center).all():
+        animal_ids = [row[0] for row in db.query(models.Animal.id).filter(models.Animal.center_id == c.id).all()]
+        adopted_count = db.query(models.Adoption).filter(
+            models.Adoption.animal_id.in_(animal_ids), models.Adoption.status == "approved"
+        ).count() if animal_ids else 0
+        by_center.append({"center_id": c.id, "name": c.name, "adoptions": adopted_count})
+
+    # ── Monthly application trend, last 6 months ────────────
+    now = datetime.now(timezone.utc)
+    y, m = now.year, now.month
+    buckets = []
+    for _ in range(6):
+        buckets.append((y, m))
+        m -= 1
+        if m == 0:
+            m, y = 12, y - 1
+    buckets.reverse()
+    counts = {f"{yy:04d}-{mm:02d}": 0 for yy, mm in buckets}
+    for (created,) in db.query(models.Adoption.created_at).all():
+        key = f"{created.year:04d}-{created.month:02d}"
+        if key in counts:
+            counts[key] += 1
+    monthly_trend = [{"month": k, "applications": v} for k, v in sorted(counts.items())]
+
+    return {
+        "funnel": {
+            "total_applications": total_apps,
+            "pending": pending,
+            "approved": approved,
+            "rejected": rejected,
+            "approval_rate": approval_rate,
+        },
+        "avg_decision_hours": avg_decision_hours,
+        "most_favorited": most_favorited,
+        "revenue": {
+            "adoption_fees_kes": sum(p.amount for p in completed_payments),
+            "adoption_fee_payment_count": len(completed_payments),
+            "sponsorship_usd": round(sum(s.amount for s in sponsors) / 100, 2),
+            "sponsorship_count": len(sponsors),
+        },
+        "adoptions_by_center": by_center,
+        "monthly_trend": monthly_trend,
+    }
+
 @app.get("/centers/{center_id}")
 def get_center(center_id: int, db: Session = Depends(get_db)):
     c = db.query(models.Center).filter(models.Center.id == center_id).first()
