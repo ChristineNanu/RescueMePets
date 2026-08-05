@@ -5,7 +5,7 @@ import { apiFetch } from '../api';
 
 function MpesaPayment({ adoptionId, animalName, onSuccess, onCancel }) {
   const [phone, setPhone] = useState('');
-  const [amount] = useState(50); // 50 cents = KES 0.5 for testing
+  const [amount] = useState(50); // KES 50 — sandbox test amount, not the real production fee
   const [step, setStep] = useState('form'); // form | waiting | success | failed
   const [receipt, setReceipt] = useState(null);
   const [error, setError] = useState('');
