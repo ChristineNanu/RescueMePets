@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../constants';
 import { apiFetch } from '../api';
+import WelcomeGuide from './WelcomeGuide';
 
 const ADOPTER_LINKS = [
   { to: '/dashboard', label: 'Home'    },
@@ -19,6 +20,7 @@ export default function Navbar({ isLoggedIn, role, onLogout }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [unread, setUnread]     = useState(0);
   const [scrolled, setScrolled] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -85,6 +87,11 @@ export default function Navbar({ isLoggedIn, role, onLogout }) {
           <div className="flex items-center gap-2">
             {isLoggedIn ? (
               <>
+                <button onClick={() => setShowGuide(true)} aria-label="Show app tour"
+                  className="hidden md:flex w-9 h-9 items-center justify-center rounded-xl text-sm font-black
+                    text-teal-600 hover:bg-teal-50 transition-all duration-200 border-0 bg-transparent cursor-pointer">
+                  ❓
+                </button>
                 <button onClick={() => navigate('/my-profile')}
                   className="hidden md:flex relative items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
                     text-teal-700 hover:bg-teal-50 transition-all duration-200 border-0 bg-transparent cursor-pointer">
@@ -137,8 +144,14 @@ export default function Navbar({ isLoggedIn, role, onLogout }) {
             My Profile
             {unread > 0 && <span className="bg-coral-500 text-white text-xs font-black px-2 py-0.5 rounded-full">{unread}</span>}
           </Link>
+          <button onClick={() => { setMenuOpen(false); setShowGuide(true); }}
+            className="w-full text-left flex items-center px-4 py-3 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-all border-0 bg-transparent cursor-pointer">
+            ❓ App Tour
+          </button>
         </div>
       )}
+
+      {showGuide && <WelcomeGuide role="adopter" onClose={() => setShowGuide(false)} />}
     </nav>
   );
 }

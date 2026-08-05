@@ -5,6 +5,7 @@ import TicketThread from './TicketThread';
 import MedicalRecordsPanel from './MedicalRecordsPanel';
 import EnableNotificationsBanner from './EnableNotificationsBanner';
 import NotificationSettings from './NotificationSettings';
+import WelcomeGuide, { shouldShowWelcomeGuide } from './WelcomeGuide';
 
 const userId = () => parseInt(localStorage.getItem('user_id'));
 
@@ -17,6 +18,7 @@ export default function VetPortal({ onLogout }) {
   const [msgUnread, setMsgUnread] = useState({}); // { [ticketId]: count }
   const [msgPreview, setMsgPreview] = useState({}); // { [ticketId]: lastMessage }
   const [loading, setLoading] = useState(true);
+  const [showGuide, setShowGuide] = useState(() => shouldShowWelcomeGuide('vet'));
 
   // Resolve modal state
   const [resolveTicket, setResolveTicket] = useState(null);
@@ -161,6 +163,7 @@ export default function VetPortal({ onLogout }) {
 
   return (
     <div className="min-h-screen page-bg">
+      {showGuide && <WelcomeGuide role="vet" onClose={() => setShowGuide(false)} />}
       {/* Header */}
       <div className="bg-gradient-to-r from-teal-700 to-teal-600 text-white px-6 py-8">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
@@ -171,10 +174,16 @@ export default function VetPortal({ onLogout }) {
               {profile?.specialization} · {profile?.clinic} · {profile?.center_name}
             </p>
           </div>
-          <button onClick={onLogout}
-            className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-sm font-semibold border-0 cursor-pointer transition-all">
-            Sign Out
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowGuide(true)} aria-label="Show portal tour"
+              className="w-9 h-9 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-xl text-sm font-black border-0 cursor-pointer transition-all">
+              ❓
+            </button>
+            <button onClick={onLogout}
+              className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-sm font-semibold border-0 cursor-pointer transition-all">
+              Sign Out
+            </button>
+          </div>
         </div>
       </div>
 

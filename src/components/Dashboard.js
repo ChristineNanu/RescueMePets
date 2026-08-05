@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../constants';
 import { apiFetch, wsURL } from '../api';
 import EnableNotificationsBanner from './EnableNotificationsBanner';
+import WelcomeGuide, { shouldShowWelcomeGuide } from './WelcomeGuide';
 
 function useCountUp(target, delay = 0) {
   const [n, setN] = useState(0);
@@ -64,6 +65,7 @@ export default function Dashboard({ onOpenQuiz }) {
   const [tickets, setTickets]       = useState([]);
   const [vets, setVets]             = useState([]);
   const [showMerchBanner, setShowMerchBanner] = useState(() => !sessionStorage.getItem('merch_dismissed'));
+  const [showGuide, setShowGuide] = useState(() => shouldShowWelcomeGuide('adopter'));
   const [assigningTicket, setAssigningTicket] = useState(null);
   const [assignVetId, setAssignVetId]         = useState('');
   const [notifCount, setNotifCount]           = useState(0);
@@ -223,6 +225,7 @@ export default function Dashboard({ onOpenQuiz }) {
 
   return (
     <div className="page-bg">
+      {showGuide && <WelcomeGuide role="adopter" onClose={() => setShowGuide(false)} />}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
 
         <EnableNotificationsBanner />
