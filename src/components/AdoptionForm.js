@@ -27,7 +27,7 @@ function AdoptionForm() {
   useEffect(() => {
     apiFetch(`${API_BASE_URL}/animals`)
       .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-      .then(data => setAnimals(data.filter(a => a.status !== 'adopted')))
+      .then(data => setAnimals(data.filter(a => a.status === 'available')))
       .catch(() => setError('Failed to load animals'));
     const id = searchParams.get('animalId');
     if (id) { setAnimalId(id); setStep(1); }

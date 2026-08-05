@@ -99,6 +99,7 @@ def animal_to_dict(animal, favorites=None):
         "energy_level": animal.energy_level or "medium",
         "personality_badges": animal.personality_badges.split(",") if animal.personality_badges else [],
         "photos": [p.strip() for p in animal.photos.split(",") if p.strip()] if animal.photos else [],
+        "sponsored": animal.sponsored or False,
     }
 
 @app.get("/health")
@@ -499,6 +500,8 @@ def adopt(adoption: schemas.AdoptionCreate, current_user: models.User = Depends(
         raise HTTPException(status_code=404, detail="Animal not found")
     if animal.status == "adopted":
         raise HTTPException(status_code=400, detail="Animal already adopted")
+    if animal.status == "pending":
+        raise HTTPException(status_code=400, detail="This animal already has a pending application")
     existing = db.query(models.Adoption).filter(
         models.Adoption.user_id == current_user.id,
         models.Adoption.animal_id == adoption.animal_id,
@@ -668,6 +671,8 @@ def initiate_stk_push(req: schemas.PaymentRequest, current_user: models.User = D
         raise HTTPException(status_code=404, detail="Adoption not found")
     if adoption.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="This adoption doesn't belong to you")
+    if adoption.application_type == "foster":
+        raise HTTPException(status_code=400, detail="Foster applications don't require a payment")
     if req.amount < 1 or req.amount > 100000:
         raise HTTPException(status_code=400, detail="Invalid payment amount")
 
@@ -730,6 +735,8 @@ def check_payment_status(payment_id: int, current_user: models.User = Depends(au
                 payment.mpesa_receipt = payment.mpesa_receipt or result.get("MpesaReceiptNumber")
                 if payment.adoption:
                     payment.adoption.status = "approved"
+                    if payment.adoption.animal:
+                        payment.adoption.animal.status = "adopted"
                 db.commit()
         except Exception as e:
             print(f"STK query error for payment {payment_id}: {e}")
@@ -756,6 +763,8 @@ def test_complete_payment(payment_id: int, db: Session = Depends(get_db)):
     payment.mpesa_receipt = "TEST123456"
     if payment.adoption:
         payment.adoption.status = "approved"
+        if payment.adoption.animal:
+            payment.adoption.animal.status = "adopted"
     db.commit()
     
     return {"message": "Payment completed for testing", "payment_id": payment.id}
@@ -786,6 +795,8 @@ async def mpesa_callback(request: Request, db: Session = Depends(get_db)):
             if payment.adoption:
                 payment.adoption.status = "approved"
                 payment.adoption.read = False
+                if payment.adoption.animal:
+                    payment.adoption.animal.status = "adopted"
             print(f"Callback: payment {payment.id} completed, receipt={receipt}")
         else:
             payment.status = "failed"
