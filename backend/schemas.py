@@ -67,6 +67,7 @@ class Center(CenterBase):
 class AdoptionCreate(BaseModel):
     animal_id: int
     message: str
+    application_type: Optional[str] = "adopt"  # adopt | foster
 
 class AdoptionOut(BaseModel):
     id: int
@@ -140,17 +141,10 @@ class StatusUpdate(BaseModel):
 class WaitlistRequest(BaseModel):
     animal_id: int
 
-class SponsorRequest(BaseModel):
-    animal_id: int
-    amount: int  # in cents e.g. 500 = $5
-
 class ProfileUpdate(BaseModel):
     username: Optional[str] = None
     email: Optional[str] = None
     avatar: Optional[str] = None
-
-class WalletTopUp(BaseModel):
-    amount: int  # in cents
 
 class QuizAnswers(BaseModel):
     activity: str
@@ -204,3 +198,7 @@ class PushSubscriptionCreate(BaseModel):
 
 class PushUnsubscribeRequest(BaseModel):
     endpoint: str
+
+class FosterJournalEntryCreate(BaseModel):
+    note: str
+    photo_url: Optional[str] = ""

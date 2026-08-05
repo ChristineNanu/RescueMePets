@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 const FAQS = [
   {
     patterns: ['hi', 'hello', 'hey', 'hiya', 'howdy', 'greetings', 'good morning', 'good afternoon', 'good evening'],
-    answer: "Hey there! 👋 I'm **Paws**, your adoption assistant.\n\nAsk me about adoption fees, animal health, sponsoring a pet, joining a waitlist, or anything else — happy to help! 🐾",
+    answer: "Hey there! 👋 I'm **Paws**, your adoption assistant.\n\nAsk me about adoption fees, animal health, foster-to-adopt, joining a waitlist, or anything else — happy to help! 🐾",
   },
   {
     patterns: ['thank', 'thanks', 'thx', 'appreciate'],
@@ -38,8 +38,8 @@ const FAQS = [
     answer: "Not sure which pet is right for you? Try our **Find My Match** quiz! 🧩\n\nAnswer a few quick questions about your lifestyle and home, and we'll match you with animals that fit best. Look for the '✨ Find My Match' button on your Dashboard.",
   },
   {
-    patterns: ['wallet', 'top up', 'topup', 'add funds', 'add money'],
-    answer: "Your **Wallet** (in My Profile) holds funds you use to sponsor animals. Top it up anytime with the 'Add Funds' buttons, then your balance goes toward sponsoring any animal you like. 💳",
+    patterns: ['foster', 'fostering', 'foster to adopt', 'trial', 'not ready'],
+    answer: "Not ready to fully commit? Choose **Foster-to-Adopt** on the application form! 🐣\n\nTake the animal home on a trial basis with no fee, log how it's going in your **Foster Journal**, and finalize the adoption anytime once you're sure — right from **My Profile → Applications**.",
   },
   {
     patterns: ['shop', 'merch', 'merchandise', 'hoodie', 'tote'],
@@ -51,11 +51,7 @@ const FAQS = [
   },
   {
     patterns: ['what is this', 'what is rescuemepets', 'about this app', 'what do you do', 'tell me about'],
-    answer: "**RescueMePets** connects you with animals from 4 partner rescue centers looking for their forever homes. 🐾\n\nBrowse animals, apply to adopt, sponsor a pet, get matched with our quiz, and stay connected with vets even after you adopt — all in one place.",
-  },
-  {
-    patterns: ['sponsor', 'donate', 'donation'],
-    answer: "Can't adopt right now? You can **sponsor** an animal instead! 💛\n\nOpen any animal's profile and choose a monthly amount to help cover their food and medical costs — funded from your **Wallet** in My Profile. Find all your sponsorships anytime in **My Profile**.",
+    answer: "**RescueMePets** connects you with animals from 4 partner rescue centers looking for their forever homes. 🐾\n\nBrowse animals, apply to adopt or foster, get matched with our quiz, and stay connected with vets even after you adopt — all in one place.",
   },
   {
     patterns: ['waitlist', 'wait list'],
@@ -106,7 +102,7 @@ const FAQS = [
 const QUICK_QUESTIONS = [
   'How does adoption work?',
   'Is it free to adopt?',
-  'Can I sponsor an animal?',
+  'What is foster-to-adopt?',
   'Can I adopt if I rent?',
   'What animals are available?',
 ];
@@ -137,7 +133,7 @@ function getBotResponse(input) {
   for (const faq of FAQS) {
     if (faq.patterns.some(p => matchesPattern(lower, tokens, p))) return faq.answer;
   }
-  return "I'm not sure about that one! 🤔\n\nTry asking about:\n• Adoption process & fees\n• Sponsoring or joining a waitlist\n• Animal health & medical history\n• Getting help after adoption\n• Application status";
+  return "I'm not sure about that one! 🤔\n\nTry asking about:\n• Adoption process & fees\n• Foster-to-adopt or joining a waitlist\n• Animal health & medical history\n• Getting help after adoption\n• Application status";
 }
 
 function escapeHtml(str) {

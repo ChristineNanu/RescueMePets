@@ -56,7 +56,7 @@ export default function AnalyticsDashboard() {
   return (
     <div className="space-y-6">
       {/* Stat tiles */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <StatTile icon="📋" label="Total Applications" value={funnel.total_applications} />
         <StatTile icon="✅" label="Approval Rate"
           value={funnel.approval_rate != null ? `${funnel.approval_rate}%` : '—'}
@@ -64,6 +64,7 @@ export default function AnalyticsDashboard() {
         <StatTile icon="⏱️" label="Avg Decision Time" value={avg_decision_hours != null ? `${avg_decision_hours}h` : '—'} />
         <StatTile icon="💰" label="Adoption Fee Revenue" value={`KES ${revenue.adoption_fees_kes.toLocaleString()}`}
           sub={`${revenue.adoption_fee_payment_count} payment${revenue.adoption_fee_payment_count === 1 ? '' : 's'}`} />
+        <StatTile icon="🐣" label="Currently Fostering" value={funnel.currently_fostering} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -132,11 +133,6 @@ export default function AnalyticsDashboard() {
         </div>
       </div>
 
-      {revenue.sponsorship_count > 0 && (
-        <div className="bg-cream-50 border border-cream-200 rounded-2xl p-4 text-sm text-gray-600">
-          💛 <strong>{revenue.sponsorship_count}</strong> active sponsorship{revenue.sponsorship_count === 1 ? '' : 's'} totaling <strong>${revenue.sponsorship_usd.toFixed(2)}/mo</strong>
-        </div>
-      )}
     </div>
   );
 }

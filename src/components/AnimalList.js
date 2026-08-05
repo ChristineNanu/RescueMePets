@@ -38,20 +38,14 @@ const PERSONALITY_BADGES = {
 
 function AnimalModal({ animal, onClose, onAdopt, userId }) {
   const [waitlist, setWaitlist] = useState({ count: 0, on_waitlist: false });
-  const [sponsor, setSponsor]   = useState({ total: 0, count: 0, user_amount: 0, goal: 5000 });
-  const [sponsorAmount, setSponsorAmount] = useState(500);
-  const [sponsorMsg, setSponsorMsg]       = useState('');
   const [medicalRecords, setMedicalRecords] = useState([]);
   const [showAllRecords, setShowAllRecords] = useState(false);
 
   useEffect(() => {
     if (!animal) return;
-    setSponsorMsg('');
     setShowAllRecords(false);
     apiFetch(`${API_BASE_URL}/waitlist/${animal.id}${userId ? `?user_id=${userId}` : ''}`)
       .then(r => r.json()).then(setWaitlist).catch(() => {});
-    apiFetch(`${API_BASE_URL}/sponsor/${animal.id}${userId ? `?user_id=${userId}` : ''}`)
-      .then(r => r.json()).then(setSponsor).catch(() => {});
     apiFetch(`${API_BASE_URL}/animals/${animal.id}/medical-records`)
       .then(r => r.ok ? r.json() : [])
       .then(d => setMedicalRecords(Array.isArray(d) ? d : []))
@@ -66,18 +60,6 @@ function AnimalModal({ animal, onClose, onAdopt, userId }) {
     });
     const data = await res.json();
     setWaitlist({ on_waitlist: true, count: typeof data.count === 'number' ? data.count : waitlist.count + 1 });
-  };
-
-  const handleSponsor = async () => {
-    if (!userId) return;
-    setSponsorMsg('');
-    const res = await apiFetch(`${API_BASE_URL}/sponsor`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: parseInt(userId), animal_id: animal.id, amount: sponsorAmount })
-    });
-    const data = await res.json();
-    if (res.ok) { setSponsor(s => ({ ...s, total: data.total_sponsored, user_amount: sponsorAmount })); setSponsorMsg('✅ Thank you for sponsoring!'); }
-    else setSponsorMsg(`❌ ${data.detail}`);
   };
 
   if (!animal) return null;
@@ -196,36 +178,12 @@ function AnimalModal({ animal, onClose, onAdopt, userId }) {
 
           <p className="text-gray-500 text-sm leading-relaxed mb-4 italic">"{animal.description}"</p>
 
-          {/* Sponsor */}
-          <div className="mb-4 bg-gradient-to-r from-teal-50 to-teal-100/50 rounded-2xl p-4 border border-teal-100">
-            <p className="text-xs font-bold text-teal-700 uppercase tracking-wide mb-1">💛 Sponsor This Animal</p>
-            <p className="text-xs text-gray-500 mb-3">Can't adopt? Sponsor their food & medical costs monthly.</p>
-            <div className="mb-2">
-              <div className="flex justify-between text-xs text-gray-500 mb-1">
-                <span>${(sponsor.total / 100).toFixed(0)} raised</span>
-                <span>Goal: ${(sponsor.goal / 100).toFixed(0)}/mo</span>
-              </div>
-              <div className="w-full bg-teal-100 rounded-full h-2">
-                <div className="bg-gradient-to-r from-teal-500 to-teal-400 h-2 rounded-full transition-all"
-                  style={{ width: `${Math.min((sponsor.total / sponsor.goal) * 100, 100)}%` }} />
-              </div>
-              <p className="text-xs text-gray-400 mt-1">{sponsor.count} sponsor{sponsor.count !== 1 ? 's' : ''}</p>
-            </div>
-            {sponsor.user_amount > 0 && <p className="text-xs text-teal-600 font-semibold mb-2">✅ You sponsor ${(sponsor.user_amount / 100).toFixed(0)}/mo</p>}
-            <div className="flex gap-2 flex-wrap mb-2">
-              {[500, 1000, 2500, 5000].map(amt => (
-                <button key={amt} onClick={() => setSponsorAmount(amt)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border-0 cursor-pointer transition-all
-                    ${sponsorAmount === amt ? 'bg-teal-600 text-white shadow-md' : 'bg-white text-teal-600 border border-teal-200 hover:bg-teal-50'}`}>
-                  ${amt / 100}/mo
-                </button>
-              ))}
-            </div>
-            {sponsorMsg && <p className="text-xs font-semibold mb-2">{sponsorMsg}</p>}
-            <button onClick={handleSponsor} disabled={!userId}
-              className="w-full py-2 rounded-xl text-sm font-bold bg-gradient-to-r from-teal-500 to-teal-600 text-white border-0 cursor-pointer hover:shadow-lg transition-all disabled:opacity-50">
-              💛 Sponsor ${(sponsorAmount / 100).toFixed(0)}/mo
-            </button>
+          {/* Foster-to-Adopt callout */}
+          <div className="mb-4 bg-gradient-to-r from-cream-50 to-cream-100/50 rounded-2xl p-4 border border-cream-200">
+            <p className="text-xs font-bold text-cream-800 uppercase tracking-wide mb-1">🐣 Not ready to commit?</p>
+            <p className="text-xs text-gray-500">
+              Choose <strong>Foster-to-Adopt</strong> on the application form to take {animal.name} home on a trial basis, no fee — you can make it official anytime.
+            </p>
           </div>
 
           {animal.status === 'pending' && (

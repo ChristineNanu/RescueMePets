@@ -114,7 +114,7 @@ export default function ComplianceReports() {
               className="px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-sm font-bold border-0 cursor-pointer">
               🖨️ Print / Save as PDF
             </button>
-            {['applications', 'payments', 'sponsorships'].map(ds => (
+            {['applications', 'payments'].map(ds => (
               <button key={ds} onClick={() => downloadCsv(ds)} disabled={downloading === ds}
                 className="px-4 py-2.5 bg-white border border-teal-200 text-teal-700 rounded-xl text-sm font-bold cursor-pointer hover:bg-teal-50 disabled:opacity-50">
                 {downloading === ds ? 'Downloading...' : `⬇️ ${ds[0].toUpperCase() + ds.slice(1)} CSV`}
@@ -138,8 +138,7 @@ export default function ComplianceReports() {
                 sub={`${data.funnel.approved} approved · ${data.funnel.rejected} rejected · ${data.funnel.pending} pending`} />
               <StatTile label="Adoption Fee Revenue" value={`KES ${data.revenue.adoption_fees_kes.toLocaleString()}`}
                 sub={`${data.revenue.payment_count} payment${data.revenue.payment_count === 1 ? '' : 's'}`} />
-              <StatTile label="Sponsorship Commitments" value={`$${data.revenue.sponsorship_usd.toFixed(2)}/mo`}
-                sub={`${data.revenue.sponsor_count} sponsor${data.revenue.sponsor_count === 1 ? '' : 's'}`} />
+              <StatTile label="Foster Applications" value={data.funnel.foster_applications} />
             </div>
 
             <p className="text-sm font-black text-gray-800 mb-2">Adoptions by Center</p>

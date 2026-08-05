@@ -4,14 +4,13 @@ import { API_BASE_URL } from '../constants';
 import { apiFetch } from '../api';
 import TicketThread from './TicketThread';
 import NotificationSettings from './NotificationSettings';
+import FosterJournal from './FosterJournal';
 
 const STATUS_MAP = {
   pending:  { bg: 'bg-cream-100',  text: 'text-cream-700',  icon: '⏳', label: 'Pending Review' },
   approved: { bg: 'bg-teal-100',   text: 'text-teal-700',   icon: '✅', label: 'Approved!'      },
   rejected: { bg: 'bg-coral-100',  text: 'text-coral-600',  icon: '❌', label: 'Not Approved'   },
 };
-
-const TOPUP_AMOUNTS = [1000, 2000, 5000, 10000];
 
 const TICKET_STATUS = {
   open:        { bg: 'bg-cream-100',  text: 'text-cream-700',  label: 'Open' },
@@ -22,7 +21,6 @@ const TICKET_STATUS = {
 function MyApplications() {
   const [applications, setApplications] = useState([]);
   const [favorites, setFavorites]       = useState([]);
-  const [sponsorships, setSponsorships] = useState([]);
   const [profile, setProfile]           = useState(null);
   const [tickets, setTickets]           = useState([]);
   const [tab, setTab]                   = useState('applications');
@@ -30,9 +28,8 @@ function MyApplications() {
   const [editing, setEditing]           = useState(false);
   const [editForm, setEditForm]         = useState({});
   const [editMsg, setEditMsg]           = useState('');
-  const [topUpAmount, setTopUpAmount]   = useState(1000);
-  const [walletMsg, setWalletMsg]       = useState('');
   const [supportModal, setSupportModal] = useState(null); // adoption object
+  const [journalModal, setJournalModal] = useState(null); // adoption object
   const [threadTicket, setThreadTicket]  = useState(null);
   const [msgPreview, setMsgPreview]      = useState({}); // { [ticketId]: { text, sender } }
   const [issueText, setIssueText]       = useState('');
@@ -58,13 +55,11 @@ function MyApplications() {
     Promise.all([
       apiFetch(`${API_BASE_URL}/my-applications?user_id=${userId}`).then(r => r.json()),
       apiFetch(`${API_BASE_URL}/favorites?user_id=${userId}`).then(r => r.json()),
-      apiFetch(`${API_BASE_URL}/my-sponsorships?user_id=${userId}`).then(r => r.json()),
       apiFetch(`${API_BASE_URL}/profile?user_id=${userId}`).then(r => r.json()),
       apiFetch(`${API_BASE_URL}/support?user_id=${userId}`).then(r => r.json()),
-    ]).then(([apps, favs, sponsors, prof, tix]) => {
+    ]).then(([apps, favs, prof, tix]) => {
       setApplications(Array.isArray(apps) ? apps : []);
       setFavorites(Array.isArray(favs) ? favs : []);
-      setSponsorships(Array.isArray(sponsors) ? sponsors : []);
       setProfile(prof);
       setTickets(Array.isArray(tix) ? tix : []);
       // fetch last message preview for tickets with assigned vets
@@ -103,17 +98,6 @@ function MyApplications() {
     const data = await res.json();
     if (res.ok) { setProfile(p => ({ ...p, ...data })); localStorage.setItem('username', data.username); setEditing(false); }
     else setEditMsg(data.detail || 'Update failed');
-  };
-
-  const handleTopUp = async () => {
-    setWalletMsg('');
-    const res = await apiFetch(`${API_BASE_URL}/wallet/topup?user_id=${userId}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount: topUpAmount }),
-    });
-    const data = await res.json();
-    if (res.ok) { setProfile(p => ({ ...p, wallet_balance: data.wallet_balance })); setWalletMsg(`✅ $${(topUpAmount / 100).toFixed(0)} added!`); }
-    else setWalletMsg('❌ Top up failed');
   };
 
   const submitTicket = async () => {
@@ -167,6 +151,7 @@ function MyApplications() {
 
   const unread   = applications.filter(a => a.read === false);
   const approved = applications.filter(a => a.status === 'approved').length;
+  const fostering = applications.filter(a => a.application_type === 'foster' && a.status === 'approved' && !a.foster_finalized_at).length;
 
   return (
     <div className="page-bg min-h-screen">
@@ -289,7 +274,7 @@ function MyApplications() {
             { label: 'Applications', value: applications.length, icon: '📋', bg: 'bg-teal-50',  text: 'text-teal-700'  },
             { label: 'Approved',     value: approved,            icon: '✅', bg: 'bg-teal-50',  text: 'text-teal-700'  },
             { label: 'Saved',        value: favorites.length,    icon: '❤️', bg: 'bg-coral-50', text: 'text-coral-700' },
-            { label: 'Sponsoring',   value: sponsorships.length, icon: '💛', bg: 'bg-cream-50', text: 'text-cream-700' },
+            { label: 'Fostering',    value: fostering,           icon: '🐣', bg: 'bg-cream-50', text: 'text-cream-700' },
           ].map((s, i) => (
             <div key={i} className={`${s.bg} rounded-2xl p-3 text-center shadow-card border border-white`}>
               <div className="text-xl mb-1">{s.icon}</div>
@@ -303,32 +288,6 @@ function MyApplications() {
       <div className="max-w-3xl mx-auto px-4 pb-6">
 
         <NotificationSettings />
-
-        {/* Wallet Card */}
-        <div className="bg-gradient-to-r from-teal-600 to-teal-500 rounded-3xl p-5 mb-5 text-white shadow-glow-teal">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <p className="text-xs font-bold opacity-75 uppercase tracking-wide">💳 My Wallet</p>
-              <p className="text-3xl font-black">${((profile?.wallet_balance || 0) / 100).toFixed(2)}</p>
-              <p className="text-xs opacity-60">Available balance</p>
-            </div>
-            <div className="text-5xl opacity-10">🐾</div>
-          </div>
-          <div className="flex gap-2 flex-wrap mb-2">
-            {TOPUP_AMOUNTS.map(amt => (
-              <button key={amt} onClick={() => setTopUpAmount(amt)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold border-0 cursor-pointer transition-all
-                  ${topUpAmount === amt ? 'bg-white text-teal-700 shadow-md' : 'bg-white/20 text-white hover:bg-white/30'}`}>
-                +${amt / 100}
-              </button>
-            ))}
-          </div>
-          {walletMsg && <p className="text-xs font-semibold mb-2">{walletMsg}</p>}
-          <button onClick={handleTopUp}
-            className="w-full py-2.5 rounded-xl text-sm font-bold bg-white text-teal-700 border-0 cursor-pointer hover:shadow-lg transition-all">
-            Top Up ${(topUpAmount / 100).toFixed(0)}
-          </button>
-        </div>
 
         {/* Unread banner */}
         {(unread.length > 0 || Object.values(msgPreview).length > 0) && (
@@ -382,7 +341,6 @@ function MyApplications() {
           {[
             { key: 'applications', icon: '📋', label: `Applications (${applications.length})` },
             { key: 'favorites',    icon: '❤️', label: `Saved (${favorites.length})` },
-            { key: 'sponsorships', icon: '💛', label: `Sponsoring (${sponsorships.length})` },
           ].map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all border-0 cursor-pointer whitespace-nowrap
@@ -421,6 +379,9 @@ function MyApplications() {
                         <div className="flex items-center gap-2">
                           <h3 className="font-bold text-gray-800 text-base">{app.animal_name}</h3>
                           {isUnread && <span className="text-xs bg-coral-100 text-coral-600 font-bold px-2 py-0.5 rounded-full">NEW</span>}
+                          {app.application_type === 'foster' && (
+                            <span className="text-xs bg-cream-100 text-cream-700 font-bold px-2 py-0.5 rounded-full">🐣 Foster</span>
+                          )}
                         </div>
                         <p className="text-gray-400 text-xs">{app.animal_species}</p>
                       </div>
@@ -430,6 +391,19 @@ function MyApplications() {
                     <p className="text-gray-300 text-xs mt-1">
                       Applied {new Date(app.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                     </p>
+                    {app.application_type === 'foster' && app.status === 'approved' && (
+                      app.foster_finalized_at ? (
+                        <p className="mt-3 text-xs font-bold text-teal-600 bg-teal-50 border border-teal-200 px-3 py-1.5 rounded-xl inline-block">
+                          ✅ Finalized into a full adoption
+                        </p>
+                      ) : (
+                        <button
+                          onClick={() => setJournalModal(app)}
+                          className="mt-3 text-xs font-bold text-cream-700 bg-cream-50 border border-cream-200 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-cream-100 transition-all">
+                          📖 Foster Journal
+                        </button>
+                      )
+                    )}
                     {/* Edit / Delete — only for pending */}
                     {app.status === 'pending' && (
                       <div className="flex gap-2 mt-3">
@@ -550,44 +524,18 @@ function MyApplications() {
           </div>
         )}
 
-        {/* Sponsorships Tab */}
-        {tab === 'sponsorships' && (
-          <div>
-            {sponsorships.length === 0 ? (
-              <div className="text-center py-16 bg-white rounded-3xl shadow-card border border-teal-50">
-                <div className="text-5xl mb-3">💛</div>
-                <h3 className="font-bold text-gray-700 mb-1">Not sponsoring anyone yet</h3>
-                <p className="text-gray-400 text-sm mb-4">Open any animal profile to sponsor their care</p>
-                <button onClick={() => navigate('/animals')} className="btn-primary px-6 py-2.5 text-sm">Browse Animals</button>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3">
-                {sponsorships.map(s => (
-                  <div key={s.id} className="bg-white rounded-2xl p-4 shadow-sm border border-teal-50 flex gap-4 items-center">
-                    <img src={s.animal_image} alt={s.animal_name}
-                      className="w-14 h-14 rounded-xl object-cover flex-shrink-0"
-                      onError={e => e.target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=100&q=80'} />
-                    <div className="flex-1">
-                      <h3 className="font-bold text-gray-800">{s.animal_name}</h3>
-                      <p className="text-gray-400 text-xs">{s.animal_species}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-lg font-black text-teal-600">${(s.amount / 100).toFixed(0)}</p>
-                      <p className="text-xs text-gray-400">per month</p>
-                    </div>
-                  </div>
-                ))}
-                <div className="bg-teal-50 rounded-2xl p-4 border border-teal-100 text-center">
-                  <p className="text-sm font-bold text-teal-700">
-                    💛 Total: ${(sponsorships.reduce((sum, s) => sum + s.amount, 0) / 100).toFixed(0)}/month
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">Thank you for making a difference!</p>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </div>
+
+      {/* Foster Journal */}
+      {journalModal && (
+        <FosterJournal
+          adoption={journalModal}
+          onClose={() => setJournalModal(null)}
+          onFinalized={() => {
+            setApplications(prev => prev.map(a => a.id === journalModal.id ? { ...a, foster_finalized_at: new Date().toISOString() } : a));
+          }}
+        />
+      )}
 
       {/* Sign Out */}
       <div className="max-w-3xl mx-auto px-4 pb-10">

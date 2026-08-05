@@ -230,6 +230,7 @@ def get_all_applications(current_user: models.User = Depends(auth.require_admin)
         "animal_id": a.animal_id, "animal_name": a.animal.name,
         "animal_image": a.animal.image, "animal_species": a.animal.species,
         "message": a.message, "status": a.status,
+        "application_type": a.application_type,
         "created_at": a.created_at.isoformat()
     } for a in adoptions]
 
@@ -274,6 +275,11 @@ def get_analytics(current_user: models.User = Depends(auth.require_admin), db: S
     pending = db.query(models.Adoption).filter(models.Adoption.status == "pending").count()
     approved = db.query(models.Adoption).filter(models.Adoption.status == "approved").count()
     rejected = db.query(models.Adoption).filter(models.Adoption.status == "rejected").count()
+    fostering = db.query(models.Adoption).filter(
+        models.Adoption.application_type == "foster",
+        models.Adoption.status == "approved",
+        models.Adoption.foster_finalized_at.is_(None),
+    ).count()
     decided = approved + rejected
     approval_rate = round((approved / decided) * 100, 1) if decided else None
 
@@ -303,7 +309,6 @@ def get_analytics(current_user: models.User = Depends(auth.require_admin), db: S
 
     # ── Revenue ─────────────────────────────────────────────
     completed_payments = db.query(models.Payment).filter(models.Payment.status == "completed").all()
-    sponsors = db.query(models.Sponsor).all()
 
     # ── Adoptions by center ─────────────────────────────────
     by_center = []
@@ -338,14 +343,13 @@ def get_analytics(current_user: models.User = Depends(auth.require_admin), db: S
             "approved": approved,
             "rejected": rejected,
             "approval_rate": approval_rate,
+            "currently_fostering": fostering,
         },
         "avg_decision_hours": avg_decision_hours,
         "most_favorited": most_favorited,
         "revenue": {
             "adoption_fees_kes": sum(p.amount for p in completed_payments),
             "adoption_fee_payment_count": len(completed_payments),
-            "sponsorship_usd": round(sum(s.amount for s in sponsors) / 100, 2),
-            "sponsorship_count": len(sponsors),
         },
         "adoptions_by_center": by_center,
         "monthly_trend": monthly_trend,
@@ -380,7 +384,7 @@ def get_report_summary(start_date: str, end_date: str, current_user: models.User
     approval_rate = round((len(approved) / decided) * 100, 1) if decided else None
 
     payments = [p for p in db.query(models.Payment).filter(models.Payment.status == "completed").all() if _in_range(p.created_at, start, end)]
-    sponsors = [s for s in db.query(models.Sponsor).all() if _in_range(s.created_at, start, end)]
+    foster_applications = [a for a in adoptions if a.application_type == "foster"]
 
     by_center = []
     for c in db.query(models.Center).all():
@@ -401,12 +405,11 @@ def get_report_summary(start_date: str, end_date: str, current_user: models.User
             "rejected": len(rejected),
             "pending": len(pending),
             "approval_rate": approval_rate,
+            "foster_applications": len(foster_applications),
         },
         "revenue": {
             "adoption_fees_kes": sum(p.amount for p in payments),
             "payment_count": len(payments),
-            "sponsorship_usd": round(sum(s.amount for s in sponsors) / 100, 2),
-            "sponsor_count": len(sponsors),
         },
         "by_center": by_center,
         "audit_summary": audit_summary,
@@ -423,22 +426,17 @@ def export_report_csv(start_date: str, end_date: str, dataset: str, current_user
     writer = csv.writer(output)
 
     if dataset == "applications":
-        writer.writerow(["ID", "Adopter", "Animal", "Status", "Submitted"])
+        writer.writerow(["ID", "Adopter", "Animal", "Type", "Status", "Submitted"])
         for a in db.query(models.Adoption).all():
             if _in_range(a.created_at, start, end):
-                writer.writerow([a.id, a.user.username, a.animal.name, a.status, a.created_at.isoformat()])
+                writer.writerow([a.id, a.user.username, a.animal.name, a.application_type, a.status, a.created_at.isoformat()])
     elif dataset == "payments":
         writer.writerow(["ID", "Adopter", "Amount (KES)", "Status", "M-Pesa Receipt", "Date"])
         for p in db.query(models.Payment).filter(models.Payment.status == "completed").all():
             if _in_range(p.created_at, start, end):
                 writer.writerow([p.id, p.user.username, p.amount, p.status, p.mpesa_receipt or "", p.created_at.isoformat()])
-    elif dataset == "sponsorships":
-        writer.writerow(["ID", "Sponsor", "Animal", "Amount (USD/mo)", "Date"])
-        for s in db.query(models.Sponsor).all():
-            if _in_range(s.created_at, start, end):
-                writer.writerow([s.id, s.user.username, s.animal.name, round(s.amount / 100, 2), s.created_at.isoformat()])
     else:
-        raise HTTPException(status_code=400, detail="dataset must be one of: applications, payments, sponsorships")
+        raise HTTPException(status_code=400, detail="dataset must be one of: applications, payments")
 
     filename = f"rescuemepets_{dataset}_{start_date}_to_{end_date}.csv"
     return StreamingResponse(
@@ -508,10 +506,12 @@ def adopt(adoption: schemas.AdoptionCreate, current_user: models.User = Depends(
     ).first()
     if existing:
         raise HTTPException(status_code=400, detail="You already have a pending application for this animal")
+    application_type = adoption.application_type if adoption.application_type in ("adopt", "foster") else "adopt"
     db_adoption = models.Adoption(
         user_id=current_user.id,
         animal_id=adoption.animal_id,
         message=adoption.message,
+        application_type=application_type,
         read=False
     )
     db.add(db_adoption)
@@ -532,6 +532,8 @@ def get_my_applications(current_user: models.User = Depends(auth.get_current_use
         "animal_species": a.animal.species,
         "message": a.message,
         "status": a.status,
+        "application_type": a.application_type,
+        "foster_finalized_at": a.foster_finalized_at.isoformat() if a.foster_finalized_at else None,
         "read": a.read if a.read is not None else True,
         "created_at": a.created_at.isoformat()
     } for a in adoptions]
@@ -629,7 +631,7 @@ def get_waitlist(animal_id: int, db: Session = Depends(get_db), current_user: mo
 
 @app.get("/profile")
 def get_profile(current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
-    return {"id": current_user.id, "username": current_user.username, "email": current_user.email, "avatar": current_user.avatar or "", "wallet_balance": current_user.wallet_balance or 0}
+    return {"id": current_user.id, "username": current_user.username, "email": current_user.email, "avatar": current_user.avatar or ""}
 
 @app.patch("/profile")
 def update_profile(body: schemas.ProfileUpdate, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
@@ -646,40 +648,6 @@ def update_profile(body: schemas.ProfileUpdate, current_user: models.User = Depe
         user.avatar = body.avatar
     db.commit()
     return {"message": "Profile updated", "username": user.username, "email": user.email, "avatar": user.avatar}
-
-@app.post("/wallet/topup")
-def topup_wallet(body: schemas.WalletTopUp, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
-    current_user.wallet_balance = (current_user.wallet_balance or 0) + body.amount
-    db.commit()
-    return {"wallet_balance": current_user.wallet_balance}
-
-@app.post("/sponsor")
-def sponsor_animal(req: schemas.SponsorRequest, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
-    if (current_user.wallet_balance or 0) < req.amount:
-        raise HTTPException(status_code=400, detail="Insufficient wallet balance")
-    existing = db.query(models.Sponsor).filter(
-        models.Sponsor.user_id == current_user.id, models.Sponsor.animal_id == req.animal_id
-    ).first()
-    if existing:
-        existing.amount = req.amount
-    else:
-        db.add(models.Sponsor(user_id=current_user.id, animal_id=req.animal_id, amount=req.amount))
-    current_user.wallet_balance -= req.amount
-    db.commit()
-    total = sum(s.amount for s in db.query(models.Sponsor).filter(models.Sponsor.animal_id == req.animal_id).all())
-    return {"message": "Sponsorship confirmed", "wallet_balance": current_user.wallet_balance, "total_sponsored": total}
-
-@app.get("/sponsor/{animal_id}")
-def get_sponsors(animal_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user_optional)):
-    sponsors = db.query(models.Sponsor).filter(models.Sponsor.animal_id == animal_id).all()
-    total = sum(s.amount for s in sponsors)
-    user_amount = next((s.amount for s in sponsors if current_user and s.user_id == current_user.id), 0)
-    return {"total": total, "count": len(sponsors), "user_amount": user_amount, "goal": 5000}
-
-@app.get("/my-sponsorships")
-def get_my_sponsorships(current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
-    sponsors = db.query(models.Sponsor).filter(models.Sponsor.user_id == current_user.id).all()
-    return [{"id": s.id, "animal_id": s.animal_id, "animal_name": s.animal.name, "animal_image": s.animal.image, "animal_species": s.animal.species, "amount": s.amount, "created_at": s.created_at.isoformat()} for s in sponsors]
 
 @app.get("/stats")
 def get_stats(db: Session = Depends(get_db)):
@@ -1363,6 +1331,57 @@ def get_checkins(current_user: models.User = Depends(auth.get_current_user), db:
         "animal_name": c.adoption.animal.name if c.adoption else None,
         "created_at": c.created_at.isoformat()
     } for c in checkins]
+
+# ─── FOSTER-TO-ADOPT JOURNAL ──────────────────────────────────────────────────
+
+@app.get("/adoptions/{adoption_id}/journal")
+def get_foster_journal(adoption_id: int, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    adoption = db.query(models.Adoption).filter(models.Adoption.id == adoption_id).first()
+    if not adoption:
+        raise HTTPException(status_code=404, detail="Application not found")
+    if adoption.user_id != current_user.id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="This application doesn't belong to you")
+    entries = db.query(models.FosterJournalEntry).filter(
+        models.FosterJournalEntry.adoption_id == adoption_id
+    ).order_by(models.FosterJournalEntry.created_at.desc()).all()
+    return [{
+        "id": e.id,
+        "note": e.note,
+        "photo_url": e.photo_url,
+        "created_at": e.created_at.isoformat(),
+    } for e in entries]
+
+@app.post("/adoptions/{adoption_id}/journal")
+def add_foster_journal_entry(adoption_id: int, body: schemas.FosterJournalEntryCreate, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    adoption = db.query(models.Adoption).filter(models.Adoption.id == adoption_id).first()
+    if not adoption or adoption.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="This application doesn't belong to you")
+    if adoption.application_type != "foster":
+        raise HTTPException(status_code=400, detail="This application isn't a foster-to-adopt arrangement")
+    if adoption.status != "approved":
+        raise HTTPException(status_code=400, detail="The foster application must be approved before adding journal entries")
+    entry = models.FosterJournalEntry(adoption_id=adoption_id, user_id=current_user.id, note=body.note, photo_url=body.photo_url)
+    db.add(entry)
+    db.commit()
+    db.refresh(entry)
+    return {"id": entry.id, "message": "Journal entry added"}
+
+@app.post("/adoptions/{adoption_id}/finalize-foster")
+def finalize_foster(adoption_id: int, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    from datetime import datetime, timezone
+    adoption = db.query(models.Adoption).filter(models.Adoption.id == adoption_id).first()
+    if not adoption or adoption.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="This application doesn't belong to you")
+    if adoption.application_type != "foster":
+        raise HTTPException(status_code=400, detail="This application isn't a foster-to-adopt arrangement")
+    if adoption.status != "approved":
+        raise HTTPException(status_code=400, detail="The foster application must be approved first")
+    if adoption.foster_finalized_at:
+        raise HTTPException(status_code=400, detail="This foster has already been finalized into a full adoption")
+    adoption.foster_finalized_at = datetime.now(timezone.utc)
+    audit(db, current_user.id, "finalized_foster", "adoption", adoption_id, f"animal={adoption.animal.name}")
+    db.commit()
+    return {"message": "Foster arrangement finalized into a full adoption! 🎉"}
 
 # ─── PUSH NOTIFICATIONS ──────────────────────────────────────────────────────
 

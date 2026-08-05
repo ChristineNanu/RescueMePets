@@ -10,6 +10,7 @@ function AdoptionForm() {
   const [step, setStep]             = useState(0);
   const [animals, setAnimals]       = useState([]);
   const [animalId, setAnimalId]     = useState('');
+  const [applicationType, setApplicationType] = useState('adopt');
   const [message, setMessage]       = useState('');
   const [homeType, setHomeType]     = useState('');
   const [hasChildren, setHasChildren] = useState('');
@@ -41,10 +42,15 @@ function AdoptionForm() {
       const fullMessage = `${message}\n\nHome type: ${homeType} | Children: ${hasChildren} | Other pets: ${hasPets}`;
       const res = await apiFetch(`${API_BASE_URL}/adopt`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: parseInt(userId), animal_id: parseInt(animalId), message: fullMessage }),
+        body: JSON.stringify({ animal_id: parseInt(animalId), message: fullMessage, application_type: applicationType }),
       });
       const data = await res.json();
-      if (res.ok) { setAdoptionId(data.adoption_id); setShowPayment(true); }
+      if (res.ok) {
+        setAdoptionId(data.adoption_id);
+        // Foster-to-adopt has no upfront fee — only full adoptions pay via M-Pesa
+        if (applicationType === 'foster') setIsSubmitted(true);
+        else setShowPayment(true);
+      }
       else setError(data.detail || 'Failed to submit');
     } catch { setError('Error submitting. Please try again.'); }
     finally { setIsLoading(false); }
@@ -55,7 +61,9 @@ function AdoptionForm() {
       <div className="bg-white rounded-3xl p-10 max-w-md w-full shadow-card text-center border border-teal-50">
         <div className="w-20 h-20 bg-gradient-to-br from-teal-400 to-teal-600 rounded-full flex items-center justify-center text-4xl mx-auto mb-5 shadow-glow-teal">🎉</div>
         <h2 className="text-2xl font-black text-gray-800 mb-2">Application Submitted!</h2>
-        <p className="text-gray-500 mb-1">Your adoption request for <span className="font-bold text-teal-600">{selectedAnimal?.name}</span> has been received.</p>
+        <p className="text-gray-500 mb-1">
+          Your {applicationType === 'foster' ? 'foster-to-adopt' : 'adoption'} request for <span className="font-bold text-teal-600">{selectedAnimal?.name}</span> has been received.
+        </p>
         <p className="text-gray-400 text-sm mb-5">The rescue center will review and get back to you soon. 🐾</p>
         <div className="bg-teal-50 rounded-xl p-3 mb-6 text-sm text-teal-700">
           💡 Track your application in <strong>My Profile → Applications</strong>
@@ -161,6 +169,24 @@ function AdoptionForm() {
                   <button onClick={() => setStep(0)} className="text-teal-600 text-xs font-semibold bg-transparent border-0 cursor-pointer">Change</button>
                 </div>
               )}
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-gray-600 mb-2">How would you like to bring {selectedAnimal?.name || 'them'} home?</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    ['adopt', '🏠', 'Full Adoption', 'Permanent — pay the adoption fee now'],
+                    ['foster', '🐣', 'Foster-to-Adopt', 'Trial period first, no fee — make it official later'],
+                  ].map(([val, icon, label, sub]) => (
+                    <div key={val} onClick={() => setApplicationType(val)}
+                      className={`p-3 rounded-xl border-2 cursor-pointer transition-all
+                        ${applicationType === val ? 'border-teal-500 bg-teal-50' : 'border-gray-100 hover:border-teal-200'}`}>
+                      <div className="text-xl mb-1">{icon}</div>
+                      <p className="font-bold text-sm text-gray-800">{label}</p>
+                      <p className="text-gray-400 text-xs mt-0.5">{sub}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <h3 className="text-xl font-black text-gray-800 mb-5">Tell us about your home</h3>
 
               {[
@@ -219,7 +245,7 @@ function AdoptionForm() {
                 </div>
               )}
               <div className="bg-gray-50 rounded-2xl p-4 mb-4">
-                {[['Home Type', homeType], ['Has Children', hasChildren], ['Has Other Pets', hasPets]].map(([label, val], i, arr) => (
+                {[['Application Type', applicationType === 'foster' ? '🐣 Foster-to-Adopt' : '🏠 Full Adoption'], ['Home Type', homeType], ['Has Children', hasChildren], ['Has Other Pets', hasPets]].map(([label, val], i, arr) => (
                   <div key={label} className={`flex justify-between py-2.5 ${i < arr.length - 1 ? 'border-b border-gray-200' : ''}`}>
                     <span className="text-gray-500 text-sm">{label}</span>
                     <span className="font-bold text-gray-700 text-sm">{val}</span>
@@ -238,17 +264,27 @@ function AdoptionForm() {
                 <button disabled={isLoading} onClick={handleSubmit}
                   className={`flex-[2] py-3 rounded-xl font-bold text-sm transition-all border-0
                     ${isLoading ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'btn-coral'}`}>
-                  {isLoading ? '⏳ Submitting...' : '🐾 Submit & Pay via M-PESA'}
+                  {isLoading ? '⏳ Submitting...' : applicationType === 'foster' ? '🐣 Submit Foster Application' : '🐾 Submit & Pay via M-PESA'}
                 </button>
               </div>
 
-              <div className="mt-4 flex items-center gap-3 bg-teal-50 border border-teal-200 rounded-xl p-3">
-                <div className="w-10 h-10 bg-teal-600 rounded-lg flex items-center justify-center text-white text-lg flex-shrink-0">💚</div>
-                <div>
-                  <p className="text-teal-800 font-bold text-sm">Pay KES 500 adoption fee via M-PESA</p>
-                  <p className="text-teal-600 text-xs">You'll receive an STK Push prompt on your phone after submitting</p>
+              {applicationType === 'adopt' ? (
+                <div className="mt-4 flex items-center gap-3 bg-teal-50 border border-teal-200 rounded-xl p-3">
+                  <div className="w-10 h-10 bg-teal-600 rounded-lg flex items-center justify-center text-white text-lg flex-shrink-0">💚</div>
+                  <div>
+                    <p className="text-teal-800 font-bold text-sm">Pay KES 500 adoption fee via M-PESA</p>
+                    <p className="text-teal-600 text-xs">You'll receive an STK Push prompt on your phone after submitting</p>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="mt-4 flex items-center gap-3 bg-cream-50 border border-cream-200 rounded-xl p-3">
+                  <div className="w-10 h-10 bg-cream-500 rounded-lg flex items-center justify-center text-white text-lg flex-shrink-0">🐣</div>
+                  <div>
+                    <p className="text-cream-800 font-bold text-sm">No fee for fostering</p>
+                    <p className="text-cream-700 text-xs">Once approved, you can log updates in your Foster Journal and finalize the adoption anytime</p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -11,7 +11,6 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     password = Column(String)
     avatar = Column(String, default="")
-    wallet_balance = Column(Integer, default=0)
     role = Column(String, default="adopter")  # adopter | vet | admin
     deleted_at = Column(DateTime(timezone=True), nullable=True)
 
@@ -73,10 +72,23 @@ class Adoption(Base):
     animal_id = Column(Integer, ForeignKey("animals.id"))
     message = Column(Text)
     status = Column(String, default="pending")
+    application_type = Column(String, default="adopt")  # adopt | foster
+    foster_finalized_at = Column(DateTime(timezone=True), nullable=True)  # set when a foster converts to a full adoption
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     read = Column(Boolean, default=True)   # False = unread notification
     user = relationship("User")
     animal = relationship("Animal")
+
+class FosterJournalEntry(Base):
+    __tablename__ = "foster_journal_entries"
+    id = Column(Integer, primary_key=True, index=True)
+    adoption_id = Column(Integer, ForeignKey("adoptions.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))
+    note = Column(Text)
+    photo_url = Column(String, default="")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    adoption = relationship("Adoption")
+    user = relationship("User")
 
 class Favorite(Base):
     __tablename__ = "favorites"
@@ -118,16 +130,6 @@ class Waitlist(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     animal_id = Column(Integer, ForeignKey("animals.id"))
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    user = relationship("User")
-    animal = relationship("Animal")
-
-class Sponsor(Base):
-    __tablename__ = "sponsors"
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    animal_id = Column(Integer, ForeignKey("animals.id"))
-    amount = Column(Integer) 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     user = relationship("User")
     animal = relationship("Animal")
