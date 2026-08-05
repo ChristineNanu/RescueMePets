@@ -99,6 +99,9 @@ function App() {
     setRole(localStorage.getItem('role') || 'adopter');
   };
 
+  // Single source of truth for push resync — EnableNotificationsBanner and
+  // NotificationSettings used to each call this independently on mount, racing
+  // each other and leaving stale "Off" state in the UI.
   useEffect(() => {
     if (isLoggedIn) syncPushSubscription();
   }, [isLoggedIn]);

@@ -31,6 +31,9 @@ export default function WelcomeGuide({ role, onClose }) {
     onClose();
   };
 
+  // Rendered via portal straight into <body>: Navbar has backdrop-blur (a CSS filter),
+  // and any filtered ancestor creates a new containing block for `fixed` descendants —
+  // without the portal this modal mispositions instead of centering on the viewport.
   return createPortal(
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-in">

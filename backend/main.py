@@ -753,6 +753,8 @@ def check_payment_status(payment_id: int, current_user: models.User = Depends(au
                 payment.mpesa_receipt = payment.mpesa_receipt or result.get("MpesaReceiptNumber")
                 if payment.adoption:
                     payment.adoption.status = "approved"
+                    # Keep animal.status in lockstep with the adoption outcome — otherwise
+                    # the animal stays "available"/"pending" forever after a real payment.
                     if payment.adoption.animal:
                         payment.adoption.animal.status = "adopted"
                 db.commit()
@@ -783,6 +785,8 @@ def test_complete_payment(payment_id: int, current_user: models.User = Depends(a
     payment.mpesa_receipt = "TEST123456"
     if payment.adoption:
         payment.adoption.status = "approved"
+        # Mirror the real /pay/callback behavior so test payments and real
+        # payments leave the animal in the same state.
         if payment.adoption.animal:
             payment.adoption.animal.status = "adopted"
     db.commit()
@@ -815,6 +819,9 @@ async def mpesa_callback(request: Request, db: Session = Depends(get_db)):
             if payment.adoption:
                 payment.adoption.status = "approved"
                 payment.adoption.read = False
+                # This is the real production payment path — if animal.status isn't
+                # flipped here, the animal stays visibly "available"/"pending" and
+                # other users can keep applying/paying for it after it's been adopted.
                 if payment.adoption.animal:
                     payment.adoption.animal.status = "adopted"
             print(f"Callback: payment {payment.id} completed, receipt={receipt}")
