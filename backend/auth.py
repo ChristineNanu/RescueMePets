@@ -1,12 +1,14 @@
 import os
 import secrets
 import hashlib
+import time
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import jwt
 from dotenv import load_dotenv
-from fastapi import Depends, HTTPException, Header
+from fastapi import Depends, HTTPException, Header, Request
 from sqlalchemy.orm import Session
 
 import models
@@ -29,6 +31,23 @@ if not JWT_SECRET:
 
 def _hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
+
+
+# In-memory sliding-window rate limiter. Deliberately simple (no Redis) since this
+# runs as a single server process — resets on restart, which is fine for its purpose
+# (slowing down brute-force login/registration attempts, not perfect abuse tracking).
+_rate_limit_hits: dict[str, list[float]] = defaultdict(list)
+
+
+def rate_limit(request: Request, key_prefix: str, max_attempts: int, window_seconds: int):
+    ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else "unknown")
+    key = f"{key_prefix}:{ip}"
+    now = time.time()
+    hits = _rate_limit_hits[key]
+    hits[:] = [t for t in hits if now - t < window_seconds]
+    if len(hits) >= max_attempts:
+        raise HTTPException(status_code=429, detail="Too many attempts. Please wait a few minutes and try again.")
+    hits.append(now)
 
 
 def create_access_token(user: models.User) -> str:

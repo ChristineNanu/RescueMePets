@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../constants';
+import { apiFetch } from '../api';
 
 const PRODUCTS = [
   {
@@ -10,7 +12,6 @@ const PRODUCTS = [
     tag: 'Best Seller',
     tagColor: 'bg-coral-500',
     description: 'Soft 100% cotton tee with our signature paw print design.',
-    link: 'https://www.redbubble.com',
   },
   {
     id: 2,
@@ -20,7 +21,6 @@ const PRODUCTS = [
     tag: 'New',
     tagColor: 'bg-teal-500',
     description: 'Cozy pullover hoodie — perfect for morning walks with your pet.',
-    link: 'https://www.redbubble.com',
   },
   {
     id: 3,
@@ -30,7 +30,6 @@ const PRODUCTS = [
     tag: null,
     tagColor: '',
     description: '11oz ceramic mug with teal paw print design. Dishwasher safe.',
-    link: 'https://www.redbubble.com',
   },
   {
     id: 4,
@@ -40,7 +39,6 @@ const PRODUCTS = [
     tag: null,
     tagColor: '',
     description: 'Sturdy canvas tote — great for vet visits, groceries, or the beach.',
-    link: 'https://www.redbubble.com',
   },
   {
     id: 5,
@@ -50,7 +48,6 @@ const PRODUCTS = [
     tag: 'Fan Fave',
     tagColor: 'bg-teal-500',
     description: '6 vinyl stickers featuring our animal characters. Waterproof.',
-    link: 'https://www.redbubble.com',
   },
   {
     id: 6,
@@ -60,7 +57,6 @@ const PRODUCTS = [
     tag: null,
     tagColor: '',
     description: 'Slim hard case with teal paw design. Available for most models.',
-    link: 'https://www.redbubble.com',
   },
 ];
 
@@ -72,12 +68,32 @@ const CAUSES = [
 
 export default function Shop() {
   const navigate = useNavigate();
-  const [added, setAdded] = useState(null);
+  const [ordering, setOrdering] = useState(null);
+  const [ordered, setOrdered] = useState(() => new Set());
+  const [error, setError] = useState('');
+  const userId = localStorage.getItem('user_id');
 
-  const handleBuy = (product) => {
-    setAdded(product.id);
-    setTimeout(() => setAdded(null), 2000);
-    window.open(product.link, '_blank', 'noopener,noreferrer');
+  const handleBuy = async (product) => {
+    if (!userId) { navigate('/login'); return; }
+    setOrdering(product.id);
+    setError('');
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/shop/orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_name: product.name, product_price: product.price, quantity: 1 }),
+      });
+      if (res.ok) {
+        setOrdered(prev => new Set(prev).add(product.id));
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setError(data.detail || 'Could not send your order request. Please try again.');
+      }
+    } catch {
+      setError('Connection error. Please try again.');
+    } finally {
+      setOrdering(null);
+    }
   };
 
   return (
@@ -120,9 +136,15 @@ export default function Shop() {
             <h2 className="text-2xl font-black text-gray-800">Shop All Products</h2>
           </div>
           <span className="text-xs text-gray-400 bg-white border border-gray-100 px-3 py-1.5 rounded-full shadow-sm">
-            Fulfilled by Redbubble · Ships worldwide
+            We'll contact you to arrange payment &amp; delivery
           </span>
         </div>
+
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-100 text-red-600 text-sm font-semibold px-4 py-3 rounded-2xl">
+            ⚠️ {error}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {PRODUCTS.map(product => (
@@ -146,11 +168,14 @@ export default function Shop() {
                 <p className="text-gray-400 text-sm mb-4 leading-relaxed">{product.description}</p>
                 <button
                   onClick={() => handleBuy(product)}
+                  disabled={ordering === product.id || ordered.has(product.id)}
                   className={`w-full py-3 rounded-2xl text-sm font-bold transition-all border-0 cursor-pointer
-                    ${added === product.id
-                      ? 'bg-teal-100 text-teal-700'
-                      : 'bg-gradient-to-r from-coral-500 to-coral-600 text-white hover:shadow-lg hover:shadow-coral-200/50 hover:scale-105'}`}>
-                  {added === product.id ? '✅ Opening store...' : '🛒 Buy Now'}
+                    ${ordered.has(product.id)
+                      ? 'bg-teal-100 text-teal-700 cursor-default'
+                      : ordering === product.id
+                        ? 'bg-gray-100 text-gray-400 cursor-wait'
+                        : 'bg-gradient-to-r from-coral-500 to-coral-600 text-white hover:shadow-lg hover:shadow-coral-200/50 hover:scale-105'}`}>
+                  {ordered.has(product.id) ? '✅ Request Sent' : ordering === product.id ? 'Sending...' : '🛒 Buy Now'}
                 </button>
               </div>
             </div>

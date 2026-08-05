@@ -108,7 +108,8 @@ def health_check():
 
 
 @app.post("/register")
-def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
+def register(user: schemas.UserCreate, request: Request, db: Session = Depends(get_db)):
+    auth.rate_limit(request, "register", max_attempts=10, window_seconds=600)
     if db.query(models.User).filter(models.User.username == user.username).first():
         raise HTTPException(status_code=400, detail="Username already registered")
     if db.query(models.User).filter(models.User.email == user.email).first():
@@ -120,7 +121,8 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     return {"message": "User registered successfully"}
 
 @app.post("/register/vet")
-def register_vet(data: schemas.VetRegister, db: Session = Depends(get_db)):
+def register_vet(data: schemas.VetRegister, request: Request, db: Session = Depends(get_db)):
+    auth.rate_limit(request, "register", max_attempts=10, window_seconds=600)
     if db.query(models.User).filter(models.User.username == data.username).first():
         raise HTTPException(status_code=400, detail="Username already registered")
     if db.query(models.User).filter(models.User.email == data.email).first():
@@ -137,7 +139,8 @@ def register_vet(data: schemas.VetRegister, db: Session = Depends(get_db)):
     return {"message": "Vet registered successfully"}
 
 @app.post("/login")
-def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
+def login(user: schemas.UserLogin, request: Request, db: Session = Depends(get_db)):
+    auth.rate_limit(request, "login", max_attempts=8, window_seconds=900)
     db_user = db.query(models.User).filter(models.User.username == user.username).first()
     if not db_user:
         raise HTTPException(status_code=400, detail="Username not found. Please check your username or register.")
@@ -649,6 +652,52 @@ def get_waitlist(animal_id: int, db: Session = Depends(get_db), current_user: mo
             models.Waitlist.user_id == current_user.id
         ).first() is not None
     return {"count": count, "on_waitlist": on_list}
+
+# ─── SHOP ────────────────────────────────────────────────────────────────────
+# No online checkout yet — merch requires manual shipping/fulfillment, so "Buy Now"
+# records an in-app order request that a center/admin follows up on directly,
+# rather than redirecting to an external storefront.
+
+@app.post("/shop/orders")
+def create_merch_order(order: schemas.MerchOrderCreate, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    if order.quantity < 1 or order.quantity > 20:
+        raise HTTPException(status_code=400, detail="Invalid quantity")
+    merch_order = models.MerchOrder(
+        user_id=current_user.id,
+        product_name=order.product_name,
+        product_price=order.product_price,
+        quantity=order.quantity,
+    )
+    db.add(merch_order)
+    db.commit()
+    db.refresh(merch_order)
+    return {"message": "Order request received! We'll reach out to arrange payment and delivery.", "order_id": merch_order.id}
+
+@app.get("/shop/my-orders")
+def get_my_merch_orders(current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    orders = db.query(models.MerchOrder).filter(models.MerchOrder.user_id == current_user.id).order_by(models.MerchOrder.created_at.desc()).all()
+    return [{
+        "id": o.id, "product_name": o.product_name, "product_price": o.product_price,
+        "quantity": o.quantity, "status": o.status, "created_at": o.created_at.isoformat()
+    } for o in orders]
+
+@app.get("/admin/shop-orders")
+def get_all_merch_orders(current_user: models.User = Depends(auth.require_admin), db: Session = Depends(get_db)):
+    orders = db.query(models.MerchOrder).order_by(models.MerchOrder.created_at.desc()).all()
+    return [{
+        "id": o.id, "username": o.user.username, "email": o.user.email,
+        "product_name": o.product_name, "product_price": o.product_price,
+        "quantity": o.quantity, "status": o.status, "created_at": o.created_at.isoformat()
+    } for o in orders]
+
+@app.put("/admin/shop-orders/{order_id}/status")
+def update_merch_order_status(order_id: int, body: schemas.MerchOrderStatusUpdate, current_user: models.User = Depends(auth.require_admin), db: Session = Depends(get_db)):
+    order = db.query(models.MerchOrder).filter(models.MerchOrder.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    order.status = body.status
+    db.commit()
+    return {"message": "Order status updated"}
 
 @app.get("/profile")
 def get_profile(current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):

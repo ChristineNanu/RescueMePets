@@ -242,3 +242,14 @@ class PushSubscription(Base):
     auth       = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     user       = relationship("User")
+
+class MerchOrder(Base):
+    __tablename__ = "merch_orders"
+    id            = Column(Integer, primary_key=True, index=True)
+    user_id       = Column(Integer, ForeignKey("users.id"))
+    product_name  = Column(String)
+    product_price = Column(String)   # display string, e.g. "KES 1,800" — no online checkout yet
+    quantity      = Column(Integer, default=1)
+    status        = Column(String, default="requested")  # requested | contacted | fulfilled | cancelled
+    created_at    = Column(DateTime(timezone=True), server_default=func.now())
+    user          = relationship("User")

@@ -189,3 +189,11 @@ class PushUnsubscribeRequest(BaseModel):
 class FosterJournalEntryCreate(BaseModel):
     note: str
     photo_url: Optional[str] = ""
+
+class MerchOrderCreate(BaseModel):
+    product_name: str
+    product_price: str
+    quantity: int = 1
+
+class MerchOrderStatusUpdate(BaseModel):
+    status: str  # requested | contacted | fulfilled | cancelled

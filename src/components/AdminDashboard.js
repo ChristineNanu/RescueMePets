@@ -13,6 +13,7 @@ export default function AdminDashboard({ onLogout }) {
   const [centers, setCenters] = useState([]);
   const [applications, setApplications] = useState([]);
   const [users, setUsers] = useState([]);
+  const [shopOrders, setShopOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editAnimal, setEditAnimal] = useState(null);
@@ -26,13 +27,14 @@ export default function AdminDashboard({ onLogout }) {
   const load = async () => {
     setLoading(true);
     const id = adminId();
-    const [a, c, apps, u] = await Promise.all([
+    const [a, c, apps, u, orders] = await Promise.all([
       apiFetch(`${API_BASE_URL}/animals`).then(r => r.json()),
       apiFetch(`${API_BASE_URL}/centers`).then(r => r.json()),
       apiFetch(`${API_BASE_URL}/admin/applications?admin_id=${id}`).then(r => r.json()),
       apiFetch(`${API_BASE_URL}/admin/users?admin_id=${id}`).then(r => r.json()),
+      apiFetch(`${API_BASE_URL}/admin/shop-orders`).then(r => r.json()),
     ]);
-    setAnimals(a); setCenters(c); setApplications(apps); setUsers(u);
+    setAnimals(a); setCenters(c); setApplications(apps); setUsers(u); setShopOrders(orders);
     setLoading(false);
   };
 
@@ -75,9 +77,18 @@ export default function AdminDashboard({ onLogout }) {
     load();
   };
 
+  const updateShopOrderStatus = async (orderId, status) => {
+    await apiFetch(`${API_BASE_URL}/admin/shop-orders/${orderId}/status`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    load();
+  };
+
   const TABS = [
     { key: 'animals',      label: '🐾 Animals'      },
     { key: 'applications', label: '📋 Applications' },
+    { key: 'shop',         label: '🛒 Shop Orders'  },
     { key: 'users',        label: '👥 Users'         },
     { key: 'analytics',    label: '📊 Analytics'     },
     { key: 'reports',      label: '📄 Reports'       },
@@ -90,6 +101,10 @@ export default function AdminDashboard({ onLogout }) {
     adopted:   'bg-gray-100 text-gray-500',
     approved:  'bg-green-100 text-green-700',
     rejected:  'bg-red-100 text-red-600',
+    requested: 'bg-yellow-100 text-yellow-700',
+    contacted: 'bg-teal-100 text-teal-700',
+    fulfilled: 'bg-green-100 text-green-700',
+    cancelled: 'bg-red-100 text-red-600',
   }[s] || 'bg-gray-100 text-gray-500');
 
   return (
@@ -189,6 +204,45 @@ export default function AdminDashboard({ onLogout }) {
                     </td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Shop Orders Tab */}
+        {!loading && tab === 'shop' && (
+          <div className="bg-white rounded-2xl shadow-sm border border-teal-50 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-teal-50 text-teal-700">
+                <tr>{['Customer', 'Product', 'Qty', 'Price', 'Status', 'Date', 'Actions'].map(h => (
+                  <th key={h} className="px-4 py-3 text-left font-black text-xs uppercase tracking-wider">{h}</th>
+                ))}</tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {shopOrders.map(o => (
+                  <tr key={o.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="font-semibold text-gray-800">{o.username}</div>
+                      <div className="text-gray-400 text-xs">{o.email}</div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">{o.product_name}</td>
+                    <td className="px-4 py-3 text-gray-600">{o.quantity}</td>
+                    <td className="px-4 py-3 text-gray-600">{o.product_price}</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 rounded-full text-xs font-bold ${statusBadge(o.status)}`}>{o.status}</span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">{new Date(o.created_at).toLocaleDateString()}</td>
+                    <td className="px-4 py-3">
+                      <select value={o.status} onChange={e => updateShopOrderStatus(o.id, e.target.value)}
+                        className="text-xs font-bold border border-gray-200 rounded-lg px-2 py-1.5 bg-white cursor-pointer">
+                        {['requested', 'contacted', 'fulfilled', 'cancelled'].map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+                {shopOrders.length === 0 && (
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">No order requests yet.</td></tr>
+                )}
               </tbody>
             </table>
           </div>
