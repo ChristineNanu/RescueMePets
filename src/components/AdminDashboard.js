@@ -3,6 +3,7 @@ import { API_BASE_URL } from '../constants';
 import { apiFetch } from '../api';
 import SQLInterface from './SQLInterface';
 import AnalyticsDashboard from './AnalyticsDashboard';
+import ComplianceReports from './ComplianceReports';
 
 const adminId = () => parseInt(localStorage.getItem('user_id'));
 
@@ -79,6 +80,7 @@ export default function AdminDashboard({ onLogout }) {
     { key: 'applications', label: '📋 Applications' },
     { key: 'users',        label: '👥 Users'         },
     { key: 'analytics',    label: '📊 Analytics'     },
+    { key: 'reports',      label: '📄 Reports'       },
     { key: 'sql',          label: '🗄️ SQL'           },
   ];
 
@@ -91,9 +93,9 @@ export default function AdminDashboard({ onLogout }) {
   }[s] || 'bg-gray-100 text-gray-500');
 
   return (
-    <div className="min-h-screen page-bg">
+    <div className="min-h-screen page-bg print:bg-white print:min-h-0">
       {/* Header */}
-      <div className="bg-gradient-to-r from-teal-700 to-teal-600 text-white px-6 py-8">
+      <div className="print:hidden bg-gradient-to-r from-teal-700 to-teal-600 text-white px-6 py-8">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-black">Admin Dashboard</h1>
@@ -106,9 +108,9 @@ export default function AdminDashboard({ onLogout }) {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-4 py-6 print:p-0 print:max-w-none">
         {/* Tabs */}
-        <div className="flex gap-1 bg-white rounded-2xl p-1 shadow-sm border border-teal-100 mb-6 w-fit">
+        <div className="print:hidden flex gap-1 bg-white rounded-2xl p-1 shadow-sm border border-teal-100 mb-6 w-fit">
           {TABS.map(({ key, label }) => (
             <button key={key} onClick={() => setTab(key)}
               className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all border-0 cursor-pointer
@@ -222,6 +224,9 @@ export default function AdminDashboard({ onLogout }) {
 
         {/* Analytics Tab */}
         {!loading && tab === 'analytics' && <AnalyticsDashboard />}
+
+        {/* Reports Tab */}
+        {!loading && tab === 'reports' && <ComplianceReports />}
 
         {/* SQL Tab */}
         {tab === 'sql' && <SQLInterface />}

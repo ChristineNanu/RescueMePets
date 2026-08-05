@@ -351,6 +351,102 @@ def get_analytics(current_user: models.User = Depends(auth.require_admin), db: S
         "monthly_trend": monthly_trend,
     }
 
+def _parse_report_range(start_date: str, end_date: str):
+    from datetime import datetime, timezone, timedelta
+    try:
+        start = datetime.strptime(start_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        end = datetime.strptime(end_date, "%Y-%m-%d").replace(tzinfo=timezone.utc) + timedelta(days=1)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format — use YYYY-MM-DD")
+    if start >= end:
+        raise HTTPException(status_code=400, detail="start_date must be before end_date")
+    return start, end
+
+def _in_range(dt, start, end):
+    from datetime import timezone
+    d = dt if dt.tzinfo is not None else dt.replace(tzinfo=timezone.utc)
+    return start <= d < end
+
+@app.get("/admin/reports/summary")
+def get_report_summary(start_date: str, end_date: str, current_user: models.User = Depends(auth.require_admin), db: Session = Depends(get_db)):
+    from datetime import datetime, timezone
+    start, end = _parse_report_range(start_date, end_date)
+
+    adoptions = [a for a in db.query(models.Adoption).all() if _in_range(a.created_at, start, end)]
+    approved = [a for a in adoptions if a.status == "approved"]
+    rejected = [a for a in adoptions if a.status == "rejected"]
+    pending = [a for a in adoptions if a.status == "pending"]
+    decided = len(approved) + len(rejected)
+    approval_rate = round((len(approved) / decided) * 100, 1) if decided else None
+
+    payments = [p for p in db.query(models.Payment).filter(models.Payment.status == "completed").all() if _in_range(p.created_at, start, end)]
+    sponsors = [s for s in db.query(models.Sponsor).all() if _in_range(s.created_at, start, end)]
+
+    by_center = []
+    for c in db.query(models.Center).all():
+        animal_ids = {row[0] for row in db.query(models.Animal.id).filter(models.Animal.center_id == c.id).all()}
+        center_adoptions = [a for a in approved if a.animal_id in animal_ids]
+        by_center.append({"center_id": c.id, "name": c.name, "adoptions": len(center_adoptions)})
+
+    audit_summary = {}
+    for a in db.query(models.AuditLog).all():
+        if _in_range(a.created_at, start, end):
+            audit_summary[a.action] = audit_summary.get(a.action, 0) + 1
+
+    return {
+        "period": {"start": start_date, "end": end_date},
+        "funnel": {
+            "total_applications": len(adoptions),
+            "approved": len(approved),
+            "rejected": len(rejected),
+            "pending": len(pending),
+            "approval_rate": approval_rate,
+        },
+        "revenue": {
+            "adoption_fees_kes": sum(p.amount for p in payments),
+            "payment_count": len(payments),
+            "sponsorship_usd": round(sum(s.amount for s in sponsors) / 100, 2),
+            "sponsor_count": len(sponsors),
+        },
+        "by_center": by_center,
+        "audit_summary": audit_summary,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+@app.get("/admin/reports/export.csv")
+def export_report_csv(start_date: str, end_date: str, dataset: str, current_user: models.User = Depends(auth.require_admin), db: Session = Depends(get_db)):
+    import csv, io
+    from fastapi.responses import StreamingResponse
+
+    start, end = _parse_report_range(start_date, end_date)
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    if dataset == "applications":
+        writer.writerow(["ID", "Adopter", "Animal", "Status", "Submitted"])
+        for a in db.query(models.Adoption).all():
+            if _in_range(a.created_at, start, end):
+                writer.writerow([a.id, a.user.username, a.animal.name, a.status, a.created_at.isoformat()])
+    elif dataset == "payments":
+        writer.writerow(["ID", "Adopter", "Amount (KES)", "Status", "M-Pesa Receipt", "Date"])
+        for p in db.query(models.Payment).filter(models.Payment.status == "completed").all():
+            if _in_range(p.created_at, start, end):
+                writer.writerow([p.id, p.user.username, p.amount, p.status, p.mpesa_receipt or "", p.created_at.isoformat()])
+    elif dataset == "sponsorships":
+        writer.writerow(["ID", "Sponsor", "Animal", "Amount (USD/mo)", "Date"])
+        for s in db.query(models.Sponsor).all():
+            if _in_range(s.created_at, start, end):
+                writer.writerow([s.id, s.user.username, s.animal.name, round(s.amount / 100, 2), s.created_at.isoformat()])
+    else:
+        raise HTTPException(status_code=400, detail="dataset must be one of: applications, payments, sponsorships")
+
+    filename = f"rescuemepets_{dataset}_{start_date}_to_{end_date}.csv"
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
 @app.get("/centers/{center_id}")
 def get_center(center_id: int, db: Session = Depends(get_db)):
     c = db.query(models.Center).filter(models.Center.id == center_id).first()
