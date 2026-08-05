@@ -256,6 +256,13 @@ def update_application_status(adoption_id: int, body: schemas.StatusUpdate, curr
         push.send_push_to_user(db, adoption.user_id,
             f"Your application for {adoption.animal.name} was {verb}",
             "Tap to see the details.", "/my-profile")
+        if body.status == "rejected":
+            waiters = db.query(models.Waitlist).filter(models.Waitlist.animal_id == adoption.animal_id).all()
+            for w in waiters:
+                push.send_push_to_user(db, w.user_id,
+                    f"{adoption.animal.name} is available again!",
+                    "You're on the waitlist — apply now before someone else does.",
+                    f"/adopt?animalId={adoption.animal_id}")
     return {"message": f"Status updated to {body.status}"}
 
 @app.get("/admin/users")
@@ -510,6 +517,18 @@ def adopt(adoption: schemas.AdoptionCreate, current_user: models.User = Depends(
     if existing:
         raise HTTPException(status_code=400, detail="You already have a pending application for this animal")
     application_type = adoption.application_type if adoption.application_type in ("adopt", "foster") else "adopt"
+
+    # Atomic compare-and-swap: only claim the animal if it's still "available" right
+    # now, closing the TOCTOU gap between the check above and this write under
+    # concurrent requests for the same animal.
+    claimed = db.query(models.Animal).filter(
+        models.Animal.id == adoption.animal_id,
+        models.Animal.status == "available"
+    ).update({"status": "pending"})
+    if claimed == 0:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="This animal already has a pending application")
+
     db_adoption = models.Adoption(
         user_id=current_user.id,
         animal_id=adoption.animal_id,
@@ -518,7 +537,6 @@ def adopt(adoption: schemas.AdoptionCreate, current_user: models.User = Depends(
         read=False
     )
     db.add(db_adoption)
-    animal.status = "pending"
     db.commit()
     return {"message": "Adoption request submitted successfully", "adoption_id": db_adoption.id}
 
@@ -752,13 +770,15 @@ def check_payment_status(payment_id: int, current_user: models.User = Depends(au
 
 # TEST ENDPOINT - For local testing without M-PESA callback
 @app.post("/pay/test-complete/{payment_id}")
-def test_complete_payment(payment_id: int, db: Session = Depends(get_db)):
+def test_complete_payment(payment_id: int, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
     """Complete a payment manually for testing. Disabled in production."""
     require_dev_env()
     payment = db.query(models.Payment).filter(models.Payment.id == payment_id).first()
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
-    
+    if payment.user_id != current_user.id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="This payment doesn't belong to you")
+
     payment.status = "completed"
     payment.mpesa_receipt = "TEST123456"
     if payment.adoption:

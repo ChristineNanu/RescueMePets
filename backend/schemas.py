@@ -1,6 +1,5 @@
 from pydantic import BaseModel, field_validator
 from typing import Optional
-from datetime import datetime
 
 class UserCreate(BaseModel):
     username: str
@@ -68,18 +67,6 @@ class AdoptionCreate(BaseModel):
     animal_id: int
     message: str
     application_type: Optional[str] = "adopt"  # adopt | foster
-
-class AdoptionOut(BaseModel):
-    id: int
-    animal_id: int
-    message: str
-    status: str
-    created_at: datetime
-    animal_name: Optional[str]
-    animal_image: Optional[str]
-    animal_species: Optional[str]
-    class Config:
-        from_attributes = True
 
 class FavoriteRequest(BaseModel):
     animal_id: int
