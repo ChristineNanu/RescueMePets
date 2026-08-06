@@ -1,5 +1,5 @@
 from pydantic import BaseModel, field_validator
-from typing import Optional
+from typing import Optional, List
 
 class UserCreate(BaseModel):
     username: str
@@ -194,6 +194,10 @@ class MerchOrderCreate(BaseModel):
     product_name: str
     product_price: str
     quantity: int = 1
+    variant: Optional[str] = None
+
+class MerchOrderBulkCreate(BaseModel):
+    items: List[MerchOrderCreate]
 
 class MerchOrderStatusUpdate(BaseModel):
     status: str  # requested | contacted | fulfilled | cancelled

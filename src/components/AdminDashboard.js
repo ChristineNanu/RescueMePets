@@ -214,7 +214,7 @@ export default function AdminDashboard({ onLogout }) {
           <div className="bg-white rounded-2xl shadow-sm border border-teal-50 overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-teal-50 text-teal-700">
-                <tr>{['Customer', 'Product', 'Qty', 'Price', 'Status', 'Date', 'Actions'].map(h => (
+                <tr>{['Customer', 'Product', 'Variant', 'Qty', 'Price', 'Status', 'Date', 'Actions'].map(h => (
                   <th key={h} className="px-4 py-3 text-left font-black text-xs uppercase tracking-wider">{h}</th>
                 ))}</tr>
               </thead>
@@ -226,6 +226,7 @@ export default function AdminDashboard({ onLogout }) {
                       <div className="text-gray-400 text-xs">{o.email}</div>
                     </td>
                     <td className="px-4 py-3 text-gray-600">{o.product_name}</td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">{o.variant || '—'}</td>
                     <td className="px-4 py-3 text-gray-600">{o.quantity}</td>
                     <td className="px-4 py-3 text-gray-600">{o.product_price}</td>
                     <td className="px-4 py-3">
@@ -241,7 +242,7 @@ export default function AdminDashboard({ onLogout }) {
                   </tr>
                 ))}
                 {shopOrders.length === 0 && (
-                  <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">No order requests yet.</td></tr>
+                  <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">No order requests yet.</td></tr>
                 )}
               </tbody>
             </table>

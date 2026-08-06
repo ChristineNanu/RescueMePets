@@ -249,6 +249,7 @@ class MerchOrder(Base):
     user_id       = Column(Integer, ForeignKey("users.id"))
     product_name  = Column(String)
     product_price = Column(String)   # display string, e.g. "KES 1,800" — no online checkout yet
+    variant       = Column(String, nullable=True)  # e.g. "Size: M, Color: Teal"
     quantity      = Column(Integer, default=1)
     status        = Column(String, default="requested")  # requested | contacted | fulfilled | cancelled
     created_at    = Column(DateTime(timezone=True), server_default=func.now())

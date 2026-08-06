@@ -658,14 +658,18 @@ def get_waitlist(animal_id: int, db: Session = Depends(get_db), current_user: mo
 # records an in-app order request that a center/admin follows up on directly,
 # rather than redirecting to an external storefront.
 
+def _validate_merch_item(item: schemas.MerchOrderCreate):
+    if item.quantity < 1 or item.quantity > 20:
+        raise HTTPException(status_code=400, detail=f"Invalid quantity for {item.product_name}")
+
 @app.post("/shop/orders")
 def create_merch_order(order: schemas.MerchOrderCreate, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
-    if order.quantity < 1 or order.quantity > 20:
-        raise HTTPException(status_code=400, detail="Invalid quantity")
+    _validate_merch_item(order)
     merch_order = models.MerchOrder(
         user_id=current_user.id,
         product_name=order.product_name,
         product_price=order.product_price,
+        variant=order.variant,
         quantity=order.quantity,
     )
     db.add(merch_order)
@@ -673,12 +677,37 @@ def create_merch_order(order: schemas.MerchOrderCreate, current_user: models.Use
     db.refresh(merch_order)
     return {"message": "Order request received! We'll reach out to arrange payment and delivery.", "order_id": merch_order.id}
 
+@app.post("/shop/orders/bulk")
+def create_merch_orders_bulk(payload: schemas.MerchOrderBulkCreate, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    if not payload.items:
+        raise HTTPException(status_code=400, detail="Cart is empty")
+    if len(payload.items) > 50:
+        raise HTTPException(status_code=400, detail="Too many items in one order")
+    for item in payload.items:
+        _validate_merch_item(item)
+    created = []
+    for item in payload.items:
+        merch_order = models.MerchOrder(
+            user_id=current_user.id,
+            product_name=item.product_name,
+            product_price=item.product_price,
+            variant=item.variant,
+            quantity=item.quantity,
+        )
+        db.add(merch_order)
+        created.append(merch_order)
+    db.commit()
+    return {
+        "message": f"Order request received for {len(created)} item(s)! We'll reach out to arrange payment and delivery.",
+        "order_ids": [o.id for o in created],
+    }
+
 @app.get("/shop/my-orders")
 def get_my_merch_orders(current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
     orders = db.query(models.MerchOrder).filter(models.MerchOrder.user_id == current_user.id).order_by(models.MerchOrder.created_at.desc()).all()
     return [{
         "id": o.id, "product_name": o.product_name, "product_price": o.product_price,
-        "quantity": o.quantity, "status": o.status, "created_at": o.created_at.isoformat()
+        "variant": o.variant, "quantity": o.quantity, "status": o.status, "created_at": o.created_at.isoformat()
     } for o in orders]
 
 @app.get("/admin/shop-orders")
@@ -687,7 +716,7 @@ def get_all_merch_orders(current_user: models.User = Depends(auth.require_admin)
     return [{
         "id": o.id, "username": o.user.username, "email": o.user.email,
         "product_name": o.product_name, "product_price": o.product_price,
-        "quantity": o.quantity, "status": o.status, "created_at": o.created_at.isoformat()
+        "variant": o.variant, "quantity": o.quantity, "status": o.status, "created_at": o.created_at.isoformat()
     } for o in orders]
 
 @app.put("/admin/shop-orders/{order_id}/status")
