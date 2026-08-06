@@ -443,11 +443,6 @@ export default function Shop() {
                 <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm rounded-full px-2.5 py-1">
                   <span className="text-xs font-black text-gray-700">{product.price}</span>
                 </div>
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center">
-                  <span className="opacity-0 group-hover:opacity-100 transition-all bg-white/95 text-gray-800 text-xs font-black px-4 py-2 rounded-full shadow-lg -translate-y-1 group-hover:translate-y-0">
-                    👁️ Quick View
-                  </span>
-                </div>
               </div>
               <div className="p-5">
                 <h3 className="font-black text-gray-800 text-base mb-1">{product.name}</h3>
