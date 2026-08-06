@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../constants';
 import { apiFetch } from '../api';
+import { logger } from '../utils/logger';
 
 function MpesaPayment({ adoptionId, animalName, onSuccess, onCancel }) {
   const [phone, setPhone] = useState('');
@@ -53,7 +54,7 @@ function MpesaPayment({ adoptionId, animalName, onSuccess, onCancel }) {
       try {
         const res = await apiFetch(`${API_BASE_URL}/pay/status/${pid}`);
         const data = await res.json();
-        console.debug('PAYMENT POLL', pid, data);
+        logger.debug('PAYMENT POLL', pid, data);
         if (data.status === 'completed') {
           clearInterval(pollRef.current);
           clearInterval(countRef.current);

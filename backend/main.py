@@ -852,7 +852,7 @@ def check_payment_status(payment_id: int, current_user: models.User = Depends(au
         try:
             result = query_stk_status(payment.checkout_request_id)
             result_code = str(result.get("ResultCode", ""))
-            print(f"STK Query result for payment {payment_id}: {result}")
+            print(f"STK query for payment {payment_id}: result_code={result_code}")
             if result_code == "0":
                 payment.status = "completed"
                 payment.mpesa_receipt = payment.mpesa_receipt or result.get("MpesaReceiptNumber")
@@ -901,7 +901,6 @@ def test_complete_payment(payment_id: int, current_user: models.User = Depends(a
 @app.post("/pay/callback")
 async def mpesa_callback(request: Request, db: Session = Depends(get_db)):
     body = await request.json()
-    print(f"M-PESA CALLBACK RECEIVED: {body}")
     try:
         stk_callback = body["Body"]["stkCallback"]
         checkout_request_id = stk_callback["CheckoutRequestID"]
@@ -994,14 +993,11 @@ async def b2c_callback(request: Request, db: Session = Depends(get_db)):
         result_code = result.get("ResultCode")
         transaction_id = result.get("TransactionID")
         amount = None
-        phone = None
         items = result.get("ResultParameters", {}).get("ResultParameter", [])
         for item in items:
             if item.get("Key") == "TransactionAmount":
                 amount = item.get("Value")
-            if item.get("Key") == "ReceiverPartyPublicName":
-                phone = item.get("Value")
-        print(f"B2C Callback: code={result_code}, txn={transaction_id}, amount={amount}, phone={phone}")
+        print(f"B2C Callback: code={result_code}, txn={transaction_id}, amount={amount}")
     except Exception:
         traceback.print_exc()
     return {"ResultCode": 0, "ResultDesc": "Accepted"}

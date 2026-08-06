@@ -24,6 +24,7 @@ Hardened over the course of this project's development — worth calling out exp
 - **Raw SQL interface disabled in production** (`ENV=production`) — only usable in local development
 - **Ownership checks** on every resource-scoped endpoint (you can't read or modify another user's application, payment, ticket, or foster journal by guessing an ID)
 - **WebSocket authentication** — real-time channels verify the connecting user is an actual participant before accepting the connection
+- **Rate limiting** on `/login` and `/register[/vet]` — an in-memory sliding-window limiter (per IP) blocks brute-force credential attempts with a `429` after 8 login attempts / 15 min or 10 registrations / 10 min
 - Secrets (`.env`, `database.db`) are git-ignored, not committed
 
 ---
@@ -69,6 +70,8 @@ A short, dismissible onboarding tour shown automatically the first time a new ad
 ### 📊 Dashboard
 The home screen for logged-in adopters. Features:
 - A teal hero banner with a personalized greeting and animated animal count
+- A **Your Favorites** strip — real thumbnails of the animals you've saved, with an inline prompt to start favoriting if you haven't yet
+- **Quiz-match personalization** — if you've taken the pet matching quiz, "Available Now" becomes "Matched For You" (with a retake-quiz link), showing your actual quiz results instead of just the newest animals
 - Stat cards (total animals, available, adoption rate, rescue centers) with a `useCountUp` animation hook
 - An animated teal progress bar showing the adoption success rate
 - Quick action buttons and rotating adoption tips
@@ -81,7 +84,7 @@ Browse all animals with advanced filtering by species (Dog, Cat, Rabbit, Bird), 
 - A heart/favorite toggle
 - A status badge (Available / Pending / Adopted)
 
-Clicking a card opens a detailed modal with health badges, personality traits, a **medical history timeline** (vaccinations, treatments, checkups logged by vets), a foster-to-adopt callout, and a coral "Apply to Adopt" button.
+Clicking a card opens a detailed modal with a **multi-photo gallery** (thumbnail strip, prev/next arrows, photo counter — gracefully collapses to a single hero image for animals with no extra photos), health badges, personality traits, a **medical history timeline** (vaccinations, treatments, checkups logged by vets), a foster-to-adopt callout, and a coral "Apply to Adopt" button.
 
 ### 🩺 Medical Records
 Vets can log medical records for any animal at their center — vaccinations, treatments, checkups, medications, and weight entries — from the Vet Portal's Center Animals tab. Adopters see the resulting timeline (with the logging vet's name) directly on the animal's profile, before they apply — real clinical history instead of static yes/no badges.
@@ -101,6 +104,13 @@ Full Safaricom Daraja API integration:
 - Frontend polls payment status every 5 seconds (up to 120 seconds) with a countdown timer
 - Safaricom confirms payment via a `/pay/callback` webhook
 - On success, the adoption application is automatically approved and an M-Pesa receipt number is displayed
+
+### 🛍️ Shop
+A merch shop (`/shop`) with a real product-preview-and-cart flow, not a redirect to an external storefront:
+- Clicking a product opens a preview modal with size/color selection (color choice is reflected live on the product photo via a CSS color-blend overlay) and a quantity stepper
+- A persistent cart drawer (badge shows item count, persisted in `localStorage`) — add multiple products/variants, adjust quantities, see a running subtotal
+- Checkout sends the whole cart as one **order request** — since there's no shipping/inventory system yet, this isn't a real payment; it saves the order server-side and a center/admin follows up to arrange M-Pesa payment and delivery manually, the same way the pre-existing Waitlist feature works
+- Admins see every request (with the exact size/color/quantity picked) in a dedicated **Shop Orders** tab in the Admin Dashboard, and can move each through `requested → contacted → fulfilled/cancelled`
 
 ### 📋 My Applications
 A dedicated page (`/my-profile`) showing all of the user's adoption/foster applications with status, application dates, and unread notification indicators. Includes:
@@ -213,6 +223,8 @@ RescueMePets/
 │   │   └── Navbar.js               # Top navigation bar
 │   ├── contexts/
 │   │   └── AnimalContext.js        # Global animal state
+│   ├── utils/
+│   │   └── logger.js               # console wrapper, gated to development builds only
 │   ├── api.js                      # Authenticated fetch wrapper (token attach + refresh)
 │   ├── push.js                     # Push subscribe/unsubscribe helpers
 │   ├── App.js                      # Root component and role-based routing
@@ -305,6 +317,16 @@ Only the columns most relevant to understanding the data model are listed; see `
 | checkout_request_id | String | M-Pesa reference |
 | mpesa_receipt | String | Receipt number on success |
 
+### MerchOrders
+| Column | Type | Notes |
+|---|---|---|
+| id | Integer | Primary Key |
+| user_id | Integer | Foreign Key → Users |
+| product_name, product_price | String | Display strings — no online checkout yet |
+| variant | String | e.g. `"Size: M, Color: Teal"`, nullable |
+| quantity | Integer | |
+| status | String | requested / contacted / fulfilled / cancelled |
+
 ### SupportTickets / TicketMessages
 Support tickets link an adoption to a vet; ticket messages are the chat log between adopter and vet (delivered live over WebSocket). See `resolution_note`, `vet_read`, `is_read`.
 
@@ -341,6 +363,16 @@ All endpoints requiring auth expect `Authorization: Bearer <access_token>`. WebS
 | GET | `/vets` | List vets (optionally by center) |
 | POST | `/vets/{id}/message` | Public "ask a vet" contact form |
 | GET | `/stats` | Platform-wide stats |
+| GET | `/landing/animals`, `/landing/stories` | No-auth previews (real animals/rescue stories) for the logged-out landing page |
+
+### Shop
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/shop/orders` | Submit a single order request |
+| POST | `/shop/orders/bulk` | Submit an entire cart as one order request |
+| GET | `/shop/my-orders` | Current user's order requests |
+| GET | `/admin/shop-orders` | All order requests (admin) |
+| PUT | `/admin/shop-orders/{id}/status` | Update an order's status (admin) |
 
 ### Applications & Foster-to-Adopt
 | Method | Endpoint | Description |
@@ -526,7 +558,7 @@ Actively developed against a phased roadmap. Status as of this writing:
 - ✅ **Phase 1 — Foundation hardening**: Postgres-ready, bcrypt, audit log, soft deletes, SQL interface gated to dev-only, full JWT auth
 - ✅ **Phase 2 — Real-time & engagement**: WebSocket messaging/notifications, medical records module, Web Push notifications
 - 🚧 **Phase 3 — Business differentiators**: Analytics dashboard ✅, compliance/grant reports ✅ · multi-tenancy, finer-grained roles (center-manager), and WhatsApp Business API integration still open
-- 🚧 **Phase 4 — Growth features**: Sponsor-an-animal and waitlists (pre-existing) ✅, foster-to-adopt ✅ · shareable adoption certificates still open
+- 🚧 **Phase 4 — Growth features**: Waitlists ✅, foster-to-adopt ✅ (replaced the earlier sponsor-an-animal feature), merch shop with cart & checkout ✅ · shareable adoption certificates still open
 - ⬜ **Phase 5 — Polish & trust signals**: automated tests, CI/CD, error monitoring, staging environment — not yet started
 
 ---
