@@ -3,12 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../constants';
 import { apiFetch } from '../api';
 
-const PREVIEW = [
-  { name: 'Buddy',    breed: 'Golden Retriever', img: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=600&q=80',    tag: 'Dog' },
-  { name: 'Whiskers', breed: 'Siamese Cat',       img: 'https://images.unsplash.com/photo-1555685812-4b943f1cb0eb?w=600&q=80',    tag: 'Cat' },
-  { name: 'Luna',     breed: 'Siberian Husky',    img: 'https://images.unsplash.com/photo-1605568427561-40dd23c2acea?w=600&q=80', tag: 'Dog' },
-];
-
 const STEPS = [
   { n: '01', icon: '🔍', title: 'Browse & Filter',  desc: 'Search pets by species, breed, age, and personality to find your perfect match.' },
   { n: '02', icon: '💛', title: 'Save Favourites',  desc: 'Heart the animals you love and build your shortlist of potential companions.' },
@@ -16,18 +10,19 @@ const STEPS = [
   { n: '04', icon: '🏡', title: 'Welcome Home',     desc: 'Get approved, pay the adoption fee, and bring your new best friend home.' },
 ];
 
-const TESTIMONIALS = [
-  { name: 'Sarah M.',  role: 'Dog Mom',     avatar: '👩',   text: 'Found my perfect dog Biscuit through RescueMePets. The process was so smooth and the team was incredibly helpful!' },
-  { name: 'James K.',  role: 'Cat Dad',     avatar: '👨',   text: "Adopted two cats last year. They've completely changed our home for the better. Couldn't be happier!" },
-  { name: 'Priya L.',  role: 'Rabbit Mom',  avatar: '👩🦱', text: 'The adoption form was simple and the center responded within a day. My rabbit Coco is the best thing ever.' },
-];
+const FALLBACK_IMG = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=600&q=80';
 
 export default function LandingPage() {
   const navigate = useNavigate();
   const [stats, setStats] = useState({ total_animals: 21, available: 19, adopted: 1, centers: 4 });
+  const [previewAnimals, setPreviewAnimals] = useState([]);
+  const [stories, setStories] = useState([]);
+  const [storiesLoading, setStoriesLoading] = useState(true);
 
   useEffect(() => {
     apiFetch(`${API_BASE_URL}/stats`).then(r => r.json()).then(setStats).catch(() => {});
+    apiFetch(`${API_BASE_URL}/landing/animals`).then(r => r.json()).then(d => setPreviewAnimals(d.slice(0, 3))).catch(() => {});
+    apiFetch(`${API_BASE_URL}/landing/stories`).then(r => r.json()).then(d => setStories(d.slice(0, 3))).catch(() => {}).finally(() => setStoriesLoading(false));
   }, []);
 
   return (
@@ -169,41 +164,50 @@ export default function LandingPage() {
               View All Animals →
             </button>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-            {PREVIEW.map((a, i) => (
-              <div key={i}
-                className="group rounded-3xl overflow-hidden shadow-card hover:shadow-card-hover
-                  hover:-translate-y-3 transition-all duration-400 cursor-pointer animate-fade-up border border-gray-50"
-                style={{ animationDelay: `${i * 100}ms` }}
-                onClick={() => navigate('/register')}>
-                <div className="relative h-72 overflow-hidden">
-                  <img src={a.img} alt={a.name}
-                    className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-600"
-                    style={{ transition: 'transform 0.6s ease' }} />
-                  <div className="absolute inset-0 bg-gradient-to-t from-gray-900/70 via-gray-900/10 to-transparent" />
-                  <span className="absolute top-4 left-4 bg-white text-teal-700 text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
-                    {a.tag}
-                  </span>
-                  <span className="absolute top-4 right-4 flex items-center gap-1.5 bg-white/95 text-emerald-600 text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
-                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> Available
-                  </span>
-                  <div className="absolute bottom-4 left-4 right-4">
-                    <p className="font-black text-white text-2xl">{a.name}</p>
-                    <p className="text-white/70 text-sm">{a.breed}</p>
+          {previewAnimals.length === 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+              {[0, 1, 2].map(i => (
+                <div key={i} className="rounded-3xl h-72 skeleton" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+              {previewAnimals.map((a, i) => (
+                <div key={a.id}
+                  className="group rounded-3xl overflow-hidden shadow-card hover:shadow-card-hover
+                    hover:-translate-y-3 transition-all duration-400 cursor-pointer animate-fade-up border border-gray-50"
+                  style={{ animationDelay: `${i * 100}ms` }}
+                  onClick={() => navigate('/register')}>
+                  <div className="relative h-72 overflow-hidden">
+                    <img src={a.image} alt={a.name}
+                      className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-600"
+                      style={{ transition: 'transform 0.6s ease' }}
+                      onError={e => e.target.src = FALLBACK_IMG} />
+                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900/70 via-gray-900/10 to-transparent" />
+                    <span className="absolute top-4 left-4 bg-white text-teal-700 text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
+                      {a.species}
+                    </span>
+                    <span className="absolute top-4 right-4 flex items-center gap-1.5 bg-white/95 text-emerald-600 text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
+                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> Available
+                    </span>
+                    <div className="absolute bottom-4 left-4 right-4">
+                      <p className="font-black text-white text-2xl">{a.name}</p>
+                      <p className="text-white/70 text-sm">{a.breed} · {a.age} {a.age === 1 ? 'yr' : 'yrs'}</p>
+                    </div>
+                  </div>
+                  <div className="p-5 bg-white flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-teal-50 flex items-center justify-center text-base">🐾</div>
+                      <span className="text-gray-600 text-sm font-medium">Ready to adopt</span>
+                    </div>
+                    <span className="text-teal-600 text-sm font-black group-hover:translate-x-1 transition-transform inline-block">
+                      Adopt Me →
+                    </span>
                   </div>
                 </div>
-                <div className="p-5 bg-white flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-teal-50 flex items-center justify-center text-base">🐾</div>
-                    <span className="text-gray-600 text-sm font-medium">Ready to adopt</span>
-                  </div>
-                  <span className="text-teal-600 text-sm font-black group-hover:translate-x-1 transition-transform inline-block">
-                    Adopt Me →
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -215,26 +219,33 @@ export default function LandingPage() {
             <h2 className="text-5xl font-black text-gray-900 mb-4">Stories of Love</h2>
             <p className="text-gray-500 text-lg">Real people, real connections</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-7">
-            {TESTIMONIALS.map((t, i) => (
-              <div key={i}
-                className="bg-white rounded-3xl p-8 shadow-card hover:shadow-card-hover
-                  hover:-translate-y-2 transition-all duration-300 animate-fade-up border border-teal-50"
-                style={{ animationDelay: `${i * 80}ms` }}>
-                <div className="flex gap-0.5 mb-5">
-                  {[...Array(5)].map((_, j) => <span key={j} className="text-cream-500 text-base">★</span>)}
-                </div>
-                <p className="text-gray-600 text-sm leading-relaxed mb-6 italic">"{t.text}"</p>
-                <div className="flex items-center gap-3 pt-4 border-t border-gray-50">
-                  <div className="w-11 h-11 rounded-2xl bg-teal-50 flex items-center justify-center text-2xl">{t.avatar}</div>
-                  <div>
-                    <p className="font-black text-gray-900 text-sm">{t.name}</p>
-                    <p className="text-teal-600 text-xs font-semibold">{t.role}</p>
+          {storiesLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-7">
+              {[0, 1, 2].map(i => <div key={i} className="rounded-3xl h-56 skeleton" />)}
+            </div>
+          ) : stories.length === 0 ? null : (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-7">
+              {stories.map((s, i) => (
+                <div key={s.id}
+                  className="bg-white rounded-3xl p-8 shadow-card hover:shadow-card-hover
+                    hover:-translate-y-2 transition-all duration-300 animate-fade-up border border-teal-50"
+                  style={{ animationDelay: `${i * 80}ms` }}>
+                  <div className="flex gap-0.5 mb-5">
+                    {[...Array(5)].map((_, j) => <span key={j} className="text-cream-500 text-base">★</span>)}
+                  </div>
+                  <p className="text-gray-600 text-sm leading-relaxed mb-6 italic">"{s.story}"</p>
+                  <div className="flex items-center gap-3 pt-4 border-t border-gray-50">
+                    <img src={s.animal_image} alt={s.animal_name} onError={e => e.target.src = FALLBACK_IMG}
+                      className="w-11 h-11 rounded-2xl object-cover flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="font-black text-gray-900 text-sm truncate">{s.adopter_name}</p>
+                      <p className="text-teal-600 text-xs font-semibold truncate">Adopted {s.animal_name}{s.center_name ? ` · ${s.center_name}` : ''}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

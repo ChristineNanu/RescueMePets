@@ -758,6 +758,33 @@ def get_stats(db: Session = Depends(get_db)):
         "centers": db.query(models.Center).count(),
     }
 
+# No-auth previews for the landing page — real data instead of hardcoded placeholders.
+# Named /landing/* rather than nesting under /animals or /rescue-stories to avoid
+# collisions with the existing /animals/{animal_id} path-param route.
+@app.get("/landing/animals")
+def get_animals_preview(db: Session = Depends(get_db)):
+    animals = (db.query(models.Animal)
+        .filter(models.Animal.status == "available")
+        .order_by(models.Animal.id.desc())
+        .limit(6)
+        .all())
+    return [{
+        "id": a.id, "name": a.name, "species": a.species, "breed": a.breed,
+        "age": a.age, "image": a.image,
+    } for a in animals]
+
+@app.get("/landing/stories")
+def get_rescue_stories_preview(db: Session = Depends(get_db)):
+    stories = (db.query(models.RescueStory)
+        .order_by(models.RescueStory.id.desc())
+        .limit(6)
+        .all())
+    return [{
+        "id": s.id, "adopter_name": s.adopter_name, "animal_name": s.animal_name,
+        "animal_image": s.animal_image, "story": s.story, "adopted_on": s.adopted_on,
+        "center_name": s.center.name if s.center else None,
+    } for s in stories]
+
 # ─── M-PESA PAYMENT ENDPOINTS ───────────────────────────────────────────────
 
 @app.post("/pay/stk-push")
