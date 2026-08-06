@@ -40,10 +40,12 @@ function AnimalModal({ animal, onClose, onAdopt, userId }) {
   const [waitlist, setWaitlist] = useState({ count: 0, on_waitlist: false });
   const [medicalRecords, setMedicalRecords] = useState([]);
   const [showAllRecords, setShowAllRecords] = useState(false);
+  const [activePhoto, setActivePhoto] = useState(0);
 
   useEffect(() => {
     if (!animal) return;
     setShowAllRecords(false);
+    setActivePhoto(0);
     apiFetch(`${API_BASE_URL}/waitlist/${animal.id}${userId ? `?user_id=${userId}` : ''}`)
       .then(r => r.json()).then(setWaitlist).catch(() => {});
     apiFetch(`${API_BASE_URL}/animals/${animal.id}/medical-records`)
@@ -80,13 +82,18 @@ function AnimalModal({ animal, onClose, onAdopt, userId }) {
   };
   const energy = energyMap[animal.energy_level] || energyMap.medium;
 
+  const gallery = [animal.image, ...(animal.photos || [])].filter((v, i, arr) => v && arr.indexOf(v) === i);
+  const photo = gallery[activePhoto] || animal.image;
+  const prevPhoto = (e) => { e.stopPropagation(); setActivePhoto(i => (i - 1 + gallery.length) % gallery.length); };
+  const nextPhoto = (e) => { e.stopPropagation(); setActivePhoto(i => (i + 1) % gallery.length); };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
       onClick={onClose}>
       <div className="bg-white rounded-3xl overflow-hidden max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto border border-teal-50 animate-pop-in"
         onClick={e => e.stopPropagation()}>
-        <div className="relative h-64 flex-shrink-0 overflow-hidden">
-          <img src={animal.image} alt={animal.name}
+        <div className="relative h-64 flex-shrink-0 overflow-hidden bg-gray-100">
+          <img src={photo} alt={animal.name}
             className="w-full h-full object-cover"
             onError={e => e.target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=600&q=80'} />
           <div className="absolute inset-0 bg-gradient-to-t from-gray-900/50 via-transparent to-transparent" />
@@ -94,11 +101,40 @@ function AnimalModal({ animal, onClose, onAdopt, userId }) {
             className="absolute top-4 right-4 bg-white/90 backdrop-blur-md rounded-full w-10 h-10 flex items-center justify-center text-gray-700 hover:bg-white font-bold border-0 cursor-pointer text-lg shadow-lg hover:scale-110 transition-all">
             ✕
           </button>
+          {gallery.length > 1 && (
+            <>
+              <span className="absolute top-4 left-4 bg-black/40 backdrop-blur-sm text-white text-xs font-bold px-2.5 py-1 rounded-full">
+                {activePhoto + 1} / {gallery.length}
+              </span>
+              <button onClick={prevPhoto} aria-label="Previous photo"
+                className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/85 hover:bg-white backdrop-blur-sm rounded-full w-8 h-8 flex items-center justify-center text-gray-700 font-bold border-0 cursor-pointer shadow-md transition-all">
+                ‹
+              </button>
+              <button onClick={nextPhoto} aria-label="Next photo"
+                className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/85 hover:bg-white backdrop-blur-sm rounded-full w-8 h-8 flex items-center justify-center text-gray-700 font-bold border-0 cursor-pointer shadow-md transition-all">
+                ›
+              </button>
+            </>
+          )}
           <div className="absolute bottom-4 left-4 right-4">
             <h2 className="text-2xl font-extrabold text-white">{animal.name}</h2>
             <p className="text-white/75 text-sm">{animal.breed} · {animal.age} yr{animal.age !== 1 ? 's' : ''}</p>
           </div>
         </div>
+
+        {gallery.length > 1 && (
+          <div className="flex gap-2 px-6 pt-4 overflow-x-auto">
+            {gallery.map((src, i) => (
+              <button key={i} onClick={() => setActivePhoto(i)} aria-label={`View photo ${i + 1}`}
+                className={`flex-shrink-0 w-14 h-14 rounded-xl overflow-hidden border-2 p-0 cursor-pointer transition-all
+                  ${i === activePhoto ? 'border-teal-500' : 'border-transparent opacity-60 hover:opacity-100'}`}>
+                <img src={src} alt="" className="w-full h-full object-cover"
+                  onError={e => e.target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=200&q=80'} />
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="p-6">
           <div className="flex items-center gap-2 mb-4 flex-wrap">
             <span className={`text-xs font-bold px-3 py-1 rounded-full ${s.pill}`}>{s.dot} {s.label}</span>

@@ -46,6 +46,7 @@ class AnimalBase(BaseModel):
     energy_level: Optional[str] = "medium"
     personality_badges: Optional[str] = ""
     sponsored: Optional[bool] = False
+    photos: Optional[str] = ""
 
 class Animal(AnimalBase):
     id: int

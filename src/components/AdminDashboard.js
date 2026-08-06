@@ -21,7 +21,7 @@ export default function AdminDashboard({ onLogout }) {
     name: '', species: 'Dog', breed: '', age: 1, description: '', image: '',
     center_id: '', status: 'available', vaccinated: false, neutered: false,
     microchipped: false, good_with_kids: false, good_with_pets: false,
-    energy_level: 'medium', tags: '', personality_badges: '',
+    energy_level: 'medium', tags: '', personality_badges: '', photos: '',
   });
 
   const load = async () => {
@@ -44,13 +44,13 @@ export default function AdminDashboard({ onLogout }) {
 
   const openAdd = () => {
     setEditAnimal(null);
-    setForm({ name: '', species: 'Dog', breed: '', age: 1, description: '', image: '', center_id: centers[0]?.id || '', status: 'available', vaccinated: false, neutered: false, microchipped: false, good_with_kids: false, good_with_pets: false, energy_level: 'medium', tags: '', personality_badges: '' });
+    setForm({ name: '', species: 'Dog', breed: '', age: 1, description: '', image: '', center_id: centers[0]?.id || '', status: 'available', vaccinated: false, neutered: false, microchipped: false, good_with_kids: false, good_with_pets: false, energy_level: 'medium', tags: '', personality_badges: '', photos: '' });
     setShowForm(true);
   };
 
   const openEdit = (a) => {
     setEditAnimal(a);
-    setForm({ name: a.name, species: a.species, breed: a.breed, age: a.age, description: a.description, image: a.image, center_id: a.center_id, status: a.status, vaccinated: a.vaccinated, neutered: a.neutered, microchipped: a.microchipped, good_with_kids: a.good_with_kids, good_with_pets: a.good_with_pets, energy_level: a.energy_level, tags: a.tags?.join(',') || '', personality_badges: a.personality_badges?.join(',') || '' });
+    setForm({ name: a.name, species: a.species, breed: a.breed, age: a.age, description: a.description, image: a.image, center_id: a.center_id, status: a.status, vaccinated: a.vaccinated, neutered: a.neutered, microchipped: a.microchipped, good_with_kids: a.good_with_kids, good_with_pets: a.good_with_pets, energy_level: a.energy_level, tags: a.tags?.join(',') || '', personality_badges: a.personality_badges?.join(',') || '', photos: a.photos?.join(',') || '' });
     setShowForm(true);
   };
 
@@ -336,6 +336,14 @@ export default function AdminDashboard({ onLogout }) {
               <div className="col-span-2">
                 <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-1">Description</label>
                 <textarea value={form.description} onChange={set('description')} rows={3} className="input-field resize-none" />
+              </div>
+
+              <div className="col-span-2">
+                <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-1">
+                  Gallery Photos <span className="normal-case font-semibold text-gray-400">— extra photo URLs, comma-separated (optional)</span>
+                </label>
+                <textarea value={form.photos} onChange={set('photos')} rows={2} placeholder="https://..., https://..., https://..."
+                  className="input-field resize-none" />
               </div>
 
               <div className="col-span-2 flex flex-wrap gap-4">
