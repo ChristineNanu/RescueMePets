@@ -114,6 +114,8 @@ function ProductPreview({ product, onClose, onAddToCart }) {
   const [qty, setQty] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
 
+  const activeColorHex = product.colors?.find(c => c.name === color)?.hex || null;
+
   const handleAdd = () => {
     onAddToCart(product, size, color, qty);
     setJustAdded(true);
@@ -125,8 +127,18 @@ function ProductPreview({ product, onClose, onAddToCart }) {
       <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden max-h-[92vh] overflow-y-auto border border-teal-50 modal-enter grid sm:grid-cols-2"
         onClick={e => e.stopPropagation()}>
 
-        <div className="relative h-64 sm:h-full bg-gray-50">
-          <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+        <div className="relative h-64 sm:h-full bg-gray-50 overflow-hidden">
+          <img src={product.image} alt={product.name} className="w-full h-full object-cover"
+            onError={e => e.target.src = 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&q=85'} />
+          {activeColorHex && (
+            <div className="absolute inset-0 pointer-events-none transition-all duration-300"
+              style={{ background: activeColorHex, mixBlendMode: 'color', opacity: 0.55 }} />
+          )}
+          {product.colors && (
+            <span className="absolute bottom-3 left-3 bg-black/40 text-white text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-sm">
+              Color preview
+            </span>
+          )}
           {product.tag && (
             <span className={`absolute top-4 left-4 text-white text-xs font-black px-3 py-1 rounded-full ${product.tagColor}`}>
               {product.tag}
@@ -225,7 +237,13 @@ function CartDrawer({ cart, onClose, onUpdateQty, onRemove, onCheckout, checking
             <div className="flex flex-col gap-4">
               {cart.map(item => (
                 <div key={item.cartId} className="flex gap-3 pb-4 border-b border-gray-50 last:border-0">
-                  <img src={item.image} alt={item.name} className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
+                  <div className="relative w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-gray-50">
+                    <img src={item.image} alt={item.name} className="w-full h-full object-cover"
+                      onError={e => e.target.src = 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&q=85'} />
+                    {item.colorHex && (
+                      <div className="absolute inset-0 pointer-events-none" style={{ background: item.colorHex, mixBlendMode: 'color', opacity: 0.55 }} />
+                    )}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-gray-800 text-sm truncate">{item.name}</p>
                     {(item.size || item.color) && (
@@ -303,6 +321,7 @@ export default function Shop() {
 
   const addToCart = (product, size, color, qty) => {
     const cartId = cartLineId(product.id, size, color);
+    const colorHex = product.colors?.find(c => c.name === color)?.hex || null;
     setCart(prev => {
       const existing = prev.find(item => item.cartId === cartId);
       if (existing) {
@@ -310,7 +329,7 @@ export default function Shop() {
       }
       return [...prev, {
         cartId, productId: product.id, name: product.name, image: product.image,
-        price: product.price, priceValue: product.priceValue, size, color, quantity: qty,
+        price: product.price, priceValue: product.priceValue, size, color, colorHex, quantity: qty,
       }];
     });
   };
@@ -463,9 +482,10 @@ export default function Shop() {
         </div>
       </div>
 
-      {/* Floating cart button */}
+      {/* Floating cart button — kept on the opposite corner from the chat
+          assistant button (also fixed bottom-6 right-6) to avoid overlap */}
       <button onClick={() => setCartOpen(true)} aria-label="Open cart"
-        className="fixed bottom-6 right-6 z-[60] w-16 h-16 rounded-full bg-gradient-to-br from-teal-600 to-teal-500 text-white shadow-2xl shadow-teal-500/30 border-0 cursor-pointer flex items-center justify-center text-2xl hover:scale-105 transition-all">
+        className="fixed bottom-6 left-6 z-[60] w-16 h-16 rounded-full bg-gradient-to-br from-teal-600 to-teal-500 text-white shadow-2xl shadow-teal-500/30 border-0 cursor-pointer flex items-center justify-center text-2xl hover:scale-105 transition-all">
         🛒
         {cartCount > 0 && (
           <span className="absolute -top-1 -right-1 min-w-[22px] h-[22px] px-1 rounded-full bg-coral-500 text-white text-xs font-black flex items-center justify-center">
