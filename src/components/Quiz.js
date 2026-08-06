@@ -84,7 +84,13 @@ export default function Quiz({ onClose }) {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newAnswers),
         });
-        setResults(await res.json());
+        const data = await res.json();
+        setResults(data);
+        // Cache match IDs (not full objects, which can go stale) so the
+        // dashboard can personalize "Available Now" with these results.
+        if (Array.isArray(data) && data.length > 0) {
+          localStorage.setItem('quiz_match_ids', JSON.stringify(data.map(a => a.id)));
+        }
       } catch { setResults([]); }
       finally { setLoading(false); }
     }

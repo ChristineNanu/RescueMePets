@@ -56,18 +56,16 @@ const TIPS = [
 export default function Dashboard({ onOpenQuiz }) {
   const [stats, setStats]           = useState({ total_animals: 0, available: 0, adopted: 0, centers: 0 });
   const [animals, setAnimals]       = useState([]);
+  const [personalized, setPersonalized] = useState(false);
+  const [favorites, setFavorites]   = useState([]);
   const [apps, setApps]             = useState([]);
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState('');
   const [barWidth, setBarWidth]     = useState(0);
   const [tipIdx, setTipIdx]         = useState(0);
   const [tipVisible, setTipVisible] = useState(true);
-  const [tickets, setTickets]       = useState([]);
-  const [vets, setVets]             = useState([]);
   const [showMerchBanner, setShowMerchBanner] = useState(() => !sessionStorage.getItem('merch_dismissed'));
   const [showGuide, setShowGuide] = useState(() => shouldShowWelcomeGuide('adopter'));
-  const [assigningTicket, setAssigningTicket] = useState(null);
-  const [assignVetId, setAssignVetId]         = useState('');
   const [notifCount, setNotifCount]           = useState(0);
   const [showNotifBanner, setShowNotifBanner] = useState(false);
   const role = localStorage.getItem('role') || 'adopter';
@@ -85,23 +83,28 @@ export default function Dashboard({ onOpenQuiz }) {
       apiFetch(`${API_BASE_URL}/stats`).then(r => r.ok ? r.json() : Promise.reject()),
       apiFetch(`${API_BASE_URL}/animals?user_id=${userId}`).then(r => r.ok ? r.json() : Promise.reject()),
       userId ? apiFetch(`${API_BASE_URL}/my-applications?user_id=${userId}`).then(r => r.ok ? r.json() : []) : Promise.resolve([]),
-      apiFetch(`${API_BASE_URL}/vets`).then(r => r.ok ? r.json() : []),
-    ]).then(([s, a, ap, v]) => {
+      apiFetch(`${API_BASE_URL}/favorites`).then(r => r.ok ? r.json() : []),
+    ]).then(([s, a, ap, favs]) => {
       setStats(s);
-      setAnimals(a.filter(x => x.status === 'available').slice(0, 4));
       setApps(Array.isArray(ap) ? ap : []);
-      setVets(Array.isArray(v) ? v : []);
+      setFavorites(Array.isArray(favs) ? favs.slice(0, 8) : []);
+
+      // Personalize with the last quiz match, if any animals from it are
+      // still actually available; otherwise fall back to newest available.
+      const available = a.filter(x => x.status === 'available');
+      const matchIds = JSON.parse(localStorage.getItem('quiz_match_ids') || '[]');
+      const matched = matchIds.length
+        ? available.filter(x => matchIds.includes(x.id)).sort((x, y) => matchIds.indexOf(x.id) - matchIds.indexOf(y.id))
+        : [];
+      if (matched.length > 0) {
+        setAnimals(matched.slice(0, 4));
+        setPersonalized(true);
+      } else {
+        setAnimals(available.slice(0, 4));
+        setPersonalized(false);
+      }
     }).catch(() => setError('Failed to load dashboard'))
       .finally(() => setLoading(false));
-
-    // Load all support tickets (admin view) — /dashboard is adopter-only, but
-    // guard by role too since /support/all is admin-only server-side.
-    if (role === 'admin') {
-      apiFetch(`${API_BASE_URL}/support/all`)
-        .then(r => r.ok ? r.json() : [])
-        .then(t => setTickets(Array.isArray(t) ? t : []))
-        .catch(() => {});
-    }
 
     loadNotifications();
   }, [userId, role]); // eslint-disable-line
@@ -164,28 +167,6 @@ export default function Dashboard({ onOpenQuiz }) {
   const rate     = stats.total_animals > 0 ? Math.round((stats.adopted / stats.total_animals) * 100) : 0;
   const approved = apps.filter(a => a.status === 'approved').length;
   const feed     = [...apps].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 4);
-
-  const assignVet = async (ticketId) => {
-    if (!assignVetId) return;
-    await apiFetch(`${API_BASE_URL}/support/${ticketId}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'in_progress', vet_id: parseInt(assignVetId) }),
-    });
-    setTickets(ts => ts.map(t => t.id === ticketId
-      ? { ...t, status: 'in_progress', vet: vets.find(v => v.id === parseInt(assignVetId)) }
-      : t
-    ));
-    setAssigningTicket(null);
-    setAssignVetId('');
-  };
-
-  const resolveTicket = async (ticketId) => {
-    await apiFetch(`${API_BASE_URL}/support/${ticketId}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'resolved' }),
-    });
-    setTickets(ts => ts.map(t => t.id === ticketId ? { ...t, status: 'resolved' } : t));
-  };
 
   useEffect(() => { if (!loading) setTimeout(() => setBarWidth(rate), 300); }, [loading, rate]);
 
@@ -324,6 +305,53 @@ export default function Dashboard({ onOpenQuiz }) {
           </div>
         )}
 
+        {/* ── Your Favorites ───────────────────────────────── */}
+        <div className="bg-white rounded-3xl p-5 border border-teal-50 shadow-card animate-fade-up-2">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2.5">
+              <h2 className="font-black text-gray-900 text-base">❤️ Your Favorites</h2>
+              {favorites.length > 0 && <span className="badge bg-coral-100 text-coral-700">{favorites.length}</span>}
+            </div>
+            {favorites.length > 0 && (
+              <button onClick={() => navigate('/my-profile')}
+                className="text-xs font-semibold text-teal-600 hover:text-teal-700 bg-transparent border-0 cursor-pointer">
+                View all →
+              </button>
+            )}
+          </div>
+          {favorites.length === 0 ? (
+            <div className="flex items-center gap-4 py-2">
+              <div className="text-4xl flex-shrink-0">🤍</div>
+              <div className="flex-1 min-w-0">
+                <p className="text-gray-700 font-bold text-sm">No favorites yet</p>
+                <p className="text-gray-400 text-xs mt-0.5">Tap the heart on any animal to save it here for later.</p>
+              </div>
+              <button onClick={() => navigate('/animals')}
+                className="text-xs font-bold text-teal-600 bg-teal-50 border-0 px-4 py-2 rounded-full cursor-pointer hover:bg-teal-100 transition-colors flex-shrink-0">
+                Browse animals →
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
+              {favorites.map((f, i) => (
+                <div key={f.id}
+                  onClick={() => navigate(`/adoption?animalId=${f.id}`)}
+                  style={{ animationDelay: `${i * 60}ms` }}
+                  className="group relative flex-shrink-0 w-28 rounded-2xl overflow-hidden cursor-pointer animate-fade-up border border-gray-50 shadow-sm hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300">
+                  <div className="relative h-28 overflow-hidden bg-gray-50">
+                    <img src={f.image} alt={f.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      onError={e => e.target.src = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=200&q=80'} />
+                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900/70 via-transparent to-transparent" />
+                    <span className="absolute top-1.5 right-1.5 text-coral-400 text-sm">❤️</span>
+                    <p className="absolute bottom-1.5 left-2 right-2 text-white font-bold text-xs truncate">{f.name}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* ── Stat Cards ──────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard icon="🐾" value={stats.total_animals}               label="Total Animals"  sub="In our network"      accent="teal"  delay={0}   />
@@ -358,13 +386,24 @@ export default function Dashboard({ onOpenQuiz }) {
           <div className="lg:col-span-2 space-y-4 animate-fade-up-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <h2 className="font-black text-gray-900 text-lg">Available Now</h2>
-                <span className="badge bg-teal-100 text-teal-700">{stats.available} pets</span>
+                <h2 className="font-black text-gray-900 text-lg">{personalized ? 'Matched For You' : 'Available Now'}</h2>
+                {personalized ? (
+                  <span className="badge bg-coral-100 text-coral-700">✨ Quiz results</span>
+                ) : (
+                  <span className="badge bg-teal-100 text-teal-700">{stats.available} pets</span>
+                )}
               </div>
-              <button onClick={() => navigate('/animals')}
-                className="text-sm font-semibold text-teal-600 hover:text-teal-700 bg-transparent border-0 cursor-pointer group flex items-center gap-1">
-                View all <span className="group-hover:translate-x-0.5 transition-transform inline-block">→</span>
-              </button>
+              {personalized ? (
+                <button onClick={onOpenQuiz}
+                  className="text-sm font-semibold text-teal-600 hover:text-teal-700 bg-transparent border-0 cursor-pointer group flex items-center gap-1">
+                  Retake quiz <span className="group-hover:translate-x-0.5 transition-transform inline-block">→</span>
+                </button>
+              ) : (
+                <button onClick={() => navigate('/animals')}
+                  className="text-sm font-semibold text-teal-600 hover:text-teal-700 bg-transparent border-0 cursor-pointer group flex items-center gap-1">
+                  View all <span className="group-hover:translate-x-0.5 transition-transform inline-block">→</span>
+                </button>
+              )}
             </div>
 
             {animals.length === 0 ? (
@@ -513,83 +552,6 @@ export default function Dashboard({ onOpenQuiz }) {
         </div>
       </div>
 
-      {/* ── Support Tickets (Admin) ─────────────────────── */}
-      {tickets.length > 0 && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-          <div className="bg-white rounded-3xl border border-teal-50 shadow-card overflow-hidden">
-            <div className="px-6 py-4 border-b border-teal-50 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <h2 className="font-black text-gray-900 text-base">🐾 Support Tickets</h2>
-                <span className="badge bg-coral-100 text-coral-700">
-                  {tickets.filter(t => t.status !== 'resolved').length} open
-                </span>
-              </div>
-            </div>
-            <div className="divide-y divide-teal-50">
-              {tickets.map(ticket => {
-                const TSTATUS = {
-                  open:        { bg: 'bg-cream-100',  text: 'text-cream-700',  label: 'Open' },
-                  in_progress: { bg: 'bg-teal-100',   text: 'text-teal-700',   label: 'In Progress' },
-                  resolved:    { bg: 'bg-gray-100',   text: 'text-gray-400',   label: 'Resolved' },
-                };
-                const ts = TSTATUS[ticket.status] || TSTATUS.open;
-
-                return (
-                  <div key={ticket.id} className={`px-6 py-4 flex flex-col sm:flex-row sm:items-start gap-3 ${ticket.status === 'resolved' ? 'opacity-50' : ''}`}>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-bold text-gray-800 text-sm">{ticket.animal_name}</span>
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${ts.bg} ${ts.text}`}>{ts.label}</span>
-                      </div>
-                      <p className="text-xs text-gray-500 italic mb-1">"{ticket.issue}"</p>
-                      <p className="text-xs text-gray-300">{new Date(ticket.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-                      {ticket.vet && (
-                        <p className="text-xs text-teal-600 font-semibold mt-1">🩺 {ticket.vet.name} · {ticket.vet.clinic}</p>
-                      )}
-                    </div>
-                    {ticket.status !== 'resolved' && (
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        {assigningTicket === ticket.id ? (
-                          <>
-                            <select
-                              value={assignVetId}
-                              onChange={e => setAssignVetId(e.target.value)}
-                              className="text-xs border border-teal-200 rounded-xl px-3 py-2 outline-none focus:border-teal-400 bg-white">
-                              <option value="">Select vet...</option>
-                              {vets.map(v => (
-                                <option key={v.id} value={v.id}>{v.name} — {v.specialization}</option>
-                              ))}
-                            </select>
-                            <button onClick={() => assignVet(ticket.id)}
-                              className="text-xs font-bold text-white bg-teal-500 border-0 px-3 py-2 rounded-xl cursor-pointer hover:bg-teal-600 transition-all">
-                              Assign
-                            </button>
-                            <button onClick={() => setAssigningTicket(null)}
-                              className="text-xs font-bold text-gray-400 bg-gray-100 border-0 px-3 py-2 rounded-xl cursor-pointer hover:bg-gray-200 transition-all">
-                              Cancel
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button onClick={() => { setAssigningTicket(ticket.id); setAssignVetId(''); }}
-                              className="text-xs font-bold text-teal-600 bg-teal-50 border border-teal-200 px-3 py-2 rounded-xl cursor-pointer hover:bg-teal-100 transition-all">
-                              🩺 {ticket.vet ? 'Reassign Vet' : 'Assign Vet'}
-                            </button>
-                            <button onClick={() => resolveTicket(ticket.id)}
-                              className="text-xs font-bold text-gray-500 bg-gray-100 border-0 px-3 py-2 rounded-xl cursor-pointer hover:bg-gray-200 transition-all">
-                              ✓ Resolve
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Footer */}
       <footer className="mt-12 border-t border-teal-100/60 bg-white py-8">
