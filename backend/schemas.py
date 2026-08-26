@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
 
 class UserCreate(BaseModel):
@@ -66,7 +66,7 @@ class Center(CenterBase):
 
 class AdoptionCreate(BaseModel):
     animal_id: int
-    message: str
+    message: str = Field(min_length=1, max_length=5000)
     application_type: Optional[str] = "adopt"  # adopt | foster
 
 class FavoriteRequest(BaseModel):
@@ -121,10 +121,10 @@ class PaymentCallback(BaseModel):
     Body: dict
 
 class ApplicationEdit(BaseModel):
-    message: str
+    message: str = Field(min_length=1, max_length=5000)
 
 class StatusUpdate(BaseModel):
-    status: str  # approved, rejected
+    status: str = Field(pattern="^(approved|rejected)$")
 
 class WaitlistRequest(BaseModel):
     animal_id: int
@@ -148,7 +148,7 @@ class SupportTicketCreate(BaseModel):
     issue: str
 
 class TicketStatusUpdate(BaseModel):
-    status: str
+    status: str = Field(pattern="^(open|in_progress|resolved)$")
     vet_id: Optional[int] = None
     resolution_note: Optional[str] = None
 
@@ -201,4 +201,4 @@ class MerchOrderBulkCreate(BaseModel):
     items: List[MerchOrderCreate]
 
 class MerchOrderStatusUpdate(BaseModel):
-    status: str  # requested | contacted | fulfilled | cancelled
+    status: str = Field(pattern="^(requested|contacted|fulfilled|cancelled)$")

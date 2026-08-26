@@ -74,8 +74,7 @@ def require_ticket_participant(ticket, current_user: models.User, db: Session):
     raise HTTPException(status_code=403, detail="You don't have access to this ticket")
 
 def require_dev_env():
-    import os
-    if os.getenv("ENV", "development") == "production":
+    if os.getenv("ENV", "").lower() not in ("development", "dev", "local"):
         raise HTTPException(status_code=403, detail="This endpoint is disabled in production")
 
 def animal_to_dict(animal, favorites=None):
@@ -1094,6 +1093,11 @@ def update_ticket(ticket_id: int, body: schemas.TicketStatusUpdate, current_user
             raise HTTPException(status_code=403, detail="You can only update tickets assigned to you")
     ticket.status = body.status
     if body.vet_id:
+        assigned_vet = db.query(models.Vet).filter(models.Vet.id == body.vet_id).first()
+        if not assigned_vet:
+            raise HTTPException(status_code=404, detail="Vet not found")
+        if ticket.adoption and ticket.adoption.animal and assigned_vet.center_id != ticket.adoption.animal.center_id:
+            raise HTTPException(status_code=400, detail="Vet must belong to the animal's rescue center")
         ticket.vet_id = body.vet_id
         ticket.vet_read = False  # mark unread for vet when assigned
     if body.resolution_note is not None:
