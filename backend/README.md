@@ -26,6 +26,8 @@ The API will be available at `http://localhost:8000`
 - `VAPID_PRIVATE_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_CLAIM_EMAIL` — for push notifications
 - `MPESA_CONSUMER_KEY`, `MPESA_CONSUMER_SECRET`, `MPESA_SHORTCODE`, `MPESA_PASSKEY`, `MPESA_CALLBACK_URL`, `MPESA_ENV` — for M-Pesa payments
 
+Copy `backend/.env.example` to `backend/.env` for local setup. Rotate any credentials that were previously stored in a local `.env` before using them in production.
+
 `ENV=production` also disables the raw SQL interface (`/sql/query`, `/tables`, `/reset-db`) and the M-Pesa test-completion endpoint — both are development-only.
 
 ## API Endpoints
