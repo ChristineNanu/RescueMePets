@@ -21,6 +21,8 @@ The API will be available at `http://localhost:8000`
 `render.yaml` already configures the service, Python version, `ENV=production`, and `DATABASE_URL` (from Render's managed Postgres). You still need to add these as secret environment variables in the Render dashboard — they're intentionally not in `render.yaml` since that file is committed:
 
 - `JWT_SECRET` — required in production (the app raises at startup without it)
+- `ADMIN_PASSWORD` — optional bootstrap password for the first admin account; never use a default password
+- `ADMIN_USERNAME`, `ADMIN_EMAIL` — optional bootstrap identity overrides
 - `VAPID_PRIVATE_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_CLAIM_EMAIL` — for push notifications
 - `MPESA_CONSUMER_KEY`, `MPESA_CONSUMER_SECRET`, `MPESA_SHORTCODE`, `MPESA_PASSKEY`, `MPESA_CALLBACK_URL`, `MPESA_ENV` — for M-Pesa payments
 

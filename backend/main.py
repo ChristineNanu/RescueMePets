@@ -11,27 +11,33 @@ from starlette.concurrency import run_in_threadpool
 models.Base.metadata.create_all(bind=engine)
 db = SessionLocal()
 sample_data.create_sample_data(db)
-# Seed admin account if not exists
-admin_user = db.query(models.User).filter(models.User.username == "admin").first()
-if not admin_user:
-    db.add(models.User(
-        username="admin",
-        email="admin@rescuemepets.com",
-        password=bcrypt.hashpw("admin1234".encode(), bcrypt.gensalt()).decode(),
-        role="admin"
-    ))
-    db.commit()
-elif len(admin_user.password) == 64 and all(c in '0123456789abcdef' for c in admin_user.password):
-    # Migrate legacy SHA-256 admin hash to bcrypt
-    admin_user.password = bcrypt.hashpw("admin1234".encode(), bcrypt.gensalt()).decode()
-    db.commit()
+# Bootstrap an administrator only when an explicit password is provisioned.
+# Never create a known account/password during application startup.
+import os
+admin_password = os.getenv("ADMIN_PASSWORD")
+if admin_password:
+    admin_username = os.getenv("ADMIN_USERNAME", "admin")
+    admin_user = db.query(models.User).filter(models.User.username == admin_username).first()
+    if not admin_user:
+        db.add(models.User(
+            username=admin_username,
+            email=os.getenv("ADMIN_EMAIL", "admin@rescuemepets.local"),
+            password=bcrypt.hashpw(admin_password.encode(), bcrypt.gensalt()).decode(),
+            role="admin"
+        ))
+        db.commit()
 db.close()
 
 app = FastAPI()
 
+cors_origins = [origin.strip() for origin in os.getenv(
+    "CORS_ORIGINS",
+    "https://rescue-me-pets-zga1.vercel.app,http://localhost:3000"
+).split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins,
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -40,7 +46,7 @@ app.add_middleware(
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     traceback.print_exc()
-    return JSONResponse(status_code=500, content={"detail": str(exc)})
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
 def get_password_hash(password: str) -> str:
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
@@ -796,8 +802,10 @@ def initiate_stk_push(req: schemas.PaymentRequest, current_user: models.User = D
         raise HTTPException(status_code=403, detail="This adoption doesn't belong to you")
     if adoption.application_type == "foster":
         raise HTTPException(status_code=400, detail="Foster applications don't require a payment")
-    if req.amount < 1 or req.amount > 100000:
-        raise HTTPException(status_code=400, detail="Invalid payment amount")
+    # The fee is a server-side business rule; never trust a client-supplied amount.
+    adoption_fee = 50
+    if req.amount != adoption_fee:
+        raise HTTPException(status_code=400, detail="Invalid adoption fee")
 
     animal = adoption.animal
     description = f"Adoption fee for {animal.name}"
@@ -806,12 +814,12 @@ def initiate_stk_push(req: schemas.PaymentRequest, current_user: models.User = D
     try:
         result = stk_push(
             phone=req.phone,
-            amount=req.amount,
+            amount=adoption_fee,
             account_ref=account_ref,
             description=description
         )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"M-PESA error: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=502, detail="Payment provider unavailable")
 
     if result.get("ResponseCode") != "0":
         raise HTTPException(status_code=400, detail=result.get("errorMessage", "STK Push failed"))
@@ -820,7 +828,7 @@ def initiate_stk_push(req: schemas.PaymentRequest, current_user: models.User = D
         user_id=current_user.id,
         adoption_id=req.adoption_id,
         phone=req.phone,
-        amount=req.amount,
+        amount=adoption_fee,
         checkout_request_id=result.get("CheckoutRequestID"),
         merchant_request_id=result.get("MerchantRequestID"),
         status="pending"
@@ -969,8 +977,8 @@ def initiate_b2c(req: schemas.B2CRequest, current_user: models.User = Depends(au
             occasion=req.occasion,
             remarks=req.remarks
         )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"B2C error: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=502, detail="Payout provider unavailable")
 
     if result.get("ResponseCode") != "0":
         raise HTTPException(status_code=400, detail=result.get("errorMessage", "B2C payout failed"))
