@@ -194,7 +194,10 @@ def get_animals(species: str = None, search: str = None, status: str = None, db:
 
 @app.get("/animals/{animal_id}")
 def get_animal(animal_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user_optional)):
-    animal = db.query(models.Animal).filter(models.Animal.id == animal_id).first()
+    animal = db.query(models.Animal).filter(
+        models.Animal.id == animal_id,
+        models.Animal.deleted_at.is_(None),
+    ).first()
     if not animal:
         raise HTTPException(status_code=404, detail="Animal not found")
     favorites = []
@@ -923,7 +926,11 @@ async def mpesa_callback(request: Request, db: Session = Depends(get_db)):
             print(f"Callback: no payment found for checkout_id={checkout_request_id}")
             return {"ResultCode": 0, "ResultDesc": "Accepted"}
 
-        if result_code == 0:
+        # Callback payloads are unauthenticated; confirm the transaction with
+        # Safaricom before changing local payment or adoption state.
+        provider_result = query_stk_status(checkout_request_id)
+        provider_code = str(provider_result.get("ResultCode", ""))
+        if provider_code == "0" and result_code == 0:
             metadata = stk_callback.get("CallbackMetadata", {}).get("Item", [])
             receipt = next((i["Value"] for i in metadata if i["Name"] == "MpesaReceiptNumber"), None)
             payment.status = "completed"
@@ -937,7 +944,7 @@ async def mpesa_callback(request: Request, db: Session = Depends(get_db)):
                 if payment.adoption.animal:
                     payment.adoption.animal.status = "adopted"
             print(f"Callback: payment {payment.id} completed, receipt={receipt}")
-        else:
+        elif provider_code and provider_code != "0" and result_code != 0:
             payment.status = "failed"
             print(f"Callback: payment {payment.id} failed with code {result_code}")
 
@@ -1427,7 +1434,15 @@ def get_medical_records(animal_id: int, db: Session = Depends(get_db)):
 
 @app.post("/animals/{animal_id}/medical-records")
 def add_medical_record(animal_id: int, body: schemas.MedicalRecordCreate, current_user: models.User = Depends(auth.require_vet_or_admin), db: Session = Depends(get_db)):
+    animal = db.query(models.Animal).filter(
+        models.Animal.id == animal_id,
+        models.Animal.deleted_at.is_(None),
+    ).first()
+    if not animal:
+        raise HTTPException(status_code=404, detail="Animal not found")
     vet = db.query(models.Vet).filter(models.Vet.user_id == current_user.id).first()
+    if current_user.role == "vet" and (not vet or vet.center_id != animal.center_id):
+        raise HTTPException(status_code=403, detail="You can only update animals at your center")
     record = models.MedicalRecord(
         animal_id=animal_id,
         vet_id=vet.id if vet else None,
@@ -1447,6 +1462,10 @@ def delete_medical_record(record_id: int, current_user: models.User = Depends(au
     record = db.query(models.MedicalRecord).filter(models.MedicalRecord.id == record_id).first()
     if not record:
         raise HTTPException(status_code=404, detail="Record not found")
+    if current_user.role == "vet":
+        vet = db.query(models.Vet).filter(models.Vet.user_id == current_user.id).first()
+        if not vet or not record.animal or record.animal.center_id != vet.center_id:
+            raise HTTPException(status_code=403, detail="You can only update records at your center")
     db.delete(record)
     db.commit()
     return {"message": "Record deleted"}
