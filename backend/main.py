@@ -32,7 +32,7 @@ app = FastAPI()
 
 cors_origins = [origin.strip() for origin in os.getenv(
     "CORS_ORIGINS",
-    "https://rescue-me-pets-zga1.vercel.app,http://localhost:3000,http://localhost:3001"
+    "https://rescue-me-pets-568k.vercel.app,http://localhost:3000,http://localhost:3001"
 ).split(",") if origin.strip()]
 
 app.add_middleware(
