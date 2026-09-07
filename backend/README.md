@@ -1,41 +1,87 @@
 # RescueMePets Backend
 
-FastAPI backend for the RescueMePets application.
+This folder contains the FastAPI backend for the RescueMePets app. It exposes the API for user auth, animal listings, adoption workflows, vet tools, admin functions, notifications, and payment integrations.
 
-## Local Development
+## What this backend does
 
-1. Install dependencies:
+- authenticates adopters, vets, and admins with JWT tokens
+- manages animal, user, ticket, application, and medical-record data
+- handles adoption and foster-to-adopt logic
+- integrates with Safaricom M-Pesa for payment workflows
+- sends web push notifications and supports real-time messaging
+- exposes admin-only reporting and analytics endpoints
+
+## Local setup
+
 ```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
-```
-
-2. Run the server:
-```bash
+cp .env.example .env
 uvicorn main:app --reload
 ```
 
-The API will be available at `http://localhost:8000`
+The API will be available at http://localhost:8000.
 
-## Deployment to Render
+## Environment variables
 
-`render.yaml` already configures the service, Python version, `ENV=production`, and `DATABASE_URL` (from Render's managed Postgres). You still need to add these as secret environment variables in the Render dashboard — they're intentionally not in `render.yaml` since that file is committed:
+Use `.env.example` as the template. The main values are:
 
-- `JWT_SECRET` — required in production (the app raises at startup without it)
-- `ADMIN_PASSWORD` — optional bootstrap password for the first admin account; never use a default password
-- `ADMIN_USERNAME`, `ADMIN_EMAIL` — optional bootstrap identity overrides
-- `VAPID_PRIVATE_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_CLAIM_EMAIL` — for push notifications
-- `MPESA_CONSUMER_KEY`, `MPESA_CONSUMER_SECRET`, `MPESA_SHORTCODE`, `MPESA_PASSKEY`, `MPESA_CALLBACK_URL`, `MPESA_ENV` — for M-Pesa payments
+```env
+ENV=development
+JWT_SECRET=<generate-a-long-random-secret>
+ADMIN_PASSWORD=<set-only-when-bootstrapping-an-admin>
+ADMIN_USERNAME=admin
+ADMIN_EMAIL=admin@rescuemepets.local
+CORS_ORIGINS=http://localhost:3000
+DATABASE_URL=sqlite:///./database.db
 
-Copy `backend/.env.example` to `backend/.env` for local setup. Rotate any credentials that were previously stored in a local `.env` before using them in production.
+MPESA_CONSUMER_KEY=<your-consumer-key>
+MPESA_CONSUMER_SECRET=<your-consumer-secret>
+MPESA_SHORTCODE=174379
+MPESA_PASSKEY=<your-passkey>
+MPESA_CALLBACK_URL=https://<your-domain>/pay/callback
+MPESA_ENV=sandbox
 
-`ENV=production` also disables the raw SQL interface (`/sql/query`, `/tables`, `/reset-db`) and the M-Pesa test-completion endpoint — both are development-only.
+VAPID_PRIVATE_KEY=<your-vapid-private-key>
+VAPID_PUBLIC_KEY=<your-vapid-public-key>
+VAPID_CLAIM_EMAIL=admin@rescuemepets.local
+```
 
-## API Endpoints
+Notes:
 
-See the [root README](../README.md#api-endpoints) for the full, current endpoint list — this backend has grown well past the original register/login/animals/adopt set to include JWT auth, WebSocket real-time messaging, medical records, foster-to-adopt, push notifications, and admin analytics/reports.
+- `JWT_SECRET` is required in production
+- `ADMIN_PASSWORD` is optional and only used when bootstrapping the first admin account
+- keep secrets out of version control
+- do not reuse a weak default password in production
+
+## Deployment
+
+The app includes `render.yaml` for Render deployment. In production, set the sensitive values through your hosting dashboard environment variables rather than storing them in the repo.
+
+A few production behaviors are intentionally restricted:
+
+- development-only SQL endpoints are disabled when `ENV=production`
+- M-Pesa dev-only test routes are disabled in production
+- the app expects secrets to be provided via environment variables
+
+## Key backend files
+
+- `main.py` — FastAPI application, routes, and startup logic
+- `auth.py` — JWT issuance, verification, and auth helpers
+- `models.py` — SQLAlchemy models
+- `schemas.py` — request and response validation models
+- `database.py` — database session setup
+- `daraja.py` — Safaricom M-Pesa integration
+- `push.py` — web push notification delivery
+- `sql_engine.py` — dev-only SQL engine
+- `sample_data.py` — seed data for local development
+
+## API notes
+
+The backend exposes both REST endpoints and WebSocket-based messaging for live ticket threads and notifications. It is designed to support the frontend app directly and is not meant to be used as a generic API-only service.
 
 ## CORS
 
-The API allows requests from:
-- `https://rescue-me-pets-zga1.vercel.app` (Vercel deployment)
-- `http://localhost:3000` (local development)
+By default, the app allows common local frontend origins and production deployment origins configured through `CORS_ORIGINS`.
