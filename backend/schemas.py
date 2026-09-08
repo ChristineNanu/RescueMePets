@@ -202,10 +202,3 @@ class MerchOrderBulkCreate(BaseModel):
 
 class MerchOrderStatusUpdate(BaseModel):
     status: str = Field(pattern="^(requested|contacted|fulfilled|cancelled)$")
-
-class ForgotPasswordRequest(BaseModel):
-    email: str
-
-class ResetPasswordRequest(BaseModel):
-    token: str
-    new_password: str = Field(min_length=6, max_length=128)

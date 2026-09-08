@@ -2,8 +2,6 @@ import os
 import secrets
 import hashlib
 import time
-import smtplib
-from email.message import EmailMessage
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -29,29 +27,6 @@ if not JWT_SECRET:
         raise RuntimeError("JWT_SECRET must be set in production")
     JWT_SECRET = "dev-only-insecure-secret-change-me"
     print("WARNING: JWT_SECRET not set — using an insecure dev default. Set JWT_SECRET in backend/.env.")
-
-SMTP_HOST = os.getenv("SMTP_HOST")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USERNAME = os.getenv("SMTP_USERNAME")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
-SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", SMTP_USERNAME)
-SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "RescueMePets")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
-
-
-def send_email(to_email: str, subject: str, html_body: str, text_body: str = "") -> None:
-    if not SMTP_HOST or not SMTP_USERNAME or not SMTP_PASSWORD:
-        raise RuntimeError("SMTP is not configured on the server")
-    msg = EmailMessage()
-    msg["Subject"] = subject
-    msg["From"] = f"{SMTP_FROM_NAME} <{SMTP_FROM_EMAIL}>"
-    msg["To"] = to_email
-    msg.set_content(text_body or "Please use an HTML-compatible email client to view this message.")
-    msg.add_alternative(html_body, subtype="html")
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-        server.starttls()
-        server.login(SMTP_USERNAME, SMTP_PASSWORD)
-        server.send_message(msg)
 
 
 def _hash_token(token: str) -> str:
