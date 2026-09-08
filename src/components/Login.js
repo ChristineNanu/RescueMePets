@@ -117,6 +117,13 @@ export const Login = ({ onLogin }) => {
                 Register here
               </button>
             </div>
+
+            <div className="text-center mt-3 text-sm text-gray-500">
+              <button onClick={() => navigate('/forgot-password')}
+                className="text-teal-600 font-bold bg-transparent border-0 cursor-pointer hover:text-teal-700 hover:underline">
+                Forgot password?
+              </button>
+            </div>
           </div>
 
           <div className="text-center mt-5">

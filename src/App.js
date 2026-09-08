@@ -11,6 +11,8 @@ import Chatbot from './components/Chatbot';
 import Quiz from './components/Quiz';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
+import { ForgotPassword } from './components/ForgotPassword';
+import { ResetPassword } from './components/ResetPassword';
 import VetRegister from './components/VetRegister';
 import AdminDashboard from './components/AdminDashboard';
 import VetPortal from './components/VetPortal';
@@ -41,7 +43,7 @@ function usePawParticles() {
   }, []);
 }
 
-const HIDDEN_NAV = ['/', '/login', '/register', '/register/vet', '/admin', '/vet-portal'];
+  const HIDDEN_NAV = ['/', '/login', '/register', '/register/vet', '/admin', '/vet-portal', '/forgot-password', '/reset-password'];
 
 function AppContent({ isLoggedIn, role, handleLogin, handleLogout }) {
   const location = useLocation();
@@ -65,6 +67,8 @@ function AppContent({ isLoggedIn, role, handleLogin, handleLogout }) {
         <Route path="/login"        element={isLoggedIn ? homeRedirect() : <Login onLogin={handleLogin} />} />
         <Route path="/register"     element={isLoggedIn ? homeRedirect() : <Register />} />
         <Route path="/register/vet" element={isLoggedIn ? homeRedirect() : <VetRegister />} />
+        <Route path="/forgot-password" element={isLoggedIn ? homeRedirect() : <ForgotPassword />} />
+        <Route path="/reset-password"  element={isLoggedIn ? homeRedirect() : <ResetPassword />} />
 
         {/* Adopter routes */}
         <Route path="/dashboard"  element={isLoggedIn && role === 'adopter' ? <Dashboard onOpenQuiz={() => setShowQuiz(true)} /> : homeRedirect()} />

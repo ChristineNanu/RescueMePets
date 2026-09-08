@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import models, schemas, sample_data, auth, push
 from database import SessionLocal, engine, get_db
 import hashlib, traceback, bcrypt
+from datetime import datetime, timezone, timedelta
 from daraja import stk_push, query_stk_status, b2c_payout
 from starlette.concurrency import run_in_threadpool
 
@@ -171,6 +172,59 @@ def refresh_token(body: schemas.RefreshRequest, db: Session = Depends(get_db)):
 def logout(body: schemas.RefreshRequest, db: Session = Depends(get_db)):
     auth.revoke_refresh_token(body.refresh_token, db)
     return {"message": "Logged out"}
+
+@app.post("/auth/forgot-password")
+def forgot_password(body: schemas.ForgotPasswordRequest, request: Request, db: Session = Depends(get_db)):
+    auth.rate_limit(request, "forgot-password", max_attempts=5, window_seconds=600)
+    user = db.query(models.User).filter(models.User.email == body.email).first()
+    if user:
+        raw_token = secrets.token_urlsafe(48)
+        token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+        db.add(models.PasswordReset(
+            user_id=user.id,
+            token_hash=token_hash,
+            expires_at=expires_at,
+        ))
+        db.commit()
+        reset_url = f"{auth.FRONTEND_URL}/reset-password?token={raw_token}"
+        try:
+            auth.send_email(
+                to_email=user.email,
+                subject="Reset your RescueMePets password",
+                html_body=f"""
+                <p>Hello {user.username},</p>
+                <p>Click the link below to reset your password. This link expires in 1 hour.</p>
+                <p><a href="{reset_url}">Reset Password</a></p>
+                <p>If you didn't request this, you can safely ignore this email.</p>
+                """,
+                text_body=f"Reset your password: {reset_url}",
+            )
+        except Exception:
+            pass
+    return {"message": "If an account with that email exists, we sent a password reset link."}
+
+@app.post("/auth/reset-password")
+def reset_password(body: schemas.ResetPasswordRequest, db: Session = Depends(get_db)):
+    token_hash = hashlib.sha256(body.token.encode()).hexdigest()
+    record = db.query(models.PasswordReset).filter(
+        models.PasswordReset.token_hash == token_hash,
+        models.PasswordReset.used_at == None,
+        models.PasswordReset.expires_at > datetime.now(timezone.utc),
+    ).first()
+    if not record:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+    user = db.query(models.User).filter(models.User.id == record.user_id, models.User.deleted_at == None).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="User not found")
+    user.password = get_password_hash(body.new_password)
+    record.used_at = datetime.now(timezone.utc)
+    db.query(models.PasswordReset).filter(
+        models.PasswordReset.user_id == user.id,
+        models.PasswordReset.used_at == None,
+    ).update({"used_at": datetime.now(timezone.utc)})
+    db.commit()
+    return {"message": "Password reset successfully"}
 
 @app.get("/animals")
 def get_animals(species: str = None, search: str = None, status: str = None, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user_optional)):
