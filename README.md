@@ -2,6 +2,11 @@
 
 RescueMePets is a full-stack pet adoption platform built with React on the frontend and FastAPI on the backend. It supports animal browsing, adoption and foster applications, vet workflows, admin operations, messaging, notifications, and payment flows.
 
+![Landing Page](./screenshots/Landing page.png)
+![Admin Dashboard](./screenshots/admin dashboard.png)
+![Browse Animals](./screenshots/Browse animals.png)
+![Vet Dashboard](./screenshots/vet dashboard.png)
+![Vet Portal](./screenshots/vet.portal.png)
 ## Overview
 
 The project combines a public pet marketplace with internal workflows for:
