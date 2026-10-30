@@ -135,6 +135,3 @@ For backend-specific deployment and configuration notes, see [backend/README.md]
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
----
-
-Made with ❤️ for animals everywhere. Help a pet find their forever home. 🐾
